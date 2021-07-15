@@ -182,6 +182,12 @@ induction sizes.
 + simpl. 
 *)
 
+Lemma diag_destruct s F:
+  forall i j: 'I_(size_sum s).+1,
+  exists k l m n, (diag_block_mx s F) i j = F k l m n
+  \/ (diag_block_mx s F) i j = 0 :> (complex R).
+Admitted.
+
 Lemma each_enrty_zero_lim:
   forall (n:nat) (A: 'M[complex R]_n.+1),
   (forall i: 'I_n.+1, (C_mod (lambda A i) < 1)%Re )->

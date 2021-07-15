@@ -1,3 +1,9 @@
+(** Here we are attempting to prove that
+if the magnitude of all the eigen values
+of a matrix is less than 1, then 
+\lim_{m \to \infty} ||S^m|| = 0, where
+||.|| is a matrix norm **)
+
 Require Import ClassicalEpsilon.
 Require Import Reals Psatz R_sqrt R_sqr.
 From mathcomp Require Import all_algebra all_ssreflect ssrnum bigop.

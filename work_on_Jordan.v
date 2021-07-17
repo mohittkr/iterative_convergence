@@ -75,20 +75,6 @@ Proof.
 intros. by rewrite H.
 Qed.
 
-(*
-Lemma conform_mx_mult: forall (n:nat) (A B C: 'M[complex R]_n.+1),
-  conform_mx A (B * C) = (conform_mx A B) *(conform_mx A C).
-Proof.
-intros. 
-by rewrite !conform_mx_id. 
-Qed.
-
-(** Stuck here with conform. Not sure how to move forward **)
-Lemma conform_mx_mult1: forall (n:nat) (A B V: 'M[complex R]_n.+1),
-  conform_mx A (Jordan_form (B * V)) = 
-  conform_mx A (Jordan_form B) * conform_mx A (Jordan_form V).
-Admitted. 
-*)
 
 (** The lemmas matrix_norm_equality and mat_power look 
   obvious if size of B = size of A, but stuck at how to 
@@ -206,6 +192,13 @@ Lemma diag_destruct s F:
   \/ (diag_block_mx s F) i j = 0 :> (complex R).
 Proof.
 intros.
+induction s.
++ exists 0%N. exists 0. exists 0. exists 0.
+  simpl. right. by rewrite !mxE.
++ simpl. induction s.
+  - simpl. exists a. exists 0. exists i. exists j.
+    by left.
+  - simpl. admit.
 Admitted.
 
 Lemma C_mod_0: C_mod 0 = 0%Re.
@@ -219,15 +212,114 @@ Proof.
 intros. unfold C_mod. apply sqrt_pos.
 Qed.
 
+Lemma Re_complex_prod: forall (x y: complex R), 
+  Re (x * y) = Re x * Re y - Im x * Im y.
+Proof.
+intros. destruct x. destruct y. simpl. by [].
+Qed.
+
+Lemma Im_complex_prod: forall (x y:complex R),
+  Im (x * y) = Re x * Im y + Im x * Re y.
+Proof.
+intros. destruct x. destruct y. simpl. by [].
+Qed.
 
 Lemma C_mod_prod: forall (x y: complex R), 
   C_mod (x * y) = C_mod x * C_mod y.
 Proof.
-intros. 
+intros. unfold C_mod. rewrite -[RHS]RmultE. 
+rewrite -sqrt_mult.
++ assert ( Re (x * y) ^+ 2 + Im (x * y) ^+ 2 = 
+            ((Re x ^+ 2 + Im x ^+ 2) * (Re y ^+ 2 + Im y ^+ 2))).
+  { rewrite Re_complex_prod Im_complex_prod. 
+    rewrite -!RpowE -!RmultE -!RplusE -!RoppE. nra.
+  } rewrite !RplusE. by rewrite H.
++ apply Rplus_le_le_0_compat.
+  - rewrite -RpowE. nra.
+  - rewrite -RpowE. nra.
++ apply Rplus_le_le_0_compat.
+  - rewrite -RpowE. nra.
+  - rewrite -RpowE. nra.
+Qed.
+
+Lemma Re_complex_div: forall (x y: complex R),
+  Re (x / y) = (Re x * Re y + Im x * Im y) / ((Re y)^+2 + (Im y)^+2).
+Proof.
+intros. destruct x. destruct y. simpl. 
+by rewrite mulrDl mulrN opprK !mulrA.
+Qed.
+
+
+Lemma Im_complex_div: forall (x y: complex R),
+  Im (x / y) = ( - (Re x * Im y) + Im x * Re y) / ((Re y)^+2 + (Im y)^+2).
+Proof.
+intros. destruct x. destruct y. simpl. 
+by rewrite mulrDl mulrN mulNr !mulrA.
+Qed.
+
+
+Lemma complex_not_0 (x: complex R) : 
+  (Re x +i* Im x)%C <> 0 -> Re x <> 0 /\ Im x <> 0.
+Proof.
+destruct x. simpl. admit. 
 Admitted.
 
 Lemma C_mod_div: forall (x y: complex R),
   y <> 0 -> C_mod (x / y) = (C_mod x) / (C_mod y).
+Proof.
+intros. unfold C_mod. rewrite -[RHS]RdivE.
++ rewrite -sqrt_div.
+  - assert ( (Re (x / y) ^+ 2 + Im (x / y) ^+ 2) =
+      ((Re x ^+ 2 + Im x ^+ 2) / (Re y ^+ 2 + Im y ^+ 2))).
+    { rewrite Re_complex_div Im_complex_div. 
+      rewrite !expr_div_n. rewrite -mulrDl.
+      rewrite sqrrD. 
+      assert ( (- (Re x * Im y) + Im x * Re y) = 
+                Im x * Re y - (Re x * Im y)).
+      { by rewrite addrC. } rewrite H0. clear H0.
+      rewrite sqrrB //=. rewrite !addrA !mulrA. 
+      assert ( ((Re x * Re y) ^+ 2 + Re x * Re y * Im x * Im y +
+             Re x * Re y * Im x * Im y + (Im x * Im y) ^+ 2 +
+             (Im x * Re y) ^+ 2 - Im x * Re y * Re x * Im y *+ 2 +
+             (Re x * Im y) ^+ 2) = 
+              (Re x ^+ 2 + Im x ^+ 2) * (Re y ^+ 2 + Im y ^+ 2)).
+      { rewrite !expr2 mulr2n !mulrA. 
+        rewrite -!RmultE -!RplusE -!RoppE Rmult_comm. nra. 
+      } rewrite H0. clear H0. rewrite -mulrA.
+      assert ( ((Re y ^+ 2 + Im y ^+ 2) / (Re y ^+ 2 + Im y ^+ 2) ^+ 2)=
+                (Re y ^+ 2 + Im y ^+ 2)^-1).
+      { assert ( (Re y ^+ 2 + Im y ^+ 2) ^+ 2 = 
+                (Re y ^+ 2 + Im y ^+ 2) * (Re y ^+ 2 + Im y ^+ 2)).
+        { by rewrite expr2. }
+        rewrite H0. clear H0. admit. 
+      }
+      by rewrite H0. 
+    } rewrite !RplusE. 
+    rewrite RdivE.
+    * by rewrite H0. 
+    * apply /eqP. rewrite -RplusE -!RpowE.
+      assert ( (0 < (Re y ^ 2 + Im y ^ 2)%Re)%Re -> 
+              (Re y ^ 2 + Im y ^ 2)%Re <> 0%Re). { nra. } 
+      apply H1. 
+      assert ( (Re y <> 0%Re /\ Im y <> 0%Re) -> 
+            (0 < Re y ^ 2 + Im y ^ 2)%Re). { nra. }
+      apply H2.  apply complex_not_0. 
+      move: H. destruct y. by simpl.  
+  - apply Rplus_le_le_0_compat.
+    * rewrite -RpowE. nra.
+    * rewrite -RpowE. nra.
+  - assert ( (Re y <> 0%Re /\ Im y <> 0%Re) -> 
+            (0 < Re y ^ 2 + Im y ^ 2)%Re). { nra. }
+    rewrite -!RpowE. apply H0. 
+    apply complex_not_0.  move: H. destruct y. by simpl.
++ apply /eqP. rewrite -!RpowE.
+  assert ( (0< sqrt (Re y ^ 2 + Im y ^ 2))%Re -> 
+          sqrt (Re y ^ 2 + Im y ^ 2) <> 0%Re).  { nra. }
+  apply H0. apply sqrt_lt_R0.
+  assert ( (Re y <> 0%Re /\ Im y <> 0%Re) -> 
+            (0 < Re y ^ 2 + Im y ^ 2)%Re). { nra. }
+  apply H1. apply complex_not_0. 
+  move: H. destruct y. by simpl.  
 Admitted.
 
 Lemma posreal_cond: forall (x:posreal), (0< x)%Re.
@@ -477,9 +569,6 @@ induction n.
   - apply IHn. intros. apply H.
   - apply H.
 Qed.
-
-
-
 
 
 (** assumption that the sum of algebraic multiplicity

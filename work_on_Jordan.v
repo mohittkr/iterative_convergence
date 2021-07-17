@@ -1,13 +1,8 @@
-(** Here we are attempting to prove that
-if the magnitude of all the eigen values
-of a matrix is less than 1, then 
-\lim_{m \to \infty} ||S^m|| = 0, where
-||.|| is a matrix norm **)
-
 Require Import ClassicalEpsilon.
 Require Import Reals Psatz R_sqrt R_sqr.
 From mathcomp Require Import all_algebra all_ssreflect ssrnum bigop.
-From mathcomp.analysis Require Import Rstruct.
+From mathcomp.analysis Require Import boolp Rstruct classical_sets posnum
+     topology normedtype landau sequences.
 Require Import Coquelicot.Lim_seq.
 Require Import Coquelicot.Rbar.
 Require Import Coquelicot.Hierarchy Coquelicot.Lub.
@@ -25,7 +20,9 @@ Open Scope ring_scope.
 Delimit Scope ring_scope with Ri.
 Delimit Scope R_scope with Re.
 
-Import GRing.Theory Num.Def Num.Theory.
+Import Order.TTheory GRing.Theory Num.Def Num.Theory.
+
+Open Scope classical_set_scope.
 
 From mathcomp Require Import complex.
 
@@ -150,38 +147,25 @@ intros. apply ext_block.
 intros. by rewrite Jordan_expn.
 Qed.
 
+Check geometric.
+Check cvg_geometric.
+Check cvg_geometric.
+
+Lemma lim_exp_0 (x : [archiFieldType of R]) : `|x| < 1 ->
+  ((fun n => x ^+ n) --> 0%Re).
+Proof.
+move=> modxlt1.
+have := cvg_geometric 1 modxlt1.
+suff -> : geometric 1 x = [eta GRing.exp x] by [].
+apply: funext => n.
+by rewrite /geometric /= mul1r.
+Qed.
+
 (** Add a lemma that each entry of the Jordan matrix goes
   to zero as m \to \infty **)
 
 
-(** TODO: figure out how to destruct i and j **) 
-
-(*
-Lemma diag_destruct:  
-  forall (m n l:nat) (A: 'M[complex R]_n.+1),
-  let sp := root_seq_poly (invariant_factors A) in
-  let sizes := [seq x0.2.-1 | x0 <- sp] in
-  let F:= (fun n0 i1 : nat =>
-               \matrix_(i2, j0) (('C(m.+1, j0 - i2))%:R *
-                                     (nth 
-                                     (0, 0%N)
-                                     (root_seq_poly
-                                     (invariant_factors A))
-                                     i1).1
-                                     ^+ 
-                                     (m.+1 - (j0 - i2)) *+
-                                     (i2 <= j0))) in
-  let k:= (nth (0,0%N) sp l).2.-1 in 
-  forall i j: 'I_(size_sum sizes).+1,
-  (k-1 < i < k)%N -> (k-1 < j < k)%N -> 
-  diag_block_mx sizes F i j = (F k l) 0 0.
-Proof.
-intros.
-induction sizes.
-+ simpl. admit.
-+ simpl. 
-*)
-
+(** TODO: figure out how to destruct i and j **)
 Lemma each_enrty_zero_lim:
   forall (n:nat) (A: 'M[complex R]_n.+1),
   (forall i: 'I_n.+1, (C_mod (lambda A i) < 1)%Re )->
@@ -206,6 +190,8 @@ intros.
 (** here I need to extract individual value from the 
   block. Need to figure out what diag_block_mx i j means **)
 
+
+admit.
 Admitted.
 
 
@@ -522,24 +508,22 @@ Qed.
 
 (** Try to extract V from the definition of similar **)
 Lemma eigen_matrix_set (n:nat) (A: 'M[complex R]_n.+1):
-  { V : 'M_n.+1 | (V \in unitmx /\
-    V *m A = conform_mx V (Jordan_form A) *m V )}.
+  { V : 'M_n.+1 | ((V \in unitmx) &&
+    (V *m A == conform_mx V (Jordan_form A) *m V ))}.
 Proof.
-have mat_inh : inhabited 'M[complex R]_n.+1 by apply (inhabits 0).
-set f  := fun (V : 'M[complex R]_n.+1) => V \in unitmx /\
-           mulmx V A = mulmx (conform_mx V (Jordan_form A)) V.
-set v := (epsilon mat_inh f).
-exists v; apply/(epsilon_spec mat_inh f); apply:V_exists.
+apply: sigW.
+case: (V_exists A)=> P [Pu PA].
+exists P; apply/andP; split;[exact: Pu | apply/eqP; exact PA].
 Qed.
+
+(*
+Lemma exp_cvg0 (x : R) :
+   0 < x < 1 ->
+   ((x ^ n) @[n --> +oo] --> 0)%classic.
+*)
 
 Definition eigen_matrix (n:nat) (A: 'M[complex R]_n.+1):= 
   proj1_sig (eigen_matrix_set A). 
-
-(** Define the ith eigen vector **)
-Definition eigen_vector (n:nat) (i: 'I_n.+1) (A: 'M[complex R]_n.+1) :=
-  col i (eigen_matrix A).
-
-
 
 Check eigen_matrix.
 

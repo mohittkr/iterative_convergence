@@ -19,6 +19,7 @@ From CoqEAL Require Import mxstructure ssrcomplements.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+Obligation Tactic := idtac.
 
 Open Scope R_scope.
 Open Scope ring_scope.
@@ -201,16 +202,59 @@ induction sizes.
 
 Lemma diag_destruct s F:
   forall i j: 'I_(size_sum s).+1,
-  exists k l m n, (diag_block_mx s F) i j = F k l m n
+  exists k (l:'I_(size_sum s).+1) m n, (diag_block_mx s F) i j = F k l m n
   \/ (diag_block_mx s F) i j = 0 :> (complex R).
+Proof.
+intros.
 Admitted.
+
+Lemma C_mod_0: C_mod 0 = 0%Re.
+Proof.
+unfold C_mod. simpl. by rewrite expr2 mul0r Rplus_0_r sqrt_0.
+Qed.
+
+Lemma C_mod_ge_0: 
+  forall (x: complex R), (0<= C_mod x)%Re.
+Proof.
+intros. unfold C_mod. apply sqrt_pos.
+Qed.
+
+
+Lemma C_mod_prod: forall (x y: complex R), 
+  C_mod (x * y) = C_mod x * C_mod y.
+Proof.
+intros. 
+Admitted.
+
+Lemma C_mod_div: forall (x y: complex R),
+  y <> 0 -> C_mod (x / y) = (C_mod x) / (C_mod y).
+Admitted.
+
+Lemma posreal_cond: forall (x:posreal), (0< x)%Re.
+Proof.
+intros. destruct x. auto.
+Qed.
+
+Lemma real_sub_0r : forall (x: R), (x-0)%Re = x.
+Proof.
+intros. rewrite RminusE. by rewrite subr0.
+Qed.
+
+Lemma Rsqr_ge_0: forall (x:R), (0<=x)%Re -> (0<= Rsqr x)%Re.
+Proof.
+intros.
+unfold Rsqr. assert (0%Re = (0*0)%Re). { nra. }
+rewrite H0. apply Rmult_le_compat;nra. 
+Qed.
+
+
 
 Lemma each_enrty_zero_lim:
   forall (n:nat) (A: 'M[complex R]_n.+1),
-  (forall i: 'I_n.+1, (C_mod (lambda A i) < 1)%Re )->
   let sp := root_seq_poly (invariant_factors A) in
   let sizes := [seq x0.2.-1 | x0 <- sp] in
   forall i j: 'I_(size_sum sizes).+1,
+  (forall i: 'I_(size_sum sizes).+1 , (C_mod (lambda A i) < 1)%Re )->
   is_lim_seq 
   (fun m: nat => 
     (C_mod (diag_block_mx sizes
@@ -228,9 +272,91 @@ Proof.
 intros. 
 (** here I need to extract individual value from the 
   block. Need to figure out what diag_block_mx i j means **)
-
-
-admit.
+assert (forall m:nat , (size_sum sizes <= m)%coq_nat -> 
+        exists k (l: 'I_(size_sum sizes).+1) (a: 'I_k.+1) (b: 'I_k.+1), 
+        (diag_block_mx sizes
+         (fun n0 i1 : nat =>
+          \matrix_(i2, j0) (('C(m.+1, j0 - i2))%:R *
+                            (nth (0, 0%N)
+                               (root_seq_poly
+                                  (invariant_factors A)) i1).1
+                            ^+ (m.+1 - (j0 - i2)) *+
+                            (i2 <= j0))) i j =
+        (fun n0 i1 : nat =>
+          \matrix_(i2, j0) (('C(m.+1, j0 - i2))%:R *
+                            (nth (0, 0%N)
+                               (root_seq_poly
+                                  (invariant_factors A)) i1).1
+                            ^+ (m.+1 - (j0 - i2)) *+
+                            (i2 <= j0))) k l a b) \/
+        (diag_block_mx sizes
+         (fun n0 i1 : nat =>
+          \matrix_(i2, j0) (('C(m.+1, j0 - i2))%:R *
+                            (nth (0, 0%N)
+                               (root_seq_poly
+                                  (invariant_factors A)) i1).1
+                            ^+ (m.+1 - (j0 - i2)) *+
+                            (i2 <= j0))) i j = 0 :> (complex R))).
+{ intros. apply diag_destruct. }
+rewrite -is_lim_seq_spec. unfold is_lim_seq'.
+intros. unfold eventually. 
+exists (size_sum sizes).
+intros. specialize(H0 n0 H1). 
+destruct H0 as [k H0]. destruct H0 as [l H0].
+destruct H0 as [a H0]. destruct H0 as [b H0].
+destruct H0.
++ rewrite H0. rewrite mxE. 
+  (** now we have entries in form of an upper triangular matrix.
+  destruct it to get the entries **)
+  rewrite real_sub_0r. 
+  assert (Rabs
+      (C_mod
+      (('C(n0.+1, b - a))%:R *
+       (nth (0, 0%N) (root_seq_poly (invariant_factors A)) l).1
+       ^+ (n0.+1 - (b - a)) *+ (a <= b)))² = 
+      (C_mod
+      (('C(n0.+1, b - a))%:R *
+       (nth (0, 0%N) (root_seq_poly (invariant_factors A)) l).1
+       ^+ (n0.+1 - (b - a)) *+ (a <= b)))²).
+  { apply Rabs_right. apply Rle_ge. apply Rsqr_ge_0. apply C_mod_ge_0. }
+  rewrite H2. clear H2.
+  
+  assert (is_lim_seq (fun m:nat => ((Rsqr (C_mod (lambda A i)))^m)%Re) 0%Re).
+  { apply is_lim_seq_geom. 
+    assert ( Rabs (C_mod (lambda A i))² = (C_mod (lambda A i))²).
+    { apply Rabs_right. apply Rle_ge. apply Rsqr_ge_0. apply C_mod_ge_0. }
+    rewrite H2. clear H2. 
+    assert (Rsqr 1 = 1%Re). { apply Rsqr_1. } rewrite -H2.
+    apply Rsqr_incrst_1.
+    + apply H.
+    + apply C_mod_ge_0.
+    + nra.
+  }
+  rewrite <-is_lim_seq_spec in H2. unfold is_lim_seq' in H2.
+  assert ( (a<=b)%N \/ (a >=b)%N). { apply /orP. apply leq_total. }
+  destruct H3.
+  + rewrite H3. simpl. rewrite mulr1n. rewrite C_mod_prod.
+    rewrite Rsqr_mult. 
+    (** Now fiddle with the powers of lambda now **)
+    rewrite exprB.
+    - rewrite C_mod_div.
+      * rewrite -RdivE. rewrite Rsqr_div.
+        { (** Here we will use the fact that \lambda < 1 **) admit.  }
+        { admit. }
+      * admit. 
+      * admit. 
+    - admit.
+    - admit.
+  + assert ( (b==a)%N \/ (b<a)%N ). { apply /orP. by rewrite -leq_eqVlt. }
+    destruct H4.
+    - assert ( b = a). { by apply /eqP. }
+      rewrite H5. clear H4 H5. rewrite leqnn /=. admit.
+    - assert ((a <= b)%N = false). { by apply ltn_geF. }
+      rewrite H5 /=. rewrite mulr0n. rewrite C_mod_0. rewrite Rsqr_0.
+      apply posreal_cond.
++ rewrite H0. rewrite C_mod_0. 
+  assert ((0² - 0)%Re = 0%Re). { unfold Rsqr. nra. }
+  rewrite H2. rewrite Rabs_R0. apply posreal_cond.
 Admitted.
 
 
@@ -293,10 +419,7 @@ intros y.
 by apply each_enrty_zero_lim.
 Qed.
 
-Lemma posreal_cond: forall (x:posreal), (0< x)%Re.
-Proof.
-intros. destruct x. auto.
-Qed.
+
 
 Lemma sqr_eps_pos: forall (x:posreal), (0 < Rsqr x)%Re.
 Proof.
@@ -355,18 +478,9 @@ induction n.
   - apply H.
 Qed.
 
-Lemma C_mod_ge_0: 
-  forall (x: complex R), (0<= C_mod x)%Re.
-Proof.
-intros. unfold C_mod. apply sqrt_pos.
-Qed.
 
-Lemma Rsqr_ge_0: forall (x:R), (0<=x)%Re -> (0<= Rsqr x)%Re.
-Proof.
-intros.
-unfold Rsqr. assert (0%Re = (0*0)%Re). { nra. }
-rewrite H0. apply Rmult_le_compat;nra. 
-Qed.
+
+
 
 (** assumption that the sum of algebraic multiplicity
   of the eigen values = size of the matrix

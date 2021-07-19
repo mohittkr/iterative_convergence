@@ -186,10 +186,14 @@ induction sizes.
 + simpl. 
 *)
 
+
+(** TODO destruct i and j and understand how block_mx works
+    and use induction accordingly **)
 Lemma diag_destruct s F:
   forall i j: 'I_(size_sum s).+1,
-  exists k (l:'I_(size_sum s).+1) m n, (diag_block_mx s F) i j = F k l m n
-  \/ (diag_block_mx s F) i j = 0 :> (complex R).
+  exists k (l:'I_(size_sum s).+1) m n, 
+  (diag_block_mx s F) i j = F k l m n \/ 
+    (diag_block_mx s F) i j = 0 :> (complex R).
 Proof.
 intros.
 induction s.
@@ -198,7 +202,34 @@ induction s.
 + simpl. induction s.
   - simpl. exists a. exists 0. exists i. exists j.
     by left.
-  - simpl. admit.
+  - exists a. exists i. exists 0. exists 0.
+    simpl. 
+    assert ( (i<a)%N \/ (i >= a)%N). 
+    { admit. }
+    destruct H.
+    * assert ( (j<a)%N \/ (j >= a)%N). 
+      { admit. }
+      destruct H0.
+      {  (** This is the case when we are looking at the 
+          top left block which is (F a 0) **)
+        left. admit. 
+      }
+      { (** This is the case where we are looking at the 
+            bottom left block which  is 0 **)
+        right. admit.
+      }
+    * assert ( (j<a)%N \/ (j >= a)%N).
+      { admit. }
+      destruct H0.
+      { (** This is the case when we are looking at the 
+          top right block which is 0 **)
+        right. admit.
+      }
+      { (** This is the case when we are looking at the bottom
+          right block which is the rest of the block and
+          induction step holds here **)
+        admit.
+      }
 Admitted.
 
 Lemma C_mod_0: C_mod 0 = 0%Re.
@@ -259,9 +290,9 @@ Qed.
 
 
 Lemma complex_not_0 (x: complex R) : 
-  (Re x +i* Im x)%C <> 0 -> Re x <> 0 /\ Im x <> 0.
+  (Re x +i* Im x)%C <> 0 -> Re x <> 0 \/ Im x <> 0.
 Proof.
-destruct x. simpl. admit. 
+intros. left. intuition. apply H. rewrite H0. admit.
 Admitted.
 
 Lemma C_mod_div: forall (x y: complex R),

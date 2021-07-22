@@ -202,8 +202,30 @@ induction s.
 + simpl. induction s.
   - simpl. exists a. exists 0. exists i. exists j.
     by left.
-  - exists a. exists i. exists 0. exists 0.
+  - exists a. exists i. 
+   (** Need to figure out how to resolve
+      'I_(size_sum [::a, a0 & s].+1 as 
+      'I_a.+1 and 'I_(size_sum [a0 :: s].+1
+    **)
+
+    (*
+    assert ( size_sum [:: a, a0 & s] = size_sum_rec a (a0::s)).
+    { by unfold size_sum. }
+    assert ( size_sum_rec a (a0 :: s) = (a + (size_sum_rec a0 s).+1)%N).
+    { by []. } rewrite H0 in H. clear H0.
+    move: i j. rewrite H=> i j.
+
+    *)
+
+
+    (** As a temporary fix, I provided 0 and 0 as a witness
+      here. Need to replace it with a generic i and j of
+      type: 'I_a.+1
+    **) 
+    
+    exists 0. exists 0.
     simpl. 
+
     assert ( (i<a)%N \/ (i >= a)%N). 
     { admit. }
     destruct H.

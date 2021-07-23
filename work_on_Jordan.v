@@ -191,18 +191,49 @@ induction sizes.
     and use induction accordingly **)
 Lemma diag_destruct s F:
   forall i j: 'I_(size_sum s).+1,
-  exists k (l:'I_(size_sum s).+1) m n, 
-  (diag_block_mx s F) i j = F k l m n \/ 
+  (exists k (l:'I_(size_sum s).+1) m n, 
+  (diag_block_mx s F) i j = F k l m n) \/ 
     (diag_block_mx s F) i j = 0 :> (complex R).
 Proof.
 intros.
 induction s.
-+ exists 0%N. exists 0. exists 0. exists 0.
-  simpl. right. by rewrite !mxE.
-+ simpl. induction s.
-  - simpl. exists a. exists 0. exists i. exists j.
-    by left.
-  - exists a. exists i. 
++ right. simpl. by rewrite !mxE.
+  (* exists 0%N. exists 0. exists 0. exists 0.
+  simpl. right. by rewrite !mxE. *)
++ simpl. induction s. 
+  - simpl. left. exists a. exists 0. exists i. exists j.
+    by [].
+  -  (** Start splitting i and j from here **)
+    
+     assert ( (i<a)%N \/ (i>=a)%N).
+     { admit. }
+     destruct H.
+     * assert ( (j<a)%N \/ ( j >=a)%N).
+       { admit. }
+       destruct H0.
+       { (** Case 1 : i < a and j < a : 
+          we are in the top left block **)
+          left. exists a. exists 0.  admit.
+       }
+       { (** Case 2: i <a and j >=a:
+          we are in the top right block which is 0 **)
+          right. simpl. admit. 
+       }
+     * assert ( (j<a)%N \/ ( j >=a)%N).
+       { admit. }
+       destruct H0.
+       { (** Case 3: i>=a and j < a:
+          we are in the botton left block which is 0 **)
+          right. simpl. admit.
+       }
+       { (** Case 4: i >=a and j>=a: we are in the bottom
+          right block. This should be solved using the 
+          induction hypothesis **)
+          left. admit.
+       }
+  
+ 
+    (*exists a. exists i.  *)
    (** Need to figure out how to resolve
       'I_(size_sum [::a, a0 & s].+1 as 
       'I_a.+1 and 'I_(size_sum [a0 :: s].+1
@@ -222,7 +253,7 @@ induction s.
       here. Need to replace it with a generic i and j of
       type: 'I_a.+1
     **) 
-    
+    (*
     exists 0. exists 0.
     simpl. 
 
@@ -252,6 +283,8 @@ induction s.
           induction step holds here **)
         admit.
       }
+
+      *)
 Admitted.
 
 Lemma C_mod_0: C_mod 0 = 0%Re.

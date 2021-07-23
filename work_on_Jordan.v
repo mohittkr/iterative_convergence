@@ -191,101 +191,42 @@ induction sizes.
     and use induction accordingly **)
 Lemma diag_destruct s F:
   forall i j: 'I_(size_sum s).+1,
-  (exists k (l:'I_(size_sum s).+1) m n, 
-  (diag_block_mx s F) i j = F k l m n) \/ 
+  (exists k l m n,
+  (diag_block_mx s F) i j = F k l m n) \/
     (diag_block_mx s F) i j = 0 :> (complex R).
 Proof.
-intros.
-induction s.
-+ right. simpl. by rewrite !mxE.
-  (* exists 0%N. exists 0. exists 0. exists 0.
-  simpl. right. by rewrite !mxE. *)
-+ simpl. induction s. 
-  - simpl. left. exists a. exists 0. exists i. exists j.
-    by [].
-  -  (** Start splitting i and j from here **)
-    
-     assert ( (i<a)%N \/ (i>=a)%N).
-     { admit. }
-     destruct H.
-     * assert ( (j<a)%N \/ ( j >=a)%N).
-       { admit. }
-       destruct H0.
-       { (** Case 1 : i < a and j < a : 
-          we are in the top left block **)
-          left. exists a. exists 0.  admit.
-       }
-       { (** Case 2: i <a and j >=a:
-          we are in the top right block which is 0 **)
-          right. simpl. admit. 
-       }
-     * assert ( (j<a)%N \/ ( j >=a)%N).
-       { admit. }
-       destruct H0.
-       { (** Case 3: i>=a and j < a:
-          we are in the botton left block which is 0 **)
-          right. simpl. admit.
-       }
-       { (** Case 4: i >=a and j>=a: we are in the bottom
-          right block. This should be solved using the 
-          induction hypothesis **)
-          left. admit.
-       }
-  
- 
-    (*exists a. exists i.  *)
-   (** Need to figure out how to resolve
-      'I_(size_sum [::a, a0 & s].+1 as 
-      'I_a.+1 and 'I_(size_sum [a0 :: s].+1
-    **)
+case: s => [ | s0 s]; first by right; rewrite /= mxE.
+rewrite /diag_block_mx.
+elim: s s0 F => [ | s1 s Ih] s0 F /= i j.
+  by left; exists s0, 0%N, i, j.
+have shifts (x : 'I_(s0 + (size_sum_rec s1 s).+1).+1) :
+   (forall (xles0 : (x < s0.+1)%N), x = lshift _ (Ordinal xles0)) *
+   (forall (xgts0 : (s0 < x)%N), x = rshift s0.+1
+             (inord (x - s0.+1) : 'I_(size_sum_rec s1 s).+1)).
+  split;[by move=> xles0; apply/val_inj | ].
+  move=> xgts0; have xltsum : (x - s0.+1 < (size_sum_rec s1 s).+1)%N.
+    by rewrite ltn_subLR //; case: (x).
+  by apply/val_inj; rewrite /= inordK // subnKC.
+case : (ltnP i s0.+1)=> [ilts0 | iges0];
+  case : (ltnP j s0.+1)=> [jlts0 | jges0].
+- left; exists s0, 0%N, (Ordinal ilts0), (Ordinal jlts0)=> /=.
+  rewrite [in LHS]((shifts _).1 ilts0) [in LHS]((shifts _).1 jlts0).
+  by rewrite [LHS]block_mxEul.
+- right.
+  rewrite [in LHS]((shifts _).1 ilts0) [in LHS]((shifts _).2 jges0).
+  by rewrite [LHS]block_mxEur mxE.
+- right.
+  rewrite [in LHS]((shifts _).2 iges0) [in LHS]((shifts _).1 jlts0).
+  by rewrite [LHS]block_mxEdl mxE.
+have := ((shifts _).2 iges0); have := ((shifts _).2 jges0).
+set i' := inord (i - s0.+1); set j' := inord (j - s0.+1)=> jq iq.
+have := (Ih s1 (fun m i => F m i.+1) i' j').
+case => [[k [l [m [n Main]]]] | Main]; last first.
+  by right; rewrite iq jq [LHS]block_mxEdr.
+left; exists k, l.+1, m, n.
+by rewrite iq jq [LHS]block_mxEdr.
+Qed.
 
-    (*
-    assert ( size_sum [:: a, a0 & s] = size_sum_rec a (a0::s)).
-    { by unfold size_sum. }
-    assert ( size_sum_rec a (a0 :: s) = (a + (size_sum_rec a0 s).+1)%N).
-    { by []. } rewrite H0 in H. clear H0.
-    move: i j. rewrite H=> i j.
-
-    *)
-
-
-    (** As a temporary fix, I provided 0 and 0 as a witness
-      here. Need to replace it with a generic i and j of
-      type: 'I_a.+1
-    **) 
-    (*
-    exists 0. exists 0.
-    simpl. 
-
-    assert ( (i<a)%N \/ (i >= a)%N). 
-    { admit. }
-    destruct H.
-    * assert ( (j<a)%N \/ (j >= a)%N). 
-      { admit. }
-      destruct H0.
-      {  (** This is the case when we are looking at the 
-          top left block which is (F a 0) **)
-        left. admit. 
-      }
-      { (** This is the case where we are looking at the 
-            bottom left block which  is 0 **)
-        right. admit.
-      }
-    * assert ( (j<a)%N \/ (j >= a)%N).
-      { admit. }
-      destruct H0.
-      { (** This is the case when we are looking at the 
-          top right block which is 0 **)
-        right. admit.
-      }
-      { (** This is the case when we are looking at the bottom
-          right block which is the rest of the block and
-          induction step holds here **)
-        admit.
-      }
-
-      *)
-Admitted.
 
 Lemma C_mod_0: C_mod 0 = 0%Re.
 Proof.

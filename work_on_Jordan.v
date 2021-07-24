@@ -157,38 +157,6 @@ Qed.
 (** Add a lemma that each entry of the Jordan matrix goes
   to zero as m \to \infty **)
 
-
-(** TODO: figure out how to destruct i and j **)
-
-(*
-Lemma diag_destruct:  
-  forall (m n l:nat) (A: 'M[complex R]_n.+1),
-  let sp := root_seq_poly (invariant_factors A) in
-  let sizes := [seq x0.2.-1 | x0 <- sp] in
-  let F:= (fun n0 i1 : nat =>
-               \matrix_(i2, j0) (('C(m.+1, j0 - i2))%:R *
-                                     (nth 
-                                     (0, 0%N)
-                                     (root_seq_poly
-                                     (invariant_factors A))
-                                     i1).1
-                                     ^+ 
-                                     (m.+1 - (j0 - i2)) *+
-                                     (i2 <= j0))) in
-  let k:= (nth (0,0%N) sp l).2.-1 in 
-  forall i j: 'I_(size_sum sizes).+1,
-  (k-1 < i < k)%N -> (k-1 < j < k)%N -> 
-  diag_block_mx sizes F i j = (F k l) 0 0.
-Proof.
-intros.
-induction sizes.
-+ simpl. admit.
-+ simpl. 
-*)
-
-
-(** TODO destruct i and j and understand how block_mx works
-    and use induction accordingly **)
 Lemma diag_destruct s F:
   forall i j: 'I_(size_sum s).+1,
   (exists k l m n,
@@ -197,7 +165,7 @@ Lemma diag_destruct s F:
 Proof.
 case: s => [ | s0 s]; first by right; rewrite /= mxE.
 rewrite /diag_block_mx.
-elim: s s0 F => [ | s1 s Ih] s0 F /= i j.
+elim: s s0 F=> [ | s1 s Ih] s0 F /= i j.
   by left; exists s0, 0%N, i, j.
 have shifts (x : 'I_(s0 + (size_sum_rec s1 s).+1).+1) :
    (forall (xles0 : (x < s0.+1)%N), x = lshift _ (Ordinal xles0)) *
@@ -230,7 +198,7 @@ Qed.
 
 Lemma C_mod_0: C_mod 0 = 0%Re.
 Proof.
-unfold C_mod. simpl. by rewrite expr2 mul0r Rplus_0_r sqrt_0.
+by rewrite /C_mod /= expr2 mul0r Rplus_0_r sqrt_0.
 Qed.
 
 Lemma C_mod_ge_0: 
@@ -261,12 +229,8 @@ rewrite -sqrt_mult.
   { rewrite Re_complex_prod Im_complex_prod. 
     rewrite -!RpowE -!RmultE -!RplusE -!RoppE. nra.
   } rewrite !RplusE. by rewrite H.
-+ apply Rplus_le_le_0_compat.
-  - rewrite -RpowE. nra.
-  - rewrite -RpowE. nra.
-+ apply Rplus_le_le_0_compat.
-  - rewrite -RpowE. nra.
-  - rewrite -RpowE. nra.
++ apply Rplus_le_le_0_compat;rewrite -RpowE; nra.
++ apply Rplus_le_le_0_compat;rewrite -RpowE; nra.
 Qed.
 
 Lemma Re_complex_div: forall (x y: complex R),
@@ -286,10 +250,57 @@ Qed.
 
 
 Lemma complex_not_0 (x: complex R) : 
-  (Re x +i* Im x)%C <> 0 -> Re x <> 0 \/ Im x <> 0.
+  (Re x +i* Im x)%C != 0 -> Re x != 0 \/ Im x != 0.
 Proof.
-intros. left. intuition. apply H. rewrite H0. admit.
-Admitted.
+rewrite eq_complex /=. intros. 
+by apply /nandP.
+Qed.
+
+
+Lemma sqr_complex_not_zero: forall (x: complex R),
+  x <> 0 -> (Re x)^+2 + (Im x)^+2 <> 0.
+Proof.
+intros.
+assert ( x !=0). { by apply /eqP. }
+rewrite -!RpowE -RplusE.
+assert ( ( 0< Re x ^ 2 + Im x ^ 2)%Re -> 
+          (Re x ^ 2 + Im x ^ 2)%Re <> 0%Re).
+{ nra. } apply H1.
+assert ( (Re x <> 0)%Re \/ ( Im x <> 0)%Re -> 
+          (0 < Re x ^ 2 + Im x ^ 2)%Re). { nra. }
+apply H2.
+assert ( (Re x <> 0)  <-> (Re x !=0)). 
+{ split.
+  + intros. by apply /eqP.
+  + intros. by apply /eqP.
+} rewrite H3.
+assert ( (Im x <> 0)  <-> (Im x !=0)). 
+{ split.
+  + intros. by apply /eqP.
+  + intros. by apply /eqP.
+} rewrite H4.
+apply complex_not_0.
+clear H H1 H2 H3 H4.
+move : H0. destruct x. by [].
+Qed.
+
+Lemma div_prod: forall (x:R),
+  x <> 0 -> x / (x * x) = x^-1.
+Proof.
+intros. rewrite -RdivE. 
+assert ( (x / (x * x)%Ri)%Re  = (x * (/ (x*x)))%Re).
+{ by []. } rewrite H0.
++ rewrite Rinv_mult_distr. 
+  - rewrite -Rmult_assoc. rewrite Rinv_r.
+    * assert ( (1 * / x)%Re = (1/x)%Re). { nra. }
+      rewrite H1. rewrite RdivE. 
+      { apply div1r. }
+      { by apply /eqP. }
+    * exact H.
+  - exact H.
+  - exact H.
++ apply /eqP. auto.
+Qed.
 
 Lemma C_mod_div: forall (x y: complex R),
   y <> 0 -> C_mod (x / y) = (C_mod x) / (C_mod y).
@@ -318,36 +329,30 @@ intros. unfold C_mod. rewrite -[RHS]RdivE.
       { assert ( (Re y ^+ 2 + Im y ^+ 2) ^+ 2 = 
                 (Re y ^+ 2 + Im y ^+ 2) * (Re y ^+ 2 + Im y ^+ 2)).
         { by rewrite expr2. }
-        rewrite H0. clear H0. admit. 
+        rewrite H0. clear H0. apply div_prod. 
+        by apply sqr_complex_not_zero.
       }
       by rewrite H0. 
     } rewrite !RplusE. 
     rewrite RdivE.
     * by rewrite H0. 
-    * apply /eqP. rewrite -RplusE -!RpowE.
-      assert ( (0 < (Re y ^ 2 + Im y ^ 2)%Re)%Re -> 
-              (Re y ^ 2 + Im y ^ 2)%Re <> 0%Re). { nra. } 
-      apply H1. 
-      assert ( (Re y <> 0%Re /\ Im y <> 0%Re) -> 
-            (0 < Re y ^ 2 + Im y ^ 2)%Re). { nra. }
-      apply H2.  apply complex_not_0. 
-      move: H. destruct y. by simpl.  
+    * apply /eqP. by apply sqr_complex_not_zero. 
   - apply Rplus_le_le_0_compat.
     * rewrite -RpowE. nra.
     * rewrite -RpowE. nra.
-  - assert ( (Re y <> 0%Re /\ Im y <> 0%Re) -> 
+  - assert ( (Re y ^ 2 + Im y ^ 2)%Re <> 0%Re ->
             (0 < Re y ^ 2 + Im y ^ 2)%Re). { nra. }
-    rewrite -!RpowE. apply H0. 
-    apply complex_not_0.  move: H. destruct y. by simpl.
+    rewrite -!RpowE. apply H0. rewrite !RpowE.
+    by apply sqr_complex_not_zero.
 + apply /eqP. rewrite -!RpowE.
   assert ( (0< sqrt (Re y ^ 2 + Im y ^ 2))%Re -> 
           sqrt (Re y ^ 2 + Im y ^ 2) <> 0%Re).  { nra. }
   apply H0. apply sqrt_lt_R0.
-  assert ( (Re y <> 0%Re /\ Im y <> 0%Re) -> 
+  assert ( (Re y ^ 2 + Im y ^ 2)%Re <> 0%Re ->
             (0 < Re y ^ 2 + Im y ^ 2)%Re). { nra. }
-  apply H1. apply complex_not_0. 
-  move: H. destruct y. by simpl.  
-Admitted.
+  apply H1. rewrite !RpowE.
+  by apply sqr_complex_not_zero.  
+Qed.
 
 Lemma posreal_cond: forall (x:posreal), (0< x)%Re.
 Proof.
@@ -356,7 +361,7 @@ Qed.
 
 Lemma real_sub_0r : forall (x: R), (x-0)%Re = x.
 Proof.
-intros. rewrite RminusE. by rewrite subr0.
+intros. by rewrite RminusE subr0.
 Qed.
 
 Lemma Rsqr_ge_0: forall (x:R), (0<=x)%Re -> (0<= Rsqr x)%Re.
@@ -365,7 +370,6 @@ intros.
 unfold Rsqr. assert (0%Re = (0*0)%Re). { nra. }
 rewrite H0. apply Rmult_le_compat;nra. 
 Qed.
-
 
 
 Lemma each_enrty_zero_lim:

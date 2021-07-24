@@ -222,13 +222,12 @@ Qed.
 Lemma C_mod_prod: forall (x y: complex R), 
   C_mod (x * y) = C_mod x * C_mod y.
 Proof.
-intros. unfold C_mod. rewrite -[RHS]RmultE. 
-rewrite -sqrt_mult.
+intros. rewrite /C_mod -[RHS]RmultE -sqrt_mult.
 + assert ( Re (x * y) ^+ 2 + Im (x * y) ^+ 2 = 
             ((Re x ^+ 2 + Im x ^+ 2) * (Re y ^+ 2 + Im y ^+ 2))).
   { rewrite Re_complex_prod Im_complex_prod. 
     rewrite -!RpowE -!RmultE -!RplusE -!RoppE. nra.
-  } rewrite !RplusE. by rewrite H.
+  } by rewrite !RplusE H.
 + apply Rplus_le_le_0_compat;rewrite -RpowE; nra.
 + apply Rplus_le_le_0_compat;rewrite -RpowE; nra.
 Qed.
@@ -236,24 +235,23 @@ Qed.
 Lemma Re_complex_div: forall (x y: complex R),
   Re (x / y) = (Re x * Re y + Im x * Im y) / ((Re y)^+2 + (Im y)^+2).
 Proof.
-intros. destruct x. destruct y. simpl. 
-by rewrite mulrDl mulrN opprK !mulrA.
+intros. destruct x, y. 
+by rewrite /= mulrDl mulrN opprK !mulrA.
 Qed.
 
 
 Lemma Im_complex_div: forall (x y: complex R),
   Im (x / y) = ( - (Re x * Im y) + Im x * Re y) / ((Re y)^+2 + (Im y)^+2).
 Proof.
-intros. destruct x. destruct y. simpl. 
-by rewrite mulrDl mulrN mulNr !mulrA.
+intros. destruct x, y.  
+by rewrite /= mulrDl mulrN mulNr !mulrA.
 Qed.
 
 
 Lemma complex_not_0 (x: complex R) : 
   (Re x +i* Im x)%C != 0 -> Re x != 0 \/ Im x != 0.
 Proof.
-rewrite eq_complex /=. intros. 
-by apply /nandP.
+rewrite eq_complex /=. intros. by apply /nandP.
 Qed.
 
 
@@ -279,8 +277,7 @@ assert ( (Im x <> 0)  <-> (Im x !=0)).
   + intros. by apply /eqP.
   + intros. by apply /eqP.
 } rewrite H4.
-apply complex_not_0.
-clear H H1 H2 H3 H4.
+apply complex_not_0. clear H H1 H2 H3 H4.
 move : H0. destruct x. by [].
 Qed.
 
@@ -305,17 +302,15 @@ Qed.
 Lemma C_mod_div: forall (x y: complex R),
   y <> 0 -> C_mod (x / y) = (C_mod x) / (C_mod y).
 Proof.
-intros. unfold C_mod. rewrite -[RHS]RdivE.
+intros. rewrite /C_mod -[RHS]RdivE.
 + rewrite -sqrt_div.
   - assert ( (Re (x / y) ^+ 2 + Im (x / y) ^+ 2) =
       ((Re x ^+ 2 + Im x ^+ 2) / (Re y ^+ 2 + Im y ^+ 2))).
-    { rewrite Re_complex_div Im_complex_div. 
-      rewrite !expr_div_n. rewrite -mulrDl.
-      rewrite sqrrD. 
+    { rewrite Re_complex_div Im_complex_div !expr_div_n -mulrDl sqrrD. 
       assert ( (- (Re x * Im y) + Im x * Re y) = 
                 Im x * Re y - (Re x * Im y)).
       { by rewrite addrC. } rewrite H0. clear H0.
-      rewrite sqrrB //=. rewrite !addrA !mulrA. 
+      rewrite sqrrB //= !addrA !mulrA. 
       assert ( ((Re x * Re y) ^+ 2 + Re x * Re y * Im x * Im y +
              Re x * Re y * Im x * Im y + (Im x * Im y) ^+ 2 +
              (Im x * Re y) ^+ 2 - Im x * Re y * Re x * Im y *+ 2 +
@@ -331,15 +326,12 @@ intros. unfold C_mod. rewrite -[RHS]RdivE.
         { by rewrite expr2. }
         rewrite H0. clear H0. apply div_prod. 
         by apply sqr_complex_not_zero.
-      }
-      by rewrite H0. 
+      } by rewrite H0. 
     } rewrite !RplusE. 
     rewrite RdivE.
     * by rewrite H0. 
     * apply /eqP. by apply sqr_complex_not_zero. 
-  - apply Rplus_le_le_0_compat.
-    * rewrite -RpowE. nra.
-    * rewrite -RpowE. nra.
+  - apply Rplus_le_le_0_compat;rewrite -RpowE; nra. 
   - assert ( (Re y ^ 2 + Im y ^ 2)%Re <> 0%Re ->
             (0 < Re y ^ 2 + Im y ^ 2)%Re). { nra. }
     rewrite -!RpowE. apply H0. rewrite !RpowE.
@@ -366,8 +358,7 @@ Qed.
 
 Lemma Rsqr_ge_0: forall (x:R), (0<=x)%Re -> (0<= Rsqr x)%Re.
 Proof.
-intros.
-unfold Rsqr. assert (0%Re = (0*0)%Re). { nra. }
+intros. unfold Rsqr. assert (0%Re = (0*0)%Re). { nra. }
 rewrite H0. apply Rmult_le_compat;nra. 
 Qed.
 
@@ -393,10 +384,8 @@ Lemma each_enrty_zero_lim:
                                      (i2 <= j0))) i j))²) 0%Re.
 Proof.
 intros. 
-(** here I need to extract individual value from the 
-  block. Need to figure out what diag_block_mx i j means **)
-assert (forall m:nat , (size_sum sizes <= m)%coq_nat -> 
-        exists k (l: 'I_(size_sum sizes).+1) (a: 'I_k.+1) (b: 'I_k.+1), 
+assert(forall m:nat , (size_sum sizes <= m)%coq_nat -> 
+       (exists k l (a: 'I_k.+1) (b: 'I_k.+1), 
         (diag_block_mx sizes
          (fun n0 i1 : nat =>
           \matrix_(i2, j0) (('C(m.+1, j0 - i2))%:R *
@@ -411,7 +400,7 @@ assert (forall m:nat , (size_sum sizes <= m)%coq_nat ->
                                (root_seq_poly
                                   (invariant_factors A)) i1).1
                             ^+ (m.+1 - (j0 - i2)) *+
-                            (i2 <= j0))) k l a b) \/
+                            (i2 <= j0))) k l a b)) \/
         (diag_block_mx sizes
          (fun n0 i1 : nat =>
           \matrix_(i2, j0) (('C(m.+1, j0 - i2))%:R *
@@ -421,6 +410,8 @@ assert (forall m:nat , (size_sum sizes <= m)%coq_nat ->
                             ^+ (m.+1 - (j0 - i2)) *+
                             (i2 <= j0))) i j = 0 :> (complex R))).
 { intros. apply diag_destruct. }
+(** Start working from here **)
+
 rewrite -is_lim_seq_spec. unfold is_lim_seq'.
 intros. unfold eventually. 
 exists (size_sum sizes).

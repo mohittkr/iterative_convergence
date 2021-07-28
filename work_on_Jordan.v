@@ -284,70 +284,43 @@ intros. destruct x. destruct y. simpl.
 by rewrite mulrDl mulrN mulNr !mulrA.
 Qed.
 
-
-Lemma complex_not_0 (x: complex R) : 
-  (Re x +i* Im x)%C <> 0 -> Re x <> 0 \/ Im x <> 0.
+Lemma complex_not_0 (x : complex R) :
+  x <> 0 -> Re x <> 0 \/ Im x <> 0.
 Proof.
-intros. left. intuition. apply H. rewrite H0. admit.
-Admitted.
+case: x => [rx ix].
+have [/eqP re0 | /eqP ren0] := boolP (rx == 0).
+  by rewrite re0 => /= abs; right=> im0; case: abs; rewrite im0.
+by left.
+Qed.
+
+Import ComplexField.
+
+Lemma C_modE y : C_mod y = normc y.
+Proof.
+rewrite /C_mod RsqrtE /normc; case: y => [ry iy] //=.
+by rewrite RplusE addr_ge0 // sqr_ge0.
+Qed.
+
+Lemma normcV (y : complex R) : y != 0 -> normc (y^-1) = (normc y)^-1.
+Proof.
+move=> yn0.
+have normyn0 : normc y != 0 by apply/eqP=> /eq0_normc /eqP; apply/negP.
+apply: (mulfI normyn0); rewrite mulfV // -normcM mulfV //.
+by rewrite /normc /= expr0n /= addr0 expr1n sqrtr1.
+Qed.
+
+Lemma C_mod_inv (y : complex R) : C_mod (y ^-1) = (C_mod y) ^-1.
+Proof.
+have [/eqP y0 | yn0] := boolP (y == 0); last by rewrite !C_modE normcV.
+rewrite y0 /C_mod /= !mul0r oppr0 expr0n /= RplusE mulr0n add0r RsqrtE //.
+by rewrite sqrtr0 invr0.
+Qed.
 
 Lemma C_mod_div: forall (x y: complex R),
   y <> 0 -> C_mod (x / y) = (C_mod x) / (C_mod y).
 Proof.
-intros. unfold C_mod. rewrite -[RHS]RdivE.
-+ rewrite -sqrt_div.
-  - assert ( (Re (x / y) ^+ 2 + Im (x / y) ^+ 2) =
-      ((Re x ^+ 2 + Im x ^+ 2) / (Re y ^+ 2 + Im y ^+ 2))).
-    { rewrite Re_complex_div Im_complex_div. 
-      rewrite !expr_div_n. rewrite -mulrDl.
-      rewrite sqrrD. 
-      assert ( (- (Re x * Im y) + Im x * Re y) = 
-                Im x * Re y - (Re x * Im y)).
-      { by rewrite addrC. } rewrite H0. clear H0.
-      rewrite sqrrB //=. rewrite !addrA !mulrA. 
-      assert ( ((Re x * Re y) ^+ 2 + Re x * Re y * Im x * Im y +
-             Re x * Re y * Im x * Im y + (Im x * Im y) ^+ 2 +
-             (Im x * Re y) ^+ 2 - Im x * Re y * Re x * Im y *+ 2 +
-             (Re x * Im y) ^+ 2) = 
-              (Re x ^+ 2 + Im x ^+ 2) * (Re y ^+ 2 + Im y ^+ 2)).
-      { rewrite !expr2 mulr2n !mulrA. 
-        rewrite -!RmultE -!RplusE -!RoppE Rmult_comm. nra. 
-      } rewrite H0. clear H0. rewrite -mulrA.
-      assert ( ((Re y ^+ 2 + Im y ^+ 2) / (Re y ^+ 2 + Im y ^+ 2) ^+ 2)=
-                (Re y ^+ 2 + Im y ^+ 2)^-1).
-      { assert ( (Re y ^+ 2 + Im y ^+ 2) ^+ 2 = 
-                (Re y ^+ 2 + Im y ^+ 2) * (Re y ^+ 2 + Im y ^+ 2)).
-        { by rewrite expr2. }
-        rewrite H0. clear H0. admit. 
-      }
-      by rewrite H0. 
-    } rewrite !RplusE. 
-    rewrite RdivE.
-    * by rewrite H0. 
-    * apply /eqP. rewrite -RplusE -!RpowE.
-      assert ( (0 < (Re y ^ 2 + Im y ^ 2)%Re)%Re -> 
-              (Re y ^ 2 + Im y ^ 2)%Re <> 0%Re). { nra. } 
-      apply H1. 
-      assert ( (Re y <> 0%Re /\ Im y <> 0%Re) -> 
-            (0 < Re y ^ 2 + Im y ^ 2)%Re). { nra. }
-      apply H2.  apply complex_not_0. 
-      move: H. destruct y. by simpl.  
-  - apply Rplus_le_le_0_compat.
-    * rewrite -RpowE. nra.
-    * rewrite -RpowE. nra.
-  - assert ( (Re y <> 0%Re /\ Im y <> 0%Re) -> 
-            (0 < Re y ^ 2 + Im y ^ 2)%Re). { nra. }
-    rewrite -!RpowE. apply H0. 
-    apply complex_not_0.  move: H. destruct y. by simpl.
-+ apply /eqP. rewrite -!RpowE.
-  assert ( (0< sqrt (Re y ^ 2 + Im y ^ 2))%Re -> 
-          sqrt (Re y ^ 2 + Im y ^ 2) <> 0%Re).  { nra. }
-  apply H0. apply sqrt_lt_R0.
-  assert ( (Re y <> 0%Re /\ Im y <> 0%Re) -> 
-            (0 < Re y ^ 2 + Im y ^ 2)%Re). { nra. }
-  apply H1. apply complex_not_0. 
-  move: H. destruct y. by simpl.  
-Admitted.
+by move=> x y /eqP yn0; rewrite !C_modE normcM normcV.
+Qed.
 
 Lemma posreal_cond: forall (x:posreal), (0< x)%Re.
 Proof.

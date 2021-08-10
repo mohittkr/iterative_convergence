@@ -19,7 +19,6 @@ From CoqEAL Require Import mxstructure ssrcomplements.
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
-Obligation Tactic := idtac.
 
 Open Scope R_scope.
 Open Scope ring_scope.
@@ -362,6 +361,51 @@ intros. unfold Rsqr. assert (0%Re = (0*0)%Re). { nra. }
 rewrite H0. apply Rmult_le_compat;nra. 
 Qed.
 
+Import ComplexField.
+
+Lemma complex_not_0_sym: forall (x : complex R),
+  Re x != 0 \/ Im x != 0 -> (Re x +i* Im x)%C != 0.
+Proof.
+intros. rewrite eq_complex /=. by apply /nandP.
+Qed.
+
+
+Lemma C_mod_not_zero: forall (x: complex R), 
+  x <> 0 -> C_mod x <> 0.
+Proof.
+intros. rewrite /C_mod.
+have H1: forall x:R, (0 < x)%Re -> sqrt x <> 0%Re.
+  move => a Ha. 
+  assert ( (0< sqrt a)%Re ->  sqrt a <> 0%Re). { nra. }
+  apply H0. apply sqrt_lt_R0; nra.
+apply H1. rewrite -!RpowE.
+assert ( (Re x ^ 2 + Im x ^ 2)%Re <> 0%Re ->
+            (0 < Re x ^ 2 + Im x ^ 2)%Re). { nra. }
+apply H0. rewrite !RpowE.
+by apply sqr_complex_not_zero.
+Qed. 
+
+Lemma C_mod_1: C_mod 1 = 1.
+Proof.
+by rewrite /C_mod /= !expr2 mul1r mul0r Rplus_0_r sqrt_1.
+Qed.
+
+
+Lemma C_mod_pow: forall (x: complex R) (n:nat), 
+  C_mod (x^+ n) = (C_mod x)^+n.
+Proof.
+intros. induction n.
++ by rewrite !expr0 C_mod_1. 
++ by rewrite !exprS C_mod_prod IHn.
+Qed.
+
+Lemma x_pow_n_not_0: forall (x:R) (n:nat), x <> 0 -> x^+n <> 0.
+Proof.
+move => x n H. induction n.
++ rewrite expr0. by apply /eqP.
++ rewrite exprS. by apply Rmult_integral_contrapositive.
+Qed.
+
 
 Lemma each_enrty_zero_lim:
   forall (n:nat) (A: 'M[complex R]_n.+1),
@@ -384,7 +428,8 @@ Lemma each_enrty_zero_lim:
                                      (i2 <= j0))) i j))²) 0%Re.
 Proof.
 intros. 
-assert(forall m:nat , (size_sum sizes <= m)%coq_nat -> 
+assert(forall m:nat , 
+       ((nth 0%N sizes j) <= m)%coq_nat -> 
        (exists k l (a: 'I_k.+1) (b: 'I_k.+1), 
         (diag_block_mx sizes
          (fun n0 i1 : nat =>
@@ -414,12 +459,12 @@ assert(forall m:nat , (size_sum sizes <= m)%coq_nat ->
 
 rewrite -is_lim_seq_spec. unfold is_lim_seq'.
 intros. unfold eventually. 
-exists (size_sum sizes).
+exists (nth 0%N sizes j).
 intros. specialize(H0 n0 H1). 
-destruct H0 as [k H0]. destruct H0 as [l H0].
-destruct H0 as [a H0]. destruct H0 as [b H0].
 destruct H0.
-+ rewrite H0. rewrite mxE. 
++ destruct H0 as [k H0]. destruct H0 as [l H0].
+  destruct H0 as [a H0]. destruct H0 as [b H0].
+  rewrite H0. rewrite mxE. 
   (** now we have entries in form of an upper triangular matrix.
   destruct it to get the entries **)
   rewrite real_sub_0r. 
@@ -450,15 +495,17 @@ destruct H0.
   assert ( (a<=b)%N \/ (a >=b)%N). { apply /orP. apply leq_total. }
   destruct H3.
   + rewrite H3. simpl. rewrite mulr1n. rewrite C_mod_prod.
-    rewrite Rsqr_mult. 
+    rewrite Rsqr_mult C_mod_pow.
     (** Now fiddle with the powers of lambda now **)
     rewrite exprB.
-    - rewrite C_mod_div.
-      * rewrite -RdivE. rewrite Rsqr_div.
-        { (** Here we will use the fact that \lambda < 1 **) admit.  }
-        { admit. }
-      * admit. 
-      * admit. 
+    - rewrite -RdivE. 
+      * rewrite Rsqr_div.
+        { (** Here we will use the fact that \lambda < 1 **) 
+          admit.  
+        }
+        { apply x_pow_n_not_0. apply C_mod_not_zero. admit. }
+      * apply /eqP. apply x_pow_n_not_0.
+        apply C_mod_not_zero. admit.
     - admit.
     - admit.
   + assert ( (b==a)%N \/ (b<a)%N ). { apply /orP. by rewrite -leq_eqVlt. }
@@ -504,7 +551,10 @@ Qed.
 
 Lemma entry_sum_lim_zero :
 forall (n:nat) (A: 'M[complex R]_n.+1),
-(forall (i: 'I_n.+1), (C_mod (lambda A i) < 1)%Re) ->
+(forall (i: 'I_(size_sum
+          [seq x0.2.-1
+             | x0 <- root_seq_poly (invariant_factors A)]).+1), 
+(C_mod (lambda A i) < 1)%Re) ->
 is_lim_seq
   (fun m : nat =>
      (\big[+%R/0]_i0
@@ -763,7 +813,7 @@ apply (is_lim_seq_ext
                + intros. apply sum_x_ge_0.
                  intros. apply sum_x_ge_0. intros.
                  apply Rsqr_ge_0. apply C_mod_ge_0.
-               + by apply entry_sum_lim_zero.
+               + apply entry_sum_lim_zero. by rewrite total_eigen_val.
              }
         }
         { apply is_lim_seq_const. } 

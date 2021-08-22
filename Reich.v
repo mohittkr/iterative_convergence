@@ -949,7 +949,6 @@ assert (((RtoC 1 + conjc li) * (RtoC 1 + li))%C = RtoC (Rsqr (C_mod (RtoC 1 + li
 } rewrite H21 in H18.
 
 (** let's split now **)
-(* Here *)
 split.
 + intros.
   unfold is_positive_definite.

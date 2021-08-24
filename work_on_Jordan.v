@@ -428,6 +428,78 @@ Lemma each_enrty_zero_lim:
                                      (i2 <= j0))) i j))²) 0%Re.
 Proof.
 intros. 
+(** Apply sandwich theorem here **)
+apply (is_lim_seq_le_le (fun m:nat => 0)
+        (fun m: nat => 
+        (C_mod (diag_block_mx sizes
+              (fun n0 i1 : nat =>
+               \matrix_(i2, j0) (('C(m.+1, j0 - i2))%:R *
+                                     (nth 
+                                     (0, 0%N)
+                                     (root_seq_poly
+                                     (invariant_factors A))
+                                     i1).1
+                                     ^+ 
+                                     (m.+1 - (j0 - i2)) *+
+                                     (i2 <= j0))) i j))²)
+        (fun m: nat => 
+        (C_mod (diag_block_mx sizes
+              (fun n0 i1 : nat =>
+               \matrix_(i2, j0) ((((j0-i2)`!)%:R)^-1 * 
+                                  (((m.+1)%:R)^+(j0-i2)  *
+                                  (nth 
+                                     (0, 0%N)
+                                     (root_seq_poly
+                                     (invariant_factors A))
+                                     i1).1
+                                     ^+ 
+                                     (m.+1 - (j0 - i2))) *+
+                                      (i2 <= j0))) i j))²)).
++ intros.
+  split.
+  - apply Rsqr_ge_0,C_mod_ge_0.
+  - (** This is where I prove the inequality **)
+    apply Rsqr_incr_1.
+    * assert(forall m:nat , 
+       (exists k l (a: 'I_k.+1) (b: 'I_k.+1), 
+        (diag_block_mx sizes
+         (fun n0 i1 : nat =>
+          \matrix_(i2, j0) (('C(m.+1, j0 - i2))%:R *
+                            (nth (0, 0%N)
+                               (root_seq_poly
+                                  (invariant_factors A)) i1).1
+                            ^+ (m.+1 - (j0 - i2)) *+
+                            (i2 <= j0))) i j =
+        (fun n0 i1 : nat =>
+          \matrix_(i2, j0) (('C(m.+1, j0 - i2))%:R *
+                            (nth (0, 0%N)
+                               (root_seq_poly
+                                  (invariant_factors A)) i1).1
+                            ^+ (m.+1 - (j0 - i2)) *+
+                            (i2 <= j0))) k l a b)) \/
+        (diag_block_mx sizes
+         (fun n0 i1 : nat =>
+          \matrix_(i2, j0) (('C(m.+1, j0 - i2))%:R *
+                            (nth (0, 0%N)
+                               (root_seq_poly
+                                  (invariant_factors A)) i1).1
+                            ^+ (m.+1 - (j0 - i2)) *+
+                            (i2 <= j0))) i j = 0 :> (complex R))).
+    { intros. apply diag_destruct. }
+    specialize (H0 n0). destruct H0.
+    + destruct H0 as [k H0]. destruct H0 as [l H0].
+      destruct H0 as [a H0]. destruct H0 as [b H0].
+      rewrite H0 !mxE. admit.
+    + rewrite H0 //= C_mod_0. apply C_mod_ge_0.
+    * apply C_mod_ge_0.
+    * apply C_mod_ge_0.
++ apply is_lim_seq_const.
++ (** This is where I prove that n^k * \lambda^n goes to zero.
+  I extract the diagonal blocks here. Might have to use the
+  epsilon-delta reasoning **)
+  admit.
+
+(*
 assert(forall m:nat , 
        ((nth 0%N sizes j) <= m)%coq_nat -> 
        (exists k l (a: 'I_k.+1) (b: 'I_k.+1), 
@@ -518,6 +590,7 @@ destruct H0.
 + rewrite H0. rewrite C_mod_0. 
   assert ((0² - 0)%Re = 0%Re). { unfold Rsqr. nra. }
   rewrite H2. rewrite Rabs_R0. apply posreal_cond.
+*)
 Admitted.
 
 

@@ -115,13 +115,15 @@ Definition lambda (n:nat) (A: 'M[complex R]_n.+1) (i:nat) : complex R:=
   let sp:= root_seq_poly (invariant_factors A) in
   (nth (0,0%N) sp i).1.
 
+Variable ii jj kk:nat.
+Check ('C(ii.+1, jj - kk))%:R.
 
 Lemma diag_ext: forall (n n0:nat) (A: 'M[complex R]_n.+1),  
 diag_block_mx
   [seq x0.2.-1
      | x0 <- root_seq_poly (invariant_factors A)]
   (fun n1 i0 : nat =>
-   \matrix_(i1, j) (('C(n0.+1, j - i1))%:R *
+   \matrix_(i1, j) ('C(n0.+1, j - i1)%:R*
                     (nth (0, 0%N)
                        (root_seq_poly
                           (invariant_factors A)) i0).1
@@ -131,7 +133,7 @@ diag_block_mx
   [seq x0.2.-1
      | x0 <- root_seq_poly (invariant_factors A)]
   (fun n1 i0 : nat =>
-   Jordan_block
+   @Jordan_block [ringType of (complex R)]
      (nth (0, 0%N) (root_seq_poly (invariant_factors A))
         i0).1 n1.+1 ^+ n0.+1).
 Proof.
@@ -406,6 +408,45 @@ move => x n H. induction n.
 + rewrite exprS. by apply Rmult_integral_contrapositive.
 Qed.
 
+Require Import StrongInduction.
+
+Lemma mul_ring: forall (m n:nat),
+    (m * n)%:R = (m%:R * n %:R) :> R.
+Proof.
+intros. induction n.
++ by rewrite mulr0 muln0.
++ rewrite mulnS mulrS mulrDr mulr1.
+  by rewrite -IHn natrD.
+Qed.
+
+
+
+Lemma C_mod_le_rel_suc: forall (n:nat),
+  Rle (C_mod n%:R) (C_mod (n.+1)%:R).
+Proof.
+intros. admit. (* maybe by strong induction ? *)
+Admitted.
+
+
+Lemma C_mod_le_rel: forall (m n: nat), 
+  (m <= n)%N -> Rle (C_mod m%:R) (C_mod n%:R).
+Proof.
+intros. induction n.
++ assert (m == 0%N). { by rewrite -leqn0. }
+  assert (m = 0%N). { by apply /eqP. }
+  rewrite H1. rewrite !C_mod_0. nra.
++ assert ( (m == n.+1) \/ (m < n.+1)%N).
+  { by apply /orP; rewrite -leq_eqVlt. } 
+  destruct H0.
+  - assert ( m = n.+1). { by apply /eqP. }
+    rewrite H1. nra.
+  - assert ( (m <= n)%N). { by rewrite -ltnS. }
+    specialize (IHn H1).
+    apply Rle_trans with (C_mod n%:R).
+    * apply IHn.
+    * apply C_mod_le_rel_suc.
+Qed.
+
 
 Lemma each_enrty_zero_lim:
   forall (n:nat) (A: 'M[complex R]_n.+1),
@@ -427,81 +468,9 @@ Lemma each_enrty_zero_lim:
                                      (m.+1 - (j0 - i2)) *+
                                      (i2 <= j0))) i j))²) 0%Re.
 Proof.
-intros. 
-(** Apply sandwich theorem here **)
-apply (is_lim_seq_le_le (fun m:nat => 0)
-        (fun m: nat => 
-        (C_mod (diag_block_mx sizes
-              (fun n0 i1 : nat =>
-               \matrix_(i2, j0) (('C(m.+1, j0 - i2))%:R *
-                                     (nth 
-                                     (0, 0%N)
-                                     (root_seq_poly
-                                     (invariant_factors A))
-                                     i1).1
-                                     ^+ 
-                                     (m.+1 - (j0 - i2)) *+
-                                     (i2 <= j0))) i j))²)
-        (fun m: nat => 
-        (C_mod (diag_block_mx sizes
-              (fun n0 i1 : nat =>
-               \matrix_(i2, j0) ((((j0-i2)`!)%:R)^-1 * 
-                                  (((m.+1)%:R)^+(j0-i2)  *
-                                  (nth 
-                                     (0, 0%N)
-                                     (root_seq_poly
-                                     (invariant_factors A))
-                                     i1).1
-                                     ^+ 
-                                     (m.+1 - (j0 - i2))) *+
-                                      (i2 <= j0))) i j))²)).
-+ intros.
-  split.
-  - apply Rsqr_ge_0,C_mod_ge_0.
-  - (** This is where I prove the inequality **)
-    apply Rsqr_incr_1.
-    * assert(forall m:nat , 
-       (exists k l (a: 'I_k.+1) (b: 'I_k.+1), 
-        (diag_block_mx sizes
-         (fun n0 i1 : nat =>
-          \matrix_(i2, j0) (('C(m.+1, j0 - i2))%:R *
-                            (nth (0, 0%N)
-                               (root_seq_poly
-                                  (invariant_factors A)) i1).1
-                            ^+ (m.+1 - (j0 - i2)) *+
-                            (i2 <= j0))) i j =
-        (fun n0 i1 : nat =>
-          \matrix_(i2, j0) (('C(m.+1, j0 - i2))%:R *
-                            (nth (0, 0%N)
-                               (root_seq_poly
-                                  (invariant_factors A)) i1).1
-                            ^+ (m.+1 - (j0 - i2)) *+
-                            (i2 <= j0))) k l a b)) \/
-        (diag_block_mx sizes
-         (fun n0 i1 : nat =>
-          \matrix_(i2, j0) (('C(m.+1, j0 - i2))%:R *
-                            (nth (0, 0%N)
-                               (root_seq_poly
-                                  (invariant_factors A)) i1).1
-                            ^+ (m.+1 - (j0 - i2)) *+
-                            (i2 <= j0))) i j = 0 :> (complex R))).
-    { intros. apply diag_destruct. }
-    specialize (H0 n0). destruct H0.
-    + destruct H0 as [k H0]. destruct H0 as [l H0].
-      destruct H0 as [a H0]. destruct H0 as [b H0].
-      rewrite H0 !mxE. admit.
-    + rewrite H0 //= C_mod_0. apply C_mod_ge_0.
-    * apply C_mod_ge_0.
-    * apply C_mod_ge_0.
-+ apply is_lim_seq_const.
-+ (** This is where I prove that n^k * \lambda^n goes to zero.
-  I extract the diagonal blocks here. Might have to use the
-  epsilon-delta reasoning **)
-  admit.
-
-(*
+intros.
 assert(forall m:nat , 
-       ((nth 0%N sizes j) <= m)%coq_nat -> 
+        ((nth 0%N sizes j) <= m)%coq_nat ->
        (exists k l (a: 'I_k.+1) (b: 'I_k.+1), 
         (diag_block_mx sizes
          (fun n0 i1 : nat =>
@@ -540,57 +509,48 @@ destruct H0.
   (** now we have entries in form of an upper triangular matrix.
   destruct it to get the entries **)
   rewrite real_sub_0r. 
-  assert (Rabs
-      (C_mod
-      (('C(n0.+1, b - a))%:R *
-       (nth (0, 0%N) (root_seq_poly (invariant_factors A)) l).1
-       ^+ (n0.+1 - (b - a)) *+ (a <= b)))² = 
-      (C_mod
-      (('C(n0.+1, b - a))%:R *
+  
+  apply Rle_lt_trans with
+  (Rabs
+   (C_mod
+      ((((b-a)`!)%:R)^-1 * (((n0.+1)%:R)^+(b-a)) * 
        (nth (0, 0%N) (root_seq_poly (invariant_factors A)) l).1
        ^+ (n0.+1 - (b - a)) *+ (a <= b)))²).
-  { apply Rabs_right. apply Rle_ge. apply Rsqr_ge_0. apply C_mod_ge_0. }
-  rewrite H2. clear H2.
-  
-  assert (is_lim_seq (fun m:nat => ((Rsqr (C_mod (lambda A i)))^m)%Re) 0%Re).
-  { apply is_lim_seq_geom. 
-    assert ( Rabs (C_mod (lambda A i))² = (C_mod (lambda A i))²).
-    { apply Rabs_right. apply Rle_ge. apply Rsqr_ge_0. apply C_mod_ge_0. }
-    rewrite H2. clear H2. 
-    assert (Rsqr 1 = 1%Re). { apply Rsqr_1. } rewrite -H2.
-    apply Rsqr_incrst_1.
-    + apply H.
-    + apply C_mod_ge_0.
-    + nra.
-  }
-  rewrite <-is_lim_seq_spec in H2. unfold is_lim_seq' in H2.
-  assert ( (a<=b)%N \/ (a >=b)%N). { apply /orP. apply leq_total. }
-  destruct H3.
-  + rewrite H3. simpl. rewrite mulr1n. rewrite C_mod_prod.
-    rewrite Rsqr_mult C_mod_pow.
-    (** Now fiddle with the powers of lambda now **)
-    rewrite exprB.
-    - rewrite -RdivE. 
-      * rewrite Rsqr_div.
-        { (** Here we will use the fact that \lambda < 1 **) 
-          admit.  
-        }
-        { apply x_pow_n_not_0. apply C_mod_not_zero. admit. }
-      * apply /eqP. apply x_pow_n_not_0.
-        apply C_mod_not_zero. admit.
-    - admit.
-    - admit.
-  + assert ( (b==a)%N \/ (b<a)%N ). { apply /orP. by rewrite -leq_eqVlt. }
-    destruct H4.
-    - assert ( b = a). { by apply /eqP. }
-      rewrite H5. clear H4 H5. rewrite leqnn /=. admit.
-    - assert ((a <= b)%N = false). { by apply ltn_geF. }
-      rewrite H5 /=. rewrite mulr0n. rewrite C_mod_0. rewrite Rsqr_0.
-      apply posreal_cond.
+  - rewrite !Rabs_right. 
+    * apply Rsqr_incr_1.
+      { assert ( (a<=b)%N \/ (a >=b)%N). { apply /orP. apply leq_total. }
+        destruct H2.
+        + rewrite H2 //=. rewrite !mulr1n. rewrite !C_mod_prod.
+          apply Rmult_le_compat_r.
+          - apply C_mod_ge_0.
+          - rewrite -C_mod_prod bin_factd.
+            rewrite mulrC. admit.
+            by [].
+        + assert ( (b==a)%N \/ (b<a)%N ). 
+          { apply /orP. by rewrite -leq_eqVlt. }
+          destruct H3.
+          - assert ( b = a). { by apply /eqP. }
+            rewrite H4. clear H3. rewrite leqnn /=. rewrite !mulr1n. rewrite !C_mod_prod.
+            apply Rmult_le_compat_r.
+            * apply C_mod_ge_0.
+            * rewrite H4 in H2. rewrite -C_mod_prod //=. 
+              assert ((a-a)%N = 0%N). 
+              { apply /eqP. by rewrite /leq. }
+              rewrite H3 expr0. rewrite bin0.
+              rewrite -ffactnn ffactn0 mulr1 invr1.
+              rewrite C_mod_1. nra.
+          - assert ((a <= b)%N = false). { by apply ltn_geF. }
+            rewrite H4 /=. rewrite mulr0n. rewrite C_mod_0.
+            nra. 
+      }
+      { apply C_mod_ge_0. }
+      { apply C_mod_ge_0. }
+    * apply Rle_ge, Rsqr_ge_0, C_mod_ge_0.
+    * apply Rle_ge, Rsqr_ge_0, C_mod_ge_0.
+  - admit.
 + rewrite H0. rewrite C_mod_0. 
   assert ((0² - 0)%Re = 0%Re). { unfold Rsqr. nra. }
   rewrite H2. rewrite Rabs_R0. apply posreal_cond.
-*)
 Admitted.
 
 
@@ -638,7 +598,7 @@ is_lim_seq
                      | x0 <- root_seq_poly
                                (invariant_factors A)]
                   (fun n0 i1 : nat =>
-                   \matrix_(i2, j0) (('C(m.+1, j0 - i2))%:R *
+                   \matrix_(i2, j0) ('C(m.+1, j0 - i2)%:R *
                                      (nth 
                                      (0, 0%N)
                                      (root_seq_poly
@@ -652,8 +612,7 @@ intros.
 apply lim_sum_i.
 intros x.
 apply lim_sum_i.
-intros y.
-by apply each_enrty_zero_lim.
+intros y. by apply each_enrty_zero_lim. 
 Qed.
 
 
@@ -863,7 +822,8 @@ apply (is_lim_seq_ext
                        let sizes := [seq x0.2.-1 | x0 <- sp] in
                        let blocks :=
                          fun n0 i0 : nat =>
-                         (\matrix_(i,j) (('C(m.+1,j - i)%:R * (((nth (0, 0%N) sp i0).1)^+ (m.+1 - (j - i)))) *+ (i <= j)))
+                         (\matrix_(i,j) ((('C(m.+1,j - i))%:R * 
+                            (((nth (0, 0%N) sp i0).1)^+ (m.+1 - (j - i)))) *+ (i <= j)))
                          in mat_norm (diag_block_mx sizes blocks)) 
 
                         (fun m : nat =>

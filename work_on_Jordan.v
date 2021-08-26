@@ -448,6 +448,63 @@ intros. induction n.
 Qed.
 
 
+Lemma n_fact_le_pow: forall (n:nat),
+  (n`! <= n^n)%N.
+Proof.
+intros. induction n.
++ by rewrite expn0 fact0.
++ rewrite factS expnS. apply leq_mul.
+  - by [].
+  - apply leq_trans with (n^n)%N.
+    * apply IHn.
+    * assert ( (0%N==n) \/ (0<n)%N). 
+      { apply /orP. by rewrite -leq_eqVlt. }
+      destruct H.
+      { assert ( n=0%N). { apply /eqP. by rewrite eq_sym. }
+        rewrite H0. by rewrite !expn0.
+      }
+      { rewrite leq_exp2r; by []. }
+Qed.
+
+Lemma fact_pow_rel: forall (n k:nat),
+  (n^_k <= n^k)%N.
+Proof.
+induction k.
++ by rewrite expn0 ffactn0.
++ rewrite ffactnSr expnS mulnC.
+  apply leq_mul.
+  + apply leq_subr.
+  + apply IHk.
+Qed.
+
+Lemma binomial_rel: forall (n k:nat),
+  (0 < n)%N -> ('C(n,k) <= n^k %/ k`!)%N.
+Proof.
+intros.
+assert ( (k<=n)%N \/ (k >=n)%N). 
+{ apply /orP. apply leq_total. }
+destruct H0.
++ rewrite bin_factd.
+  - rewrite divnMA divnAC.
+    apply leq_div2r.
+    rewrite -ffact_factd.
+    * apply fact_pow_rel.
+    * by [].
+  - by [].
++ assert ( (n==k) \/ ( n < k)%N). 
+  { apply /orP. by rewrite -leq_eqVlt. }
+  destruct H1.
+  - assert ( n= k). { by apply /eqP. }
+    rewrite H2 binn. rewrite divn_gt0.
+    * apply n_fact_le_pow.
+    * apply fact_gt0. 
+  - rewrite bin_small. 
+    assert ( 0%N = (0 %/ k`!)%N). { by rewrite div0n. }
+    rewrite H2. apply leq_div2r. by []. apply H1.
+Qed.
+
+
+
 Lemma each_enrty_zero_lim:
   forall (n:nat) (A: 'M[complex R]_n.+1),
   let sp := root_seq_poly (invariant_factors A) in
@@ -467,6 +524,7 @@ Lemma each_enrty_zero_lim:
                                      ^+ 
                                      (m.+1 - (j0 - i2)) *+
                                      (i2 <= j0))) i j))²) 0%Re.
+
 Proof.
 intros.
 assert(forall m:nat , 
@@ -523,9 +581,10 @@ destruct H0.
         + rewrite H2 //=. rewrite !mulr1n. rewrite !C_mod_prod.
           apply Rmult_le_compat_r.
           - apply C_mod_ge_0.
-          - rewrite -C_mod_prod bin_factd.
-            rewrite mulrC. admit.
-            by [].
+          - rewrite -C_mod_prod.
+            apply Rle_trans with (C_mod ((n0.+1)^(b-a) %/ (b-a)`!)%:R).
+            * apply C_mod_le_rel, binomial_rel. by [].
+            * admit.
         + assert ( (b==a)%N \/ (b<a)%N ). 
           { apply /orP. by rewrite -leq_eqVlt. }
           destruct H3.

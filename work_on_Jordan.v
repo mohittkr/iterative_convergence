@@ -504,6 +504,62 @@ destruct H0.
 Qed.
 
 
+Lemma one_mod_d: forall (d:nat),
+  (1 < d)%N -> (1 %% d = 1)%N.
+Proof.
+intros. by rewrite modn_small.
+Qed.
+
+Lemma leq_mod_false: forall (a b:nat), 
+  (0 < b)%N -> (b <= a %% b)%N = false.
+Proof.
+intros. apply ltn_geF. by apply ltn_pmod.
+Qed.
+
+
+Lemma nat_to_ring: forall(a b:nat),
+ (0<b)%N -> 
+ (a %/b)%:R = (b%:R^-1 * a%:R) :>R.
+Proof.
+intros. induction a.
++ by rewrite mulr0 div0n.
++ rewrite -addn1 divnD. 
+  - rewrite !natrD mulrDr -IHa mulr1.
+    assert ((1 %/ b)%:R + (b <= a %% b + 1 %% b)%:R =
+              b%:R^-1 :>R). 
+    { assert ( b = 1%N \/ (1 < b)%N). { admit. }
+      destruct H0.
+      + by rewrite H0 !modn1 //= addr0 divn1 invr1.
+      + rewrite one_mod_d.  admit.
+Admitted.
+
+(*
+Lemma nat_to_ring_eq: forall (n k:nat),
+ ((n ^ k)%N %/ k`!)%:R = (k`!%:R^-1 * n%:R ^+ k) :> R.
+Proof.
+intros. induction k.
++ by rewrite fact0 expr0 expn0 divn1 invr1 mulr1.
++ rewrite factS divnMA divnAC. rewrite expnS.
+  rewrite divmul mulnC divmul mul_ring.
+  rewrite exprS. rewrite [RHS]mulrC mul_ring invrM.
+  - rewrite -mulrA. rewrite mulrC.
+    rewrite mulrA. rewrite mulrC in IHk. rewrite -IHk.
+    rewrite -mulrA.
+    admit. admit. admit.
+Admitted. 
+*)
+Lemma lim_npowk_mul_to_zero: forall (x:R) (k:nat),
+  Rabs x < 1 -> is_lim_seq (fun m:nat => ((m.+1)%:R^k * x^ m.+1)%Re) 0%Re.
+Admitted.
+
+
+Lemma pow_nat_ring: forall (m n:nat),
+   m%:R ^+n = (m ^ n)%:R :>R.
+Proof.
+intros. induction n.
++ by [].
++ by rewrite exprS expnS mul_ring IHn.
+Qed.
 
 Lemma each_enrty_zero_lim:
   forall (n:nat) (A: 'M[complex R]_n.+1),
@@ -557,7 +613,7 @@ assert(forall m:nat ,
 (** Start working from here **)
 
 rewrite -is_lim_seq_spec. unfold is_lim_seq'.
-intros. unfold eventually. 
+intros. unfold eventually.
 exists (nth 0%N sizes j).
 intros. specialize(H0 n0 H1). 
 destruct H0.
@@ -571,7 +627,7 @@ destruct H0.
   apply Rle_lt_trans with
   (Rabs
    (C_mod
-      ((((b-a)`!)%:R)^-1 * (((n0.+1)%:R)^+(b-a)) * 
+      (((n0.+1)^(b-a) %/ (b-a)`!)%:R * 
        (nth (0, 0%N) (root_seq_poly (invariant_factors A)) l).1
        ^+ (n0.+1 - (b - a)) *+ (a <= b)))²).
   - rewrite !Rabs_right. 
@@ -580,11 +636,8 @@ destruct H0.
         destruct H2.
         + rewrite H2 //=. rewrite !mulr1n. rewrite !C_mod_prod.
           apply Rmult_le_compat_r.
-          - apply C_mod_ge_0.
-          - rewrite -C_mod_prod.
-            apply Rle_trans with (C_mod ((n0.+1)^(b-a) %/ (b-a)`!)%:R).
-            * apply C_mod_le_rel, binomial_rel. by [].
-            * admit.
+          - apply C_mod_ge_0. 
+          - by apply C_mod_le_rel, binomial_rel.
         + assert ( (b==a)%N \/ (b<a)%N ). 
           { apply /orP. by rewrite -leq_eqVlt. }
           destruct H3.
@@ -592,11 +645,11 @@ destruct H0.
             rewrite H4. clear H3. rewrite leqnn /=. rewrite !mulr1n. rewrite !C_mod_prod.
             apply Rmult_le_compat_r.
             * apply C_mod_ge_0.
-            * rewrite H4 in H2. rewrite -C_mod_prod //=. 
+            * rewrite H4 in H2.  
               assert ((a-a)%N = 0%N). 
               { apply /eqP. by rewrite /leq. }
-              rewrite H3 expr0. rewrite bin0.
-              rewrite -ffactnn ffactn0 mulr1 invr1.
+              rewrite H3. rewrite bin0.
+              rewrite -ffactnn ffactn0 expn0 divn1.
               rewrite C_mod_1. nra.
           - assert ((a <= b)%N = false). { by apply ltn_geF. }
             rewrite H4 /=. rewrite mulr0n. rewrite C_mod_0.
@@ -606,7 +659,29 @@ destruct H0.
       { apply C_mod_ge_0. }
     * apply Rle_ge, Rsqr_ge_0, C_mod_ge_0.
     * apply Rle_ge, Rsqr_ge_0, C_mod_ge_0.
-  - admit.
+  - rewrite Rabs_right. 
+    * assert ( (a<=b)%N \/ (a >=b)%N). { apply /orP. apply leq_total. }
+      destruct H2.
+      { rewrite H2 //= !mulr1n. rewrite natr_div.
+        + admit.
+        + apply /dvdnP. admit.
+        + admit.
+      }
+      { assert ( (b==a)%N \/ (b<a)%N ). 
+        { apply /orP. by rewrite -leq_eqVlt. }
+        destruct H3.
+        - assert ( b = a). { by apply /eqP. }
+          rewrite H4. rewrite H4 in H2.  
+          assert ((a-a)%N = 0%N). 
+          { apply /eqP. by rewrite /leq. }
+          rewrite H5. rewrite leqnn /=. 
+          rewrite !mulr1n subn0 mul1r.
+          admit.
+        - assert ((a <= b)%N = false). { by apply ltn_geF. }
+          rewrite H4 /=. rewrite mulr0n. rewrite C_mod_0.
+          rewrite Rsqr_0. apply posreal_cond.
+      }
+    * apply Rle_ge, Rsqr_ge_0,C_mod_ge_0.
 + rewrite H0. rewrite C_mod_0. 
   assert ((0² - 0)%Re = 0%Re). { unfold Rsqr. nra. }
   rewrite H2. rewrite Rabs_R0. apply posreal_cond.

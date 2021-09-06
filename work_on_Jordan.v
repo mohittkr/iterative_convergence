@@ -429,32 +429,6 @@ intros. induction n.
   by rewrite -IHn natrD.
 Qed.
 
-Lemma C_mod_le_rel_suc: forall (n:nat),
-  Rle (C_mod n%:R) (C_mod (n.+1)%:R).
-Proof.
-intros. admit. (* maybe by strong induction ? *)
-Admitted.
-
-
-Lemma C_mod_le_rel: forall (m n: nat), 
-  (m <= n)%N -> Rle (C_mod m%:R) (C_mod n%:R).
-Proof.
-intros. induction n.
-+ assert (m == 0%N). { by rewrite -leqn0. }
-  assert (m = 0%N). { by apply /eqP. }
-  rewrite H1. rewrite !C_mod_0. nra.
-+ assert ( (m == n.+1) \/ (m < n.+1)%N).
-  { by apply /orP; rewrite -leq_eqVlt. } 
-  destruct H0.
-  - assert ( m = n.+1). { by apply /eqP. }
-    rewrite H1. nra.
-  - assert ( (m <= n)%N). { by rewrite -ltnS. }
-    specialize (IHn H1).
-    apply Rle_trans with (C_mod n%:R).
-    * apply IHn.
-    * apply C_mod_le_rel_suc.
-Qed.
-
 
 Lemma n_fact_le_pow: forall (n:nat),
   (n`! <= n^n)%N.
@@ -485,70 +459,6 @@ induction k.
   + apply IHk.
 Qed.
 
-Lemma binomial_rel: forall (n k:nat),
-  (0 < n)%N -> ('C(n,k) <= n^k %/ k`!)%N.
-Proof.
-intros.
-assert ( (k<=n)%N \/ (k >=n)%N). 
-{ apply /orP. apply leq_total. }
-destruct H0.
-+ rewrite bin_factd.
-  - rewrite divnMA divnAC.
-    apply leq_div2r.
-    rewrite -ffact_factd.
-    * apply fact_pow_rel.
-    * by [].
-  - by [].
-+ assert ( (n==k) \/ ( n < k)%N). 
-  { apply /orP. by rewrite -leq_eqVlt. }
-  destruct H1.
-  - assert ( n= k). { by apply /eqP. }
-    rewrite H2 binn. rewrite divn_gt0.
-    * apply n_fact_le_pow.
-    * apply fact_gt0. 
-  - rewrite bin_small. 
-    assert ( 0%N = (0 %/ k`!)%N). { by rewrite div0n. }
-    rewrite H2. apply leq_div2r. by []. apply H1.
-Qed.
-
-
-Lemma bound_fact: forall (n k:nat),
-  (0 < n)%N -> 
-  ('C(n,k)%:R <= ((n%:R^k) / (k`!)%:R) :>R).
-Proof. 
-intros. 
-assert ( (k<=n)%N \/ (k >= n)%N).
-{ apply /orP. by apply leq_total. }
-destruct H0.
-+ rewrite bin_factd.
-  - rewrite natr_div. 
-    * rewrite mul_ring_real. rewrite invrM.
-      { rewrite mulrA. apply /RleP. 
-        apply Rmult_le_compat_r. apply Rlt_le.
-        rewrite -div1r. rewrite -RdivE.
-        + assert ((1 / k`!%:R)%Re = (/ k`!%:R)%Re).
-          { nra. } rewrite H1. apply Rinv_0_lt_compat.
-          admit.
-        + apply /eqP.
-          assert (( 0 < k`! %:R)%Re -> k`!%:R <> 0%Re). { nra. }
-          apply H1.
-          admit. 
-        + admit.
-      }
-      { admit. }
-      { admit. }
-    * apply /dvdnP. exists 'C(n,k). by rewrite bin_fact.
-    * rewrite mul_ring_real. rewrite unitrMr.
-      { rewrite unitrE. apply /eqP.  admit. }
-      { rewrite unitrE. apply /eqP.  admit. }
-  - by [].
-+ assert ( (n==k) \/ (n < k)%N).
-  { apply /orP. by rewrite -leq_eqVlt. }
-  destruct H1.
-  - assert (n=k). { by apply /eqP. } rewrite H2.
-    rewrite binn. admit.
-  - rewrite bin_small. admit. by [].
-Admitted.
 
 Lemma n_plus_1_not_0: forall (n:nat),
   (0 < (n.+1)%:R)%Re.
@@ -559,7 +469,6 @@ intros. induction n.
   - apply IHn.
   - apply Rlt_0_1.
 Qed.
-
 
 
 Lemma fact_ring_gt_0: forall (n:nat),
@@ -680,14 +589,6 @@ rewrite bin_factd.
 + by [].
 Qed.
 
-Lemma choice_to_ring_mod: 
-  forall (n k:nat),
-  (0<n)%N -> (k<=n)%N ->
-  C_mod ('C(n,k)%:R) = 
-  C_mod (((n`!)%:R * ((n-k)`! )%:R^-1 * (k`! )%:R^-1)).
-Proof.
-intros. by rewrite choice_to_ring.
-Qed.
 
 Lemma pow_nat_ring: forall (m n:nat),
    m%:R ^+n = (m ^ n)%:R :>complex R.
@@ -724,6 +625,151 @@ assert (0 ^+ 2 = 0 :>R). { by rewrite expr2 mulr0. }
 rewrite H0 addr0 expr2. by rewrite div_prod. 
 Qed.
 
+Lemma nat_ring_le: forall (n:nat),
+  (0<= n)%N -> (0%Re <= n%:R)%Re.
+Proof.
+intros. induction n.
++ by apply /RleP.
++ rewrite -addn1 natrD. apply Rplus_le_le_0_compat.
+  - by apply IHn.
+  - apply Rlt_le. apply Rlt_0_1.
+Qed.
+
+
+Lemma nat_ring_lt: forall (n:nat),
+  (0< n)%N -> (0%Re < n%:R)%Re.
+Proof.
+intros. induction n.
++ by apply /RltP.
++ rewrite -addn1 natrD. apply Rplus_le_lt_0_compat.
+  - by apply nat_ring_le.
+  - apply Rlt_0_1.
+Qed.
+
+Lemma pow_nat_ring_real: forall (m n:nat),
+   m%:R ^+n = (m ^ n)%:R :>R.
+Proof.
+intros. induction n.
++ by [].
++ by rewrite exprS expnS mul_ring_real IHn.
+Qed.
+
+
+Lemma nat_ring_mn_le: forall (m n:nat),
+  (m<= n)%N -> (m%:R <= n%:R)%Re.
+Proof.
+intros. induction n.
++ rewrite leqn0 in H. assert ( m = 0%N). { by apply /eqP. }
+  rewrite H0. nra.
++ rewrite leq_eqVlt in H.
+  assert ( (m == n.+1) \/ (m < n.+1)%N).
+  { by apply /orP. } destruct H0.
+  - assert ( m = n.+1). { by apply /eqP. }
+    rewrite H1. nra.
+  - assert ( (m <=n)%N). { by []. }
+    specialize (IHn H1).
+    rewrite -addn1 natrD. apply Rle_trans with n%:R.
+    * apply IHn.
+    * rewrite -RplusE. 
+      assert (n%:R = (n%:R + 0)%Re). { nra. }
+      rewrite H2. 
+      assert ((n%:R + 0 + 1%:R)%Re = (n%:R + 1%:R)%Re).
+      { nra. } rewrite H3. apply Rplus_le_compat. 
+      nra. apply Rlt_le. apply Rlt_0_1. 
+Qed.
+
+Lemma fact_pow_le: forall (n k:nat), 
+  (k <= n)%N -> ((n`!%:R / (n - k)`!%:R)%Ri <= (n ^ k)%:R)%Re.
+Proof.
+intros.
+assert ( (k==n) \/ (k <n)%N). { apply /orP. by rewrite -leq_eqVlt. }
+destruct H0.
+- assert ( k = n). { by apply /eqP. } rewrite H1.
+  assert ( (n - n)%N = 0%N). 
+  { apply /eqP. assert ((n<=n)%N). { by []. } by rewrite /leq. }
+  rewrite H2 fact0 divr1. apply nat_ring_mn_le.
+  apply n_fact_le_pow.
+- clear H. induction k.
+  + rewrite subn0 expn0. rewrite -RdivE.
+    - assert ((n`!%:R / n`!%:R )%Re = 1 :>R).
+      { apply Rinv_r.
+        assert ( (0 < n`!%:R)%Re -> n`!%:R <> 0%Re). { nra. }
+        apply H. apply fact_ring_gt_0.
+      } rewrite H. by apply /RleP.
+    - apply /eqP.
+      assert ( (0 < n`!%:R)%Re -> n`!%:R <> 0%Re). { nra. }
+      apply H. apply fact_ring_gt_0. 
+  + assert ( (k <n)%N). 
+    { assert ((0<=n)%N). { by []. }
+      assert ( (0%N == n) \/ (0< n)%N).
+      { apply /orP. by rewrite -leq_eqVlt. } destruct H1.
+      + assert (n=0%N). { apply /eqP. by rewrite eq_sym. }
+        rewrite H2 in H0. by [].
+      + apply ltn_trans with n.-1.
+        - by rewrite ltn_predRL.
+        - clear H. by rewrite ltn_predL.
+    } specialize (IHk H).
+    rewrite expnS mul_ring_real. rewrite -RdivE. rewrite -RmultE.
+    - assert (n`!%:R  = (n`!%:R * ((n-k)%:R / (n-k)%:R))%Re).
+      { assert (((n-k)%:R / (n-k)%:R)%Re = 1).
+        { apply Rinv_r.
+          assert ( (0 < (n - k)%:R)%Re -> (n - k)%:R <> 0%Re). { nra. }
+          apply H1. apply nat_ring_lt. by rewrite subn_gt0.
+        } rewrite H1. 
+        by rewrite RmultE mulr1.
+      } rewrite H1.
+      assert ((n`!%:R * ((n - k)%:R / (n - k)%:R) / (n - k.+1)`!%:R)%Re=
+                ((n-k)%:R * (n`!%:R / (n - k)`!%:R))%Re).
+      { assert ( (n`!%:R * ((n - k)%:R / (n - k)%:R) / (n - k.+1)`!%:R)%Re =
+                  ((n`!%:R * (n - k)%:R) / ((n - k)%:R * (n - k.+1)`!%:R))%Re).
+        { rewrite -Rmult_assoc. 
+          assert ((n`!%:R * (n - k)%:R * / (n - k)%:R / (n - k.+1)`!%:R)%Re =
+                  ((n`!%:R * (n - k)%:R )* ( / (n - k)%:R * / (n - k.+1)`!%:R))%Re).
+          { nra. } rewrite H2.
+          assert ( (/ (n - k)%:R * / (n - k.+1)`!%:R)%Re = 
+                    (/ ((n - k)%:R * (n - k.+1)`!%:R))%Re).
+          { rewrite -Rinv_mult_distr.
+            + by [].
+            + assert ( (0 < (n - k)%:R)%Re -> (n - k)%:R <> 0%Re). { nra. }
+              apply H3. apply nat_ring_lt. by rewrite subn_gt0.
+            + assert ( (0 < (n - k.+1)`!%:R)%Re -> (n - k.+1)`!%:R <> 0%Re). { nra. }
+              apply H3. apply fact_ring_gt_0.
+          } rewrite H3. nra.
+        } rewrite H2.
+        assert ((n - k)`!%:R = ((n-k.+1).+1)`!%:R :>R).
+        { assert ( (n-k)%N = ((n-k.+1).+1)%N). 
+          { assert ( (0 < (n-k))%N). { by rewrite subn_gt0. } 
+            rewrite -[LHS]prednK. 
+            + assert ((n - k.+1)%N = (n-k).-1). 
+              { by rewrite subnS. } by rewrite H4.
+            + by [].
+          } rewrite H3. by rewrite factS.
+        } rewrite H3 factS. 
+        assert ( (n-k)%N = ((n-k.+1).+1)%N). 
+        { assert ( (0 < (n-k))%N). { by rewrite subn_gt0. } 
+          rewrite -[LHS]prednK. 
+          + assert ((n - k.+1)%N = (n-k).-1). 
+            { by rewrite subnS. } by rewrite H5.
+          + by [].
+        } rewrite -H4. rewrite mul_ring_real -RmultE.
+        nra.
+      } rewrite H2. clear H2.
+      apply Rmult_le_compat.
+      * apply Rlt_le. apply nat_ring_lt. by rewrite subn_gt0.
+      * apply Rlt_le.  apply Rmult_lt_0_compat.
+        { apply fact_ring_gt_0. }
+        { apply Rinv_0_lt_compat. apply fact_ring_gt_0. }
+      * apply nat_ring_mn_le. apply leq_subr.
+      * rewrite RdivE.
+        { apply IHk. }
+        { assert ( (0 < (n - k)`!%:R)%Re -> (n - k)`!%:R <> 0%Re). { nra. }
+          apply /eqP. apply H2. apply fact_ring_gt_0.
+        }
+    - apply /eqP. 
+      assert ( (0 < (n - k.+1)`!%:R)%Re -> (n - k.+1)`!%:R <> 0%Re). { nra. }
+      apply H1. apply fact_ring_gt_0.
+Qed.
+
 
 Lemma choice_to_ring_le: forall (n k:nat),
   (0<n)%N -> (k<=n)%N ->
@@ -741,14 +787,22 @@ intros. rewrite choice_to_ring.
   - rewrite !Re_complex_prod !nat_complex_0 mul0r subr0.
     rewrite !Im_complex_prod !nat_complex_0 !nat_complex_0_inv.
     rewrite !mulr0 !subr0. rewrite nat_complex_Re !nat_complex_Re_inv.
-    * rewrite pow_nat_ring nat_complex_Re. admit.
+    * rewrite pow_nat_ring nat_complex_Re. apply /RleP.
+      apply Rmult_le_compat_r.
+      ++ rewrite -div1r -RdivE.
+         - assert ((1 / k`!%:R)%Re = (/ k`!%:R)%Re). { nra. }
+           rewrite H1. apply Rlt_le. apply Rinv_0_lt_compat.
+           apply fact_ring_gt_0.
+         - apply /eqP. assert ( (0< k`!%:R)%Re -> k`!%:R <> 0%Re). { nra. }
+           apply H1. apply fact_ring_gt_0.
+      ++ by apply fact_pow_le.
     * assert ( (0 < k`!%:R)%Re -> k`!%:R <> 0%Re).
       { nra. } apply H1. apply fact_ring_gt_0.
     * assert ( (0 < (n-k)`!%:R)%Re -> (n-k)`!%:R <> 0%Re).
       { nra. } apply H1. apply fact_ring_gt_0.
 + by [].
 + by []. 
-Admitted.
+Qed.
 
 
 Lemma C_mod_le_rel_c : forall (x y: complex R),
@@ -773,58 +827,6 @@ intros. rewrite /C_mod. apply /RleP. apply sqrt_le_1.
   - by [].
 Qed.
 
-
- 
-
-Lemma one_mod_d: forall (d:nat),
-  (1 < d)%N -> (1 %% d = 1)%N.
-Proof.
-intros. by rewrite modn_small.
-Qed.
-
-Lemma leq_mod_false: forall (a b:nat), 
-  (0 < b)%N -> (b <= a %% b)%N = false.
-Proof.
-intros. apply ltn_geF. by apply ltn_pmod.
-Qed.
-
-(*
-Lemma nat_to_ring: forall(a b:nat),
- (0<b)%N -> 
- (a %/b)%:R = (b%:R^-1 * a%:R) :>R.
-Proof.
-intros. induction a.
-+ by rewrite mulr0 div0n.
-+ rewrite -addn1 divnD. 
-  - rewrite !natrD mulrDr -IHa mulr1.
-    assert ((1 %/ b)%:R + (b <= a %% b + 1 %% b)%:R =
-              b%:R^-1 :>R). 
-    { assert ( b = 1%N \/ (1 < b)%N). { admit. }
-      destruct H0.
-      + by rewrite H0 !modn1 //= addr0 divn1 invr1.
-      + rewrite one_mod_d.  admit.
-Admitted.
-*)
-(*
-Lemma nat_to_ring_eq: forall (n k:nat),
- ((n ^ k)%N %/ k`!)%:R = (k`!%:R^-1 * n%:R ^+ k) :> R.
-Proof.
-intros. induction k.
-+ by rewrite fact0 expr0 expn0 divn1 invr1 mulr1.
-+ rewrite factS divnMA divnAC. rewrite expnS.
-  rewrite divmul mulnC divmul mul_ring.
-  rewrite exprS. rewrite [RHS]mulrC mul_ring invrM.
-  - rewrite -mulrA. rewrite mulrC.
-    rewrite mulrA. rewrite mulrC in IHk. rewrite -IHk.
-    rewrite -mulrA.
-    admit. admit. admit.
-Admitted. 
-*)
-
-
-
-
-Check pow_lt_1_zero.
 
 Lemma is_lim_seq_geom_pow: forall (x : R),
   Rabs x < 1 -> is_lim_seq (fun m:nat => (x^m.+1)%Re) 0%Re.
@@ -880,23 +882,6 @@ intros. induction n.
   by rewrite IHn.
 Qed.
 
-
-
-
-(*
-Lemma exp_decreasing: forall (x y:R),
-   (y < x)%Re -> exp x < exp y.
-Proof.
-intros. 
-assert ( x = (-(-x))%Re /\ y = (- (-y))%Re). { nra. }
-destruct H0. rewrite H0 H1. rewrite exp_Ropp.
-assert ( exp (- - y) = / exp(-y)). { by rewrite exp_Ropp. }
-rewrite H2. apply /RltP. apply Rinv_lt_contravar.
-+ admit.
-+ apply exp_increasing.
-*)
-
-
 Lemma lim_npowk_mul_to_zero: forall (x:R) (k:nat),
   x <> 0 -> 
   Rabs x < 1 -> 
@@ -944,43 +929,6 @@ admit.  }
   apply H4. apply n_plus_1_not_0.
 Admitted.
   
-(*
-
-specialize (H0 (eps / p_infty )%Re).
-assert ((0 < eps / p_infty)%Re ). 
-{ apply Rmult_lt_0_compat. 
-  + apply posreal_cond.
-  + apply Rinv_0_lt_compat. apply p_infty_pos.
-}
-specialize (H0 H1). destruct H0 as [N H0]. exists N.
-intros. specialize (H0 n H2).
-assert ((n.+1%:R ^ k * x ^ n.+1 - 0)%Re = 
-          (n.+1%:R ^ k * x ^ n.+1)%Re). { nra. } rewrite H3.
-rewrite Rabs_mult. 
-assert ( (p_infty * (eps / p_infty))%Re = eps).
-{ assert ((p_infty * (eps / p_infty))%Re = 
-            ((p_infty * (/ p_infty)) * eps)%Re). 
-  { nra. } rewrite H4.
-  assert ((p_infty * (/ p_infty))%Re = 1).
-  { apply Rinv_r. admit. } rewrite H5. by rewrite RmultE mul1r.
-}
-rewrite -H4.
-apply Rmult_gt_0_lt_compat.
-+ apply Rabs_pos_lt. admit.
-+ apply p_infty_pos.
-+ apply p_infty_pos.
-+ apply H0.
-Admitted.
-*)
-
-Lemma C_mod_le_rel_ring: forall (x y: complex R),
-  (x <= y)-> (C_mod x <= C_mod y).
-Admitted.
-
-Lemma Rdiv_mul_left: forall (x y z:R),
-  y <> 0%Re -> (x * z <= y)%Re -> (x <= y / z)%Re.
-Admitted.
-
 
 Lemma lim_sqr_tends: forall (x: nat -> R),
   is_lim_seq (fun m:nat => x m) 0%Re ->
@@ -1009,58 +957,7 @@ apply Rsqr_incrst_1.
 + apply sqrt_pos.
 Qed.
 
-Lemma nat_ring_le: forall (n:nat),
-  (0<= n)%N -> (0%Re <= n%:R)%Re.
-Proof.
-intros. induction n.
-+ by apply /RleP.
-+ rewrite -addn1 natrD. apply Rplus_le_le_0_compat.
-  - by apply IHn.
-  - apply Rlt_le. apply Rlt_0_1.
-Qed.
 
-
-Lemma nat_ring_lt: forall (n:nat),
-  (0< n)%N -> (0%Re < n%:R)%Re.
-Proof.
-intros. induction n.
-+ by apply /RltP.
-+ rewrite -addn1 natrD. apply Rplus_le_lt_0_compat.
-  - by apply nat_ring_le.
-  - apply Rlt_0_1.
-Qed.
-
-Lemma pow_nat_ring_real: forall (m n:nat),
-   m%:R ^+n = (m ^ n)%:R :>R.
-Proof.
-intros. induction n.
-+ by [].
-+ by rewrite exprS expnS mul_ring_real IHn.
-Qed.
-
-
-Lemma nat_ring_mn_le: forall (m n:nat),
-  (m<= n)%N -> (m%:R <= n%:R)%Re.
-Proof.
-intros. induction n.
-+ rewrite leqn0 in H. assert ( m = 0%N). { by apply /eqP. }
-  rewrite H0. nra.
-+ rewrite leq_eqVlt in H.
-  assert ( (m == n.+1) \/ (m < n.+1)%N).
-  { by apply /orP. } destruct H0.
-  - assert ( m = n.+1). { by apply /eqP. }
-    rewrite H1. nra.
-  - assert ( (m <=n)%N). { by []. }
-    specialize (IHn H1).
-    rewrite -addn1 natrD. apply Rle_trans with n%:R.
-    * apply IHn.
-    * rewrite -RplusE. 
-      assert (n%:R = (n%:R + 0)%Re). { nra. }
-      rewrite H2. 
-      assert ((n%:R + 0 + 1%:R)%Re = (n%:R + 1%:R)%Re).
-      { nra. } rewrite H3. apply Rplus_le_compat. 
-      nra. apply Rlt_le. apply Rlt_0_1. 
-Qed.
 
 Lemma fact_ring_le_rel: forall (n:nat),
   (1%:R <= n.+1%:R ^+ n.+1 / (n.+1)`!%:R :>complex R).

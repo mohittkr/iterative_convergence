@@ -851,6 +851,275 @@ assert ((x ^ n.+1 - 0)%Re = (x ^ n.+1)%Re). { nra. }
 by rewrite H4. 
 Qed.
 
+Lemma r_pow_n_gt_0: forall (x:R) (n:nat),
+  (0 < x)%Re -> (0 < x^n)%Re.
+Proof.
+intros. induction n.
++ rewrite RpowE expr0. apply Rlt_0_1.
++ rewrite RpowE exprS. apply Rmult_lt_0_compat.
+  - nra.
+  - rewrite -RpowE. nra.
+Qed. 
+
+Lemma exist_real_between: forall (a b:R),
+  (a < b)%Re -> 
+  exists c:R, (a < c)%Re /\ (c < b)%Re.
+Proof.
+intros. exists ((a+b)/2)%Re. nra.
+Qed.
+
+
+Lemma geom_series: forall (a: nat -> R) (n N:nat) (r:R),
+  (0 < r)%Re -> (r < 1)%Re -> 
+  (N <= n)%N -> 
+  (forall n:nat, (a n.+1 < a n * r)%Re) ->
+  (a n <= a N / r ^ N * r ^ n)%Re .
+Proof.
+intros. induction n.
++ rewrite leqn0 in H1.
+  assert ( N = 0%N). { by apply /eqP. } rewrite H3.
+  assert ( (a 0%N / r ^ 0 * r ^ 0)%Re = 
+            (a 0%N * (/ r ^ 0 * r ^ 0))%Re).
+  { nra. } rewrite H4.
+  assert ( (/ r ^ 0 * r ^ 0)%Re = 1%Re).
+  { apply Rinv_l. 
+    assert ( (0 < r ^0)%Re -> (r ^ 0)%Re <> 0%Re). { nra. }
+    apply H5. rewrite RpowE. rewrite expr0. apply Rlt_0_1.
+  } rewrite H5. nra.
++ assert ( (N == n.+1)%N \/ (N < n.+1)%N).
+  { apply /orP. by rewrite -leq_eqVlt. } destruct H3.
+  - assert ( N = n.+1). { by apply /eqP. } rewrite H4.
+    assert ( (a n.+1 / r ^ n.+1 * r ^ n.+1)%Re = 
+            (a n.+1 * (/ r ^ n.+1 * r ^ n.+1))%Re).
+    { nra. } rewrite H5.
+    assert ( (/ r ^ n.+1 * r ^ n.+1)%Re = 1%Re).
+    { apply Rinv_l. 
+      assert ( (0 < r ^n.+1)%Re -> (r ^ n.+1)%Re <> 0%Re). { nra. }
+      apply H6. by apply r_pow_n_gt_0.  
+    } rewrite H6. nra.
+  - assert ( (N<=n)%N). { by []. }
+    specialize (IHn H3).
+    apply Rle_trans with (a n * r)%Re.
+    * apply Rlt_le, H2.
+    * assert ( (r ^ n.+1)%Re = ( r ^ n * r)%Re).
+      { rewrite !RpowE. by rewrite exprS mulrC. }
+      rewrite H5.
+      assert ( (a N / r ^ N * (r ^ n * r))%Re = 
+                ((a N / r ^ N * r ^ n )* r)%Re). { nra. }
+      rewrite H6. apply Rmult_le_compat_r; nra.
+Qed.
+    
+
+(*** Ratio test for convergence of sequences ***)
+Lemma ratio_test: forall (a: nat -> R) (L:R), 
+  (0 < L /\ L < 1) ->
+  (forall n:nat, (0 < a n)%Re) -> 
+  (is_lim_seq ( fun n:nat => ((a (n.+1))/ (a n))%Re) L) ->
+  is_lim_seq (fun n: nat => a n) 0%Re.
+Proof.
+intros. destruct H.
+assert ( exists r:R, (L < r)%Re /\ (r < 1)%Re). 
+{ apply exist_real_between. by apply /RltP.  }
+destruct H3 as [r H3]. destruct H3.
+rewrite <-is_lim_seq_spec in H1.
+rewrite /is_lim_seq' in H1. 
+assert ( (0 < r-L)%Re). { nra. } 
+specialize (H1 (mkposreal (r-L)%Re H5)).
+rewrite /eventually in H1. destruct H1 as [N H1].
+
+rewrite -is_lim_seq_spec /is_lim_seq'. intros.
+
+assert (is_lim_seq (fun n:nat => (r^n)%Re) 0%Re).
+{ apply is_lim_seq_geom. rewrite Rabs_right. nra.
+  apply Rle_ge, Rlt_le. apply Rlt_trans with L.
+  + by apply /RltP.
+  + nra.
+} rewrite <-is_lim_seq_spec in H6. rewrite /is_lim_seq' in H6.
+assert ( (0 < eps * (r^N/ a N))%Re).
+{ apply Rmult_lt_0_compat.
+  + apply posreal_cond.
+  + apply Rmult_lt_0_compat. 
+    - apply r_pow_n_gt_0.
+      apply Rlt_trans with L.
+      * by apply /RltP.
+      * nra. 
+    - by apply Rinv_0_lt_compat.
+} specialize (H6 (mkposreal (eps* (r^N/ a N))%Re H7)).
+unfold eventually in H6. destruct H6 as [M H6].
+
+rewrite /eventually.
+exists (maxn N M). intros.
+assert ( (N <= n)%coq_nat).
+{ apply /ssrnat.leP. assert ( (maxn N M <= n)%N). { by apply /ssrnat.leP. }
+  rewrite geq_max in H9. 
+  assert ((N <= n)%N /\ (M <= n)%N). { by apply /andP. } 
+  destruct H10. by [].
+}
+
+assert ( (M <= n)%coq_nat).
+{ apply /ssrnat.leP. assert ( (maxn N M <= n)%N). { by apply /ssrnat.leP. }
+  rewrite geq_max in H10. 
+  assert ((N <= n)%N /\ (M <= n)%N). { by apply /andP. } 
+  destruct H11. by [].
+}
+  
+specialize (H1 n H9). specialize (H6 n H10).
+ 
+assert ( (a n - 0)%Re = a n). { nra. } rewrite H11.
+assert ( (Rabs (a n.+1 / a n - L) <
+           {| pos := r - L; cond_pos := H5 |})%Re -> 
+            (Rabs (a n.+1 / a n - L) < (r-L))%Re).
+{ auto. } specialize (H12 H1). clear H1.
+
+assert ((Rabs (r ^ n - 0) <
+          {| pos := (eps * (r ^ N / a N)); cond_pos := H7 |})%Re ->
+          (Rabs (r ^ n - 0) < (eps * (r ^ N / a N)))%Re).
+{ auto. } specialize (H1 H6). clear H6.
+
+assert ((r ^ n - 0)%Re = (r ^ n)%Re). { nra. } rewrite H6 in H1.
+clear H6.
+
+apply Rle_lt_trans with ((a N / (r^N)) * (r^n))%Re.
++ apply Rabs_def2 in H12. destruct H12.
+  assert (((a n.+1 / a n) < r)%Re). { nra. }
+  assert ( (a n.+1 < (a n) * r)%Re). 
+  { assert ( a n.+1 = (( a n.+1 / a n) * a n)%Re).
+    { rewrite Rmult_assoc. 
+      assert ( (/ a n * a n)%Re = 1%Re). 
+     { apply Rinv_l. 
+       assert ( (0 < a n)%Re -> a n <> 0%Re). { nra. }
+       by apply H14.
+     } rewrite H14. nra.
+    } rewrite H14. assert ( (a n * r)%Re = (r * a n)%Re). { nra. }
+    rewrite H15. by apply Rmult_lt_compat_r .
+  } rewrite Rabs_right.
+  - apply geom_series.
+    * apply Rlt_trans with L.
+      { by apply /RltP. }
+      { nra. }
+    * nra.
+    * by apply /ssrnat.leP.
+    * admit. (* This is where it hurts **)
+
+  - apply Rle_ge. by apply Rlt_le.
++ rewrite Rabs_right in H1.
+  - assert ((((a N / r ^ N) * (/ (a N / r ^ N)))%Re * eps)%Re = eps).
+    { assert ( ((a N / r ^ N) * (/ (a N / r ^ N)))%Re = 1%Re).
+      { apply Rinv_r. 
+        assert ( (0< (a N / r ^ N))%Re -> (a N / r ^ N)%Re <> 0%Re).
+        { nra. } apply H6. apply Rmult_lt_0_compat.
+        + by [].
+        + apply Rinv_0_lt_compat. apply r_pow_n_gt_0.
+          apply Rlt_trans with L.
+          * by apply /RltP.
+          * nra.
+      } rewrite H6. nra.
+   } rewrite -H6.
+   assert ((a N / r ^ N * / (a N / r ^ N) * eps)%Re = 
+            ((a N / r ^ N) * ( eps * ( / (a N / r ^ N))))%Re).
+   { nra. } rewrite H13. apply Rmult_lt_compat_l.
+   + apply Rmult_lt_0_compat.
+     - by [].
+     - apply Rinv_0_lt_compat. apply r_pow_n_gt_0.
+       apply Rlt_trans with L.
+       * by apply /RltP.
+       * nra.
+   + assert ( (/ (a N / r ^ N))%Re = (r ^ N / a N)%Re).
+     { rewrite Rinv_mult_distr.
+       + rewrite Rinv_involutive.
+         - nra.
+         - assert ( (0<  r ^n)%Re -> (r ^ N)%Re <> 0%Re). { nra. }
+           apply H14.  apply r_pow_n_gt_0.
+           apply Rlt_trans with L.
+           * by apply /RltP.
+           * nra.
+       + assert ((0< a N)%Re -> a N <> 0%Re). { nra. }
+         by apply H14.
+       + assert ((0< / r^N)%Re -> / r ^ N <> 0%Re). { nra. }
+         apply H14. apply Rinv_0_lt_compat. apply r_pow_n_gt_0.
+         apply Rlt_trans with L.
+         * by apply /RltP.
+         * nra.
+     } by rewrite H14.
+  - apply Rle_ge. apply Rlt_le. apply r_pow_n_gt_0.
+    apply Rlt_trans with L.
+    * by apply /RltP.
+    * nra. 
+Admitted.
+
+Lemma is_lim_pow_const: forall (a : nat -> R) (k:nat),
+  is_lim_seq (fun n:nat => a n) 1%Re ->
+  is_lim_seq (fun n:nat => ((a n)^k)%Re) 1%Re.
+Proof.
+intros. induction k.
++ apply is_lim_seq_ext  with (fun n:nat => 1%Re).
+  - intros. by rewrite RpowE expr0.
+  - apply is_lim_seq_const.
++ apply is_lim_seq_ext with (fun n:nat => ((a n) * (a n)^k)%Re).
+  - intros. rewrite !RpowE. by rewrite !RmultE -exprS.
+  - assert ( 1%Re = (1*1)%Re). { nra.  } rewrite H0.
+    by apply is_lim_seq_mult'.
+Qed.
+ 
+
+Lemma INR_eq:forall (n:nat),
+  / (INR n + 1) = (1 / n.+1%:R)%Re.
+Proof.
+intros. assert ((1 / n.+1%:R)%Re = (/ n.+1%:R)%Re). { nra. }
+rewrite H. clear H.
+assert ( (INR n + 1) = n.+1%:R).
+{ induction n.
+  + by rewrite add0r.
+  + rewrite -addn1 plus_INR. 
+    assert (INR 1 = 1%Re). { by []. } rewrite H.
+    rewrite RplusE IHn. rewrite -addn1. 
+    assert ( (n + 1).+1 = ((n+1)+1)%N). { by rewrite !addn1. }
+    rewrite H0. by rewrite [RHS]natrD.
+} by rewrite -H.
+Qed.
+
+Lemma lim_npowk_mul_to_zero: forall (x:R) (k:nat),
+  (0 < x)%Re -> 
+  Rabs x < 1 -> 
+  is_lim_seq (fun m:nat => ((m.+1)%:R^k * x^ m.+1)%Re) 0%Re.
+Proof.
+intros.
+assert ( let a:= (fun m:nat => ((m.+1)%:R^k * x^ m.+1)%Re) in
+          (0 < (Rabs x) /\ (Rabs x) < 1) ->
+          (is_lim_seq ( fun n:nat => ((a (n.+1))/ (a n))%Re) (Rabs x)) ->
+          is_lim_seq (fun n: nat => a n) 0%Re).
+{ apply ratio_test. } apply H1.
++ split.
+  - apply /RltP. apply Rabs_pos_lt. nra.
+  - by apply H0.
++ apply (is_lim_seq_ext (fun n:nat => ((1+ 1/n.+1%:R)^k * x)%Re)
+          (fun n : nat => (n.+2%:R ^ k * x ^ n.+2 /
+              (n.+1%:R ^ k * x ^ n.+1))%Re)).
+  - intros. admit.
+  - assert ( (Rabs x) = (1 * (Rabs x))%Re). { nra. } rewrite H2.
+    apply is_lim_seq_mult'.
+    * apply is_lim_pow_const. 
+      apply is_lim_seq_ext with (Rbar_loc_seq 1%Re).
+      ++ intros. rewrite /Rbar_loc_seq. apply Rplus_eq_compat_l.
+         by rewrite INR_eq.
+      ++ apply is_lim_seq_Rbar_loc_seq.
+    * rewrite Rabs_right.
+      ++ apply is_lim_seq_const.
+      ++ apply Rle_ge. by apply Rlt_le.
+Admitted.
+
+
+
+
+
+
+
+
+
+
+
+
+
 Axiom p_infty_pos:forall (x:R), (x < p_infty)%Re.
 Axiom p_infty_not_zero: p_infty <> 0%Re.
 

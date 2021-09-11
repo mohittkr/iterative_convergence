@@ -1335,7 +1335,7 @@ Hypothesis lambda_holds_for_1:
    (Rmult (eps * C_mod (b - a)`!%:R)%Re 
     (C_mod
      (nth (0, 0%N) (root_seq_poly (invariant_factors A))
-        l).1 ^ (b - a))) -> 
+        i).1 ^ (b - a))) -> 
   Rlt (n0.+1%:R ^ (b - a) *
     (C_mod
      (nth (0, 0%N) (root_seq_poly (invariant_factors A))
@@ -1364,6 +1364,34 @@ intros. rewrite exprB.
     assert ((0< C_mod x )%Re -> C_mod x  <> 0%Re).
     { nra. } apply H1. apply /RltP. by apply C_mod_gt_0.
 Qed. 
+
+
+
+Lemma pow_x_lt_1_rel: forall (x:R) (m n:nat),
+  (0< x)%Re -> (x < 1)%Re -> (m >=n)%N -> (x^m <= x^n)%Re.
+Proof.
+intros. rewrite leq_eqVlt in H1.
+assert ( (n == m) \/ (n < m)%N). { by apply /orP. }
+destruct H2.
++ assert ( n=m). { by apply /eqP. } rewrite H3. nra.
++ assert ( (/ /x)%Re = x). { rewrite Rinv_involutive. by []. nra. }
+  rewrite -H3. rewrite -Rinv_pow. 
+  - assert ( ((/ / x) ^ n)%Re = (/ (/x)^n)%Re). 
+    { rewrite -Rinv_pow. by []. apply Rinv_neq_0_compat. nra. }
+    rewrite H4. apply Rlt_le. apply Rinv_lt_contravar.
+    * apply Rmult_lt_0_compat; apply pow_lt; by apply Rinv_0_lt_compat.
+    * apply Rlt_pow.
+      ++ assert ( 1%Re = (/1)%Re). { nra. } rewrite H5.
+         apply Rinv_lt_contravar.
+         - nra.
+         - nra.
+         - by apply /ssrnat.ltP.
+  - apply Rinv_neq_0_compat; nra.
+Qed.
+
+Axiom eigen_not_zero: 
+  forall (i n:nat) (A: 'M[complex R]_n.+1), lambda A i <> 0.
+
 
 Lemma each_enrty_zero_lim:
   forall (n:nat) (A: 'M[complex R]_n.+1),
@@ -1447,7 +1475,7 @@ assert ((Rabs (C_mod (lambda A i)) < 1)).
 specialize (H2 H3).
 
 assert ( (0 < C_mod (lambda A i))%Re).
-{ apply /RltP. apply C_mod_gt_0. admit. }
+{ apply /RltP. apply C_mod_gt_0. apply eigen_not_zero. }
 
 specialize (H1 n H4 H3).
 
@@ -1459,7 +1487,7 @@ incorporate the constant **)
 assert ( (0< (eps* (C_mod (lambda A i) ^ n)))%Re).
 { apply Rmult_lt_0_compat.
   + apply posreal_cond.
-  + apply pow_lt. apply /RltP. apply C_mod_gt_0. admit.
+  + apply pow_lt. apply /RltP. apply C_mod_gt_0. apply eigen_not_zero.
 }
 specialize (H1 (mkposreal (eps* (C_mod (lambda A i) ^ n))%Re H5)). specialize (H2 eps).
 rewrite /eventually in H1. rewrite /eventually in H2.
@@ -1508,275 +1536,286 @@ destruct H0.
   destruct it to get the entries **)
   rewrite real_sub_0r.
 
+  assert ( ((b-a)%N <= n0.+1)%coq_nat \/ ((b-a) > n0.+1)%coq_nat).
+  { lia. } destruct H9.
+  - assert ( (b - a <= n0.+1)%N). { by apply /ssrnat.leP. }  
 
-  apply Rle_lt_trans with
-  (Rabs
-   (C_mod
-      ((((n0.+1)%:R^+(b-a)%N) * ((b-a)`!)%:R^-1) * 
-       (nth (0, 0%N) (root_seq_poly (invariant_factors A)) l).1
-       ^+ (n0.+1 - (b - a)) *+ (a <= b)))).
- (* 
-  apply Rle_lt_trans with
-  (Rabs
-   (C_mod
-      (((n0.+1)^(b-a) %/ (b-a)`!)%:R * 
-       (nth (0, 0%N) (root_seq_poly (invariant_factors A)) l).1
-       ^+ (n0.+1 - (b - a)) *+ (a <= b)))²). *)
-  - rewrite !Rabs_right. 
-      * assert ( (a<=b)%N \/ (a >=b)%N). { apply /orP. apply leq_total. }
-        destruct H9.
-        + rewrite H9. rewrite !mulr1n. rewrite !C_mod_prod.
-          apply Rmult_le_compat_r.
-          - apply C_mod_ge_0.
-          - rewrite -C_mod_prod.
-           assert ((b - a <= n0.+1)%N \/ ((b-a) >= n0.+1)%N).
-            { apply /orP. apply leq_total. } destruct H10.
-            * apply /RleP. apply C_mod_le_rel_c.
-              ++ rewrite nat_complex_Re. apply Rlt_le.
-                 apply nat_ring_lt. by rewrite bin_gt0.
-              ++ rewrite Re_complex_prod !pow_nat_ring.
-                 rewrite !nat_complex_Re nat_complex_0 mul0r subr0.
-                 rewrite nat_complex_Re_inv.
-                 - apply Rlt_le. apply Rmult_lt_0_compat.
-                   * apply nat_ring_lt. rewrite expn_gt0. apply /orP.
-                     left. by [].
-                   * rewrite -div1r -RdivE. 
-                     { assert ( (1 / (b - a)`!%:R)%Re = (/ (b - a)`!%:R)%Re).
-                       { nra. } rewrite H11. apply Rinv_0_lt_compat.
-                       apply nat_ring_lt. apply fact_gt0.
-                     }
-                     { apply /eqP. assert ( ( 0< (b - a)`!%:R)%Re -> (b - a)`!%:R <> 0%Re).
-                        { nra. } apply H11. apply fact_ring_gt_0.
-                     }
-                 - assert ( ( 0< (b - a)`!%:R)%Re -> (b - a)`!%:R <> 0%Re).
-                   { nra. } apply H11. apply fact_ring_gt_0.
-              ++ by apply choice_to_ring_le. 
-            * assert ( (n0 < b - a)%N = (n0.+1 <= (b-a)%N)%N).
-              { by []. }
-              assert ( (n0.+1 == b-a)%N \/ (n0.+1 < (b-a)%N)%N ). 
-              { apply /orP. by rewrite -leq_eqVlt. } destruct H12.
-              ++ assert( (b - a)%N = n0.+1). { apply /eqP. by rewrite eq_sym. }
-                 rewrite H13. rewrite binn.
-                 apply /RleP. apply C_mod_le_rel_c.
-                 - rewrite //=. apply Rlt_le. apply Rlt_0_1.
-                 - rewrite Re_complex_prod !pow_nat_ring.
+    apply Rle_lt_trans with
+    (Rabs
+     (C_mod
+        ((((n0.+1)%:R^+(b-a)%N) * ((b-a)`!)%:R^-1) * 
+         (nth (0, 0%N) (root_seq_poly (invariant_factors A)) l).1
+         ^+ (n0.+1 - (b - a)) *+ (a <= b)))).
+   (* 
+    apply Rle_lt_trans with
+    (Rabs
+     (C_mod
+        (((n0.+1)^(b-a) %/ (b-a)`!)%:R * 
+         (nth (0, 0%N) (root_seq_poly (invariant_factors A)) l).1
+         ^+ (n0.+1 - (b - a)) *+ (a <= b)))²). *)
+    - rewrite !Rabs_right. 
+        * assert ( (a<=b)%N \/ (a >=b)%N). { apply /orP. apply leq_total. }
+          destruct H11.
+          + rewrite H11. rewrite !mulr1n. rewrite !C_mod_prod.
+            apply Rmult_le_compat_r.
+            - apply C_mod_ge_0.
+            - rewrite -C_mod_prod.
+             assert ((b - a <= n0.+1)%N \/ ((b-a) >= n0.+1)%N).
+              { apply /orP. apply leq_total. } destruct H12.
+              * apply /RleP. apply C_mod_le_rel_c.
+                ++ rewrite nat_complex_Re. apply Rlt_le.
+                   apply nat_ring_lt. by rewrite bin_gt0.
+                ++ rewrite Re_complex_prod !pow_nat_ring.
                    rewrite !nat_complex_Re nat_complex_0 mul0r subr0.
                    rewrite nat_complex_Re_inv.
-                   * apply Rlt_le. apply Rmult_lt_0_compat.
-                     { apply nat_ring_lt. rewrite expn_gt0. apply /orP.
+                   - apply Rlt_le. apply Rmult_lt_0_compat.
+                     * apply nat_ring_lt. rewrite expn_gt0. apply /orP.
                        left. by [].
-                     }
-                     { rewrite -div1r -RdivE. 
-                       + assert ( (1 / (n0.+1)`!%:R)%Re = (/ (n0.+1)`!%:R)%Re).
-                         { nra. } rewrite H14. apply Rinv_0_lt_compat.
+                     * rewrite -div1r -RdivE. 
+                       { assert ( (1 / (b - a)`!%:R)%Re = (/ (b - a)`!%:R)%Re).
+                         { nra. } rewrite H13. apply Rinv_0_lt_compat.
                          apply nat_ring_lt. apply fact_gt0.
-                       + apply /eqP. assert ( ( 0< (n0.+1)`!%:R)%Re -> (n0.+1)`!%:R <> 0%Re).
-                         { nra. } apply H14. apply fact_ring_gt_0.
-                     }
-                   * assert ( ( 0< (n0.+1)`!%:R)%Re -> (n0.+1)`!%:R <> 0%Re).
-                     { nra. } apply H14. apply fact_ring_gt_0.
-                 - apply fact_ring_le_rel.
-              ++ rewrite bin_small. rewrite C_mod_0. apply C_mod_ge_0.
-                 by [].
-        + assert ( (b==a)%N \/ (b<a)%N ). 
-          { apply /orP. by rewrite -leq_eqVlt. }
-          destruct H10.
-          - assert ( b = a). { by apply /eqP. }
-            rewrite H11. clear H10. rewrite leqnn /=. rewrite !mulr1n. rewrite !C_mod_prod.
-            apply Rmult_le_compat_r.
-            * apply C_mod_ge_0.
-            * rewrite H11 in H9.  
-              assert ((a-a)%N = 0%N). 
-              { apply /eqP. by rewrite /leq. }
-              rewrite H10. rewrite bin0. rewrite fact0 expr0. 
-              (*rewrite -ffactnn ffactn0 expr0 fact0 divn1. *)
-              rewrite invr1 !C_mod_1 mulr1. nra.
-          - assert ((a <= b)%N = false). { by apply ltn_geF. }
-            rewrite H11 /=. rewrite mulr0n. rewrite C_mod_0.
-            nra. 
-    * apply Rle_ge,  C_mod_ge_0.
-    * apply Rle_ge, C_mod_ge_0.
-  - rewrite Rabs_right. 
-    * assert ( (a<=b)%N \/ (a >=b)%N). { apply /orP. apply leq_total. }
-      destruct H9.
-      { rewrite H9 //= !mulr1n. 
-        (** C_mod lambda A l instead of i. Also Need to include 
-            (b-a)  < n 
-            Apply Rlt_trans with 
-             (n0.+1)^n C_mod (lambda A l)^n0.+1 
+                       }
+                       { apply /eqP. assert ( ( 0< (b - a)`!%:R)%Re -> (b - a)`!%:R <> 0%Re).
+                          { nra. } apply H13. apply fact_ring_gt_0.
+                       }
+                   - assert ( ( 0< (b - a)`!%:R)%Re -> (b - a)`!%:R <> 0%Re).
+                     { nra. } apply H13. apply fact_ring_gt_0.
+                ++ by apply choice_to_ring_le. 
+              * assert ( (n0 < b - a)%N = (n0.+1 <= (b-a)%N)%N).
+                { by []. }
+                assert ( (n0.+1 == b-a)%N \/ (n0.+1 < (b-a)%N)%N ). 
+                { apply /orP. by rewrite -leq_eqVlt. } destruct H14.
+                ++ assert( (b - a)%N = n0.+1). { apply /eqP. by rewrite eq_sym. }
+                   rewrite H15. rewrite binn.
+                   apply /RleP. apply C_mod_le_rel_c.
+                   - rewrite //=. apply Rlt_le. apply Rlt_0_1.
+                   - rewrite Re_complex_prod !pow_nat_ring.
+                     rewrite !nat_complex_Re nat_complex_0 mul0r subr0.
+                     rewrite nat_complex_Re_inv.
+                     * apply Rlt_le. apply Rmult_lt_0_compat.
+                       { apply nat_ring_lt. rewrite expn_gt0. apply /orP.
+                         left. by [].
+                       }
+                       { rewrite -div1r -RdivE. 
+                         + assert ( (1 / (n0.+1)`!%:R)%Re = (/ (n0.+1)`!%:R)%Re).
+                           { nra. } rewrite H16. apply Rinv_0_lt_compat.
+                           apply nat_ring_lt. apply fact_gt0.
+                         + apply /eqP. assert ( ( 0< (n0.+1)`!%:R)%Re -> (n0.+1)`!%:R <> 0%Re).
+                           { nra. } apply H16. apply fact_ring_gt_0.
+                       }
+                     * assert ( ( 0< (n0.+1)`!%:R)%Re -> (n0.+1)`!%:R <> 0%Re).
+                       { nra. } apply H16. apply fact_ring_gt_0.
+                   - apply fact_ring_le_rel.
+                ++ rewrite bin_small. rewrite C_mod_0. apply C_mod_ge_0.
+                   by [].
+          + assert ( (b==a)%N \/ (b<a)%N ). 
+            { apply /orP. by rewrite -leq_eqVlt. }
+            destruct H12.
+            - assert ( b = a). { by apply /eqP. }
+              rewrite H13. clear H12. rewrite leqnn /=. rewrite !mulr1n. rewrite !C_mod_prod.
+              apply Rmult_le_compat_r.
+              * apply C_mod_ge_0.
+              * rewrite H13 in H11.  
+                assert ((a-a)%N = 0%N). 
+                { apply /eqP. by rewrite /leq. }
+                rewrite H12. rewrite bin0. rewrite fact0 expr0. 
+                (*rewrite -ffactnn ffactn0 expr0 fact0 divn1. *)
+                rewrite invr1 !C_mod_1 mulr1. nra.
+            - assert ((a <= b)%N = false). { by apply ltn_geF. }
+              rewrite H13 /=. rewrite mulr0n. rewrite C_mod_0.
+              nra. 
+      * apply Rle_ge,  C_mod_ge_0.
+      * apply Rle_ge, C_mod_ge_0.
+    - rewrite Rabs_right. 
+      * assert ( (a<=b)%N \/ (a >=b)%N). { apply /orP. apply leq_total. }
+        destruct H11.
+        { rewrite H11 //= !mulr1n. 
+          (** C_mod lambda A l instead of i. Also Need to include 
+              (b-a)  < n 
+              Apply Rlt_trans with 
+               (n0.+1)^n C_mod (lambda A l)^n0.+1 
 
-            Also instantiate eps in H1 with \lambda ^n * eps
-            and then prove that \lambda^n * eps < (b-a)! \lambda^(b-a)
+              Also instantiate eps in H1 with \lambda ^n * eps
+              and then prove that \lambda^n * eps < (b-a)! \lambda^(b-a)
 
-            May need to split b=a and b < a
+              May need to split b=a and b < a
 
-        **)
-        rewrite C_mod_prod. rewrite C_mod_div.
-        + rewrite -RmultE. rewrite -RdivE.  
-          * assert (Rmult (C_mod (n0.+1%:R ^+ (b - a)) / C_mod (b - a)`!%:R)%Re 
-                     (C_mod
-                       ((nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                           l).1 ^+ (n0.+1 - (b - a)))) = 
-                     (Rmult (C_mod (n0.+1%:R ^+ (b - a))*
-                       C_mod
+          **)
+          rewrite C_mod_prod. rewrite C_mod_div.
+          + rewrite -RmultE. rewrite -RdivE.  
+            * assert (Rmult (C_mod (n0.+1%:R ^+ (b - a)) / C_mod (b - a)`!%:R)%Re 
+                       (C_mod
                          ((nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                             l).1 ^+ (n0.+1 - (b - a))) ) (/ C_mod (b - a)`!%:R)%Re)).
-            { nra. } rewrite H10.
-            assert ( ((eps * C_mod (b-a)`!%:R) * (/ C_mod (b - a)`!%:R))%Re =eps).
-            { assert ( ((eps * C_mod (b-a)`!%:R) * (/ C_mod (b - a)`!%:R))%Re = 
-                        (eps * ((C_mod (b-a)`!%:R) * (/ C_mod (b - a)`!%:R)))%Re).
-              { nra. } rewrite H11.
-              assert ( ((C_mod (b - a)`!%:R * / C_mod (b - a)`!%:R))%Re = 1%Re).
-              { apply Rinv_r.
-                assert ( (0 < C_mod (b - a)`!%:R)%Re -> C_mod (b - a)`!%:R <> 0%Re).
-                { nra. } apply H12. apply /RltP. apply C_mod_gt_0.
-                apply /eqP. apply fact_complex_ring_not_0.
-              } rewrite H12. nra.
-            } rewrite -H11. apply Rmult_lt_compat_r.
-            ++ apply Rinv_0_lt_compat. apply /RltP. apply C_mod_gt_0.
-                apply /eqP. apply fact_complex_ring_not_0.
-            ++ rewrite !C_mod_pow.  
-               assert (C_mod
-                         (nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                            l).1 ^+ (n0.+1 - (b - a)) = 
-                        Rdiv (C_mod
-                               (nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                                  l).1 ^ n0.+1)  
-                             (C_mod
-                               (nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                                  l).1 ^ (b-a))).
-              { apply pow_complex_mod_div; admit. }
-               rewrite H12. clear H12.
-              assert (Rmult (C_mod n0.+1%:R ^+ (b - a)) 
-                       (Rdiv (C_mod
-                              (nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                                 l).1 ^ n0.+1) 
-                        (C_mod
-                          (nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                             l).1 ^ (b - a))) = 
-                        Rmult (Rmult (C_mod n0.+1%:R ^+ (b - a)) 
-                                (C_mod
-                                  (nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                                     l).1 ^ n0.+1)) 
-                        ( / (C_mod
-                              (nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                                 l).1 ^ (b - a)))).
-              { nra. } rewrite H12. clear H12.
-              assert ( Rmult (Rmult (eps * C_mod (b - a)`!%:R)%Re 
+                             l).1 ^+ (n0.+1 - (b - a)))) = 
+                       (Rmult (C_mod (n0.+1%:R ^+ (b - a))*
+                         C_mod
+                           ((nth (0, 0%N) (root_seq_poly (invariant_factors A))
+                               l).1 ^+ (n0.+1 - (b - a))) ) (/ C_mod (b - a)`!%:R)%Re)).
+              { nra. } rewrite H12.
+              assert ( ((eps * C_mod (b-a)`!%:R) * (/ C_mod (b - a)`!%:R))%Re =eps).
+              { assert ( ((eps * C_mod (b-a)`!%:R) * (/ C_mod (b - a)`!%:R))%Re = 
+                          (eps * ((C_mod (b-a)`!%:R) * (/ C_mod (b - a)`!%:R)))%Re).
+                { nra. } rewrite H13.
+                assert ( ((C_mod (b - a)`!%:R * / C_mod (b - a)`!%:R))%Re = 1%Re).
+                { apply Rinv_r.
+                  assert ( (0 < C_mod (b - a)`!%:R)%Re -> C_mod (b - a)`!%:R <> 0%Re).
+                  { nra. } apply H14. apply /RltP. apply C_mod_gt_0.
+                  apply /eqP. apply fact_complex_ring_not_0.
+                } rewrite H14. nra.
+              } rewrite -H13. apply Rmult_lt_compat_r.
+              ++ apply Rinv_0_lt_compat. apply /RltP. apply C_mod_gt_0.
+                  apply /eqP. apply fact_complex_ring_not_0.
+              ++ rewrite !C_mod_pow.  
+                 assert (C_mod
+                           (nth (0, 0%N) (root_seq_poly (invariant_factors A))
+                              l).1 ^+ (n0.+1 - (b - a)) = 
+                          Rdiv (C_mod
+                                 (nth (0, 0%N) (root_seq_poly (invariant_factors A))
+                                    l).1 ^ n0.+1)  
+                               (C_mod
+                                 (nth (0, 0%N) (root_seq_poly (invariant_factors A))
+                                    l).1 ^ (b-a))).
+                { apply pow_complex_mod_div.
+                  + apply eigen_not_zero.  
+                  + by []. 
+                }
+                rewrite H14. clear H14.
+                assert (Rmult (C_mod n0.+1%:R ^+ (b - a)) 
+                         (Rdiv (C_mod
+                                (nth (0, 0%N) (root_seq_poly (invariant_factors A))
+                                   l).1 ^ n0.+1) 
                           (C_mod
-                             (nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                                l).1 ^ (b - a)))
-                      ( / (C_mod
-                              (nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                                 l).1 ^ (b - a))) = 
-                      (eps * C_mod (b - a)`!%:R)%Re).
-              { assert (Rmult (Rmult (eps * C_mod (b - a)`!%:R)%Re 
-                          (C_mod
-                             (nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                                l).1 ^ (b - a)))
+                            (nth (0, 0%N) (root_seq_poly (invariant_factors A))
+                               l).1 ^ (b - a))) = 
+                          Rmult (Rmult (C_mod n0.+1%:R ^+ (b - a)) 
+                                  (C_mod
+                                    (nth (0, 0%N) (root_seq_poly (invariant_factors A))
+                                       l).1 ^ n0.+1)) 
+                          ( / (C_mod
+                                (nth (0, 0%N) (root_seq_poly (invariant_factors A))
+                                   l).1 ^ (b - a)))).
+                { nra. } rewrite H14. clear H14.
+                assert ( Rmult (Rmult (eps * C_mod (b - a)`!%:R)%Re 
+                            (C_mod
+                               (nth (0, 0%N) (root_seq_poly (invariant_factors A))
+                                  l).1 ^ (b - a)))
                         ( / (C_mod
                                 (nth (0, 0%N) (root_seq_poly (invariant_factors A))
                                    l).1 ^ (b - a))) = 
-                          Rmult (eps * C_mod (b - a)`!%:R)%Re 
-                          (Rmult (C_mod
-                             (nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                                l).1 ^ (b - a))
-                              ( / (C_mod
-                                      (nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                                         l).1 ^ (b - a))))).
-                { nra. } rewrite H12.  clear H12.
-                assert ((Rmult (C_mod
-                             (nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                                l).1 ^ (b - a))
-                              ( / (C_mod
-                                      (nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                                         l).1 ^ (b - a)))) = 1%Re).
-                { apply Rinv_r. rewrite RpowE. apply x_pow_n_not_0.
-                  apply C_mod_not_zero. admit.
-                } rewrite H12. nra.
-              } rewrite -H12. clear H12. apply Rmult_lt_compat_r.
-              - apply Rinv_0_lt_compat. apply pow_lt. apply /RltP. apply C_mod_gt_0.
-                admit.
-              - rewrite -RpowE. 
-                assert (C_mod n0.+1%:R = n0.+1%:R :>R).
-                { rewrite /C_mod nat_complex_0 !expr2 mulr0 -RmultE. 
-                  assert ((Re n0.+1%:R * Re n0.+1%:R + 0)%Re = 
-                          (Re n0.+1%:R * Re n0.+1%:R)%Re). { nra. }
-                  rewrite H12. rewrite sqrt_square.
-                  + by rewrite nat_complex_Re.
-                  + rewrite nat_complex_Re. apply Rlt_le. by apply nat_ring_lt.
-                } rewrite H12. apply (@lambda_holds_for_1 l n n0  a b eps A i).
-                assert ((n0.+1%:R ^ n * C_mod (lambda A i) ^ n0.+1 - 0)%Re = 
-                        (n0.+1%:R ^ n * C_mod (lambda A i) ^ n0.+1)%Re).
-                { nra. } rewrite H13 in Hyp. clear H13 H12 H11 H10.
-                rewrite Rabs_right in Hyp.
-                * apply Rle_lt_trans with 
-                    (n0.+1%:R ^ n * C_mod (lambda A i) ^ n0.+1)%Re.
-                  ++ apply Rmult_le_compat_r.
-                     - apply pow_le. apply C_mod_ge_0.
-                     - apply Rle_pow.
-                       * assert (1%Re = 1%:R). { auto. } rewrite H10.
-                         by apply nat_ring_mn_le.
-                       * admit.
-                  ++ apply Rlt_le_trans with (eps * C_mod (lambda A i) ^ n)%Re.
-                     - apply Hyp.
-                     - assert (Rmult (eps * C_mod (b - a)`!%:R)%Re 
-                                 (C_mod
-                                   (nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                                      l).1 ^ (b - a)) =
-                                Rmult eps (Rmult (C_mod (b - a)`!%:R)%Re 
-                                 (C_mod
-                                   (nth (0, 0%N) (root_seq_poly (invariant_factors A))
-                                      l).1 ^ (b - a)))). { nra. } rewrite H10. clear H10.
-                        apply Rmult_le_compat_l.
-                        * apply Rlt_le. apply posreal_cond.
-                          assert ((C_mod (lambda A i) ^ n)%Re  = (1 * C_mod (lambda A i) ^ n)%Re).
-                          { nra. } rewrite H10. clear H10. 
-                          apply  Rmult_le_compat.
-                          ++ nra.
-                          ++ apply pow_le. apply C_mod_ge_0.
-                          ++ assert (C_mod 1 = 1%Re). { apply C_mod_1. } rewrite -H10.
-                             apply /RleP. apply C_mod_le_rel_c.
-                             - rewrite //=. apply Rlt_le. apply Rlt_0_1.
-                             - rewrite nat_complex_Re. apply Rlt_le. apply fact_ring_gt_0.
-                             - rewrite lecE. apply /andP. split.
-                               * rewrite !nat_complex_0 //=.
-                               * rewrite !nat_complex_Re. assert (Re 1 = 1%Re). { by []. }
-                                 rewrite H11. apply /RleP. assert (1%Re = 1%:R). { auto. } 
-                                 rewrite H12. apply nat_ring_mn_le. apply fact_gt0.
-                        * rewrite /lambda. admit.
-
-                * apply Rle_ge. apply Rlt_le. apply Rmult_lt_0_compat.
-                  { apply pow_lt. by apply nat_ring_lt. }
-                  { apply pow_lt. apply /RltP. apply C_mod_gt_0. admit.  }
-          * apply /eqP.
-            assert ( (0 < C_mod (b - a)`!%:R)%Re -> C_mod (b - a)`!%:R <> 0%Re).
-            { nra. } apply H10. apply /RltP. apply C_mod_gt_0.
-            apply /eqP. apply fact_complex_ring_not_0.
-        + apply /eqP.  apply fact_complex_ring_not_0.
-      }
-      { assert ( (b==a)%N \/ (b<a)%N ). 
-        { apply /orP. by rewrite -leq_eqVlt. }
-        destruct H10.
-        - assert ( b = a). { by apply /eqP. }
-          rewrite H11. rewrite H11 in H9.  
-          assert ((a-a)%N = 0%N). 
-          { apply /eqP. by rewrite /leq. }
-          rewrite !H12 //=. rewrite leqnn //=. 
-          rewrite mulr1n subn0 fact0 divr1 expr0 mul1r. rewrite C_mod_pow. 
-          rewrite -RpowE. 
-          assert ((C_mod (lambda A i) ^ n0.+1 - 0)%Re = 
-                      (C_mod (lambda A i) ^ n0.+1) %Re).
-          { nra. } rewrite H13 in H2.
-          rewrite Rabs_right in H2. rewrite /lambda in H2.
-           
-          * by apply (@lambda_hold_for l n n0 eps A i).
-          * apply Rle_ge. rewrite RpowE -C_mod_pow. apply C_mod_ge_0. 
-        - assert ((a <= b)%N = false). { by apply ltn_geF. }
-          rewrite H11 /=. rewrite mulr0n. rewrite C_mod_0.
-          apply posreal_cond.
-      }
-    * apply Rle_ge,C_mod_ge_0.
+                        (eps * C_mod (b - a)`!%:R)%Re).
+                { assert (Rmult (Rmult (eps * C_mod (b - a)`!%:R)%Re 
+                            (C_mod
+                               (nth (0, 0%N) (root_seq_poly (invariant_factors A))
+                                  l).1 ^ (b - a)))
+                          ( / (C_mod
+                                  (nth (0, 0%N) (root_seq_poly (invariant_factors A))
+                                     l).1 ^ (b - a))) = 
+                            Rmult (eps * C_mod (b - a)`!%:R)%Re 
+                            (Rmult (C_mod
+                               (nth (0, 0%N) (root_seq_poly (invariant_factors A))
+                                  l).1 ^ (b - a))
+                                ( / (C_mod
+                                        (nth (0, 0%N) (root_seq_poly (invariant_factors A))
+                                           l).1 ^ (b - a))))).
+                  { nra. } rewrite H14.  clear H14.
+                  assert ((Rmult (C_mod
+                               (nth (0, 0%N) (root_seq_poly (invariant_factors A))
+                                  l).1 ^ (b - a))
+                                ( / (C_mod
+                                        (nth (0, 0%N) (root_seq_poly (invariant_factors A))
+                                           l).1 ^ (b - a)))) = 1%Re).
+                  { apply Rinv_r. rewrite RpowE. apply x_pow_n_not_0.
+                    apply C_mod_not_zero. apply eigen_not_zero.
+                  } rewrite H14. nra.
+                } rewrite -H14. clear H14. apply Rmult_lt_compat_r.
+                - apply Rinv_0_lt_compat. apply pow_lt. apply /RltP. apply C_mod_gt_0.
+                  apply eigen_not_zero.
+                - rewrite -RpowE. 
+                  assert (C_mod n0.+1%:R = n0.+1%:R :>R).
+                  { rewrite /C_mod nat_complex_0 !expr2 mulr0 -RmultE. 
+                    assert ((Re n0.+1%:R * Re n0.+1%:R + 0)%Re = 
+                            (Re n0.+1%:R * Re n0.+1%:R)%Re). { nra. }
+                    rewrite H14. rewrite sqrt_square.
+                    + by rewrite nat_complex_Re.
+                    + rewrite nat_complex_Re. apply Rlt_le. by apply nat_ring_lt.
+                  } rewrite H14. apply (@lambda_holds_for_1 l n n0  a b eps A i).
+                  assert ((n0.+1%:R ^ n * C_mod (lambda A i) ^ n0.+1 - 0)%Re = 
+                          (n0.+1%:R ^ n * C_mod (lambda A i) ^ n0.+1)%Re).
+                  { nra. } rewrite H15 in Hyp. clear H15 H14 H13 H12.
+                  rewrite Rabs_right in Hyp.
+                  * apply Rle_lt_trans with 
+                      (n0.+1%:R ^ n * C_mod (lambda A i) ^ n0.+1)%Re.
+                    ++ apply Rmult_le_compat_r.
+                       - apply pow_le. apply C_mod_ge_0.
+                       - apply Rle_pow.
+                         * assert (1%Re = 1%:R). { auto. } rewrite H12.
+                           by apply nat_ring_mn_le.
+                         * admit.
+                    ++ apply Rlt_le_trans with (eps * C_mod (lambda A i) ^ n)%Re.
+                       - apply Hyp.
+                       - assert (Rmult (eps * C_mod (b - a)`!%:R)%Re 
+                                   (C_mod
+                                     (nth (0, 0%N) (root_seq_poly (invariant_factors A))
+                                        i).1 ^ (b - a)) =
+                                  Rmult eps (Rmult (C_mod (b - a)`!%:R)%Re 
+                                   (C_mod
+                                     (nth (0, 0%N) (root_seq_poly (invariant_factors A))
+                                        i).1 ^ (b - a)))). { nra. } rewrite H12. clear H10.
+                          apply Rmult_le_compat_l.
+                          * apply Rlt_le. apply posreal_cond.
+                            assert ((C_mod (lambda A i) ^ n)%Re  = (1 * C_mod (lambda A i) ^ n)%Re).
+                            { nra. } rewrite H10. clear H10. 
+                            apply  Rmult_le_compat.
+                            ++ nra.
+                            ++ apply pow_le. apply C_mod_ge_0.
+                            ++ assert (C_mod 1 = 1%Re). { apply C_mod_1. } rewrite -H10.
+                               apply /RleP. apply C_mod_le_rel_c.
+                               - rewrite //=. apply Rlt_le. apply Rlt_0_1.
+                               - rewrite nat_complex_Re. apply Rlt_le. apply fact_ring_gt_0.
+                               - rewrite lecE. apply /andP. split.
+                                 * rewrite !nat_complex_0 //=.
+                                 * rewrite !nat_complex_Re. assert (Re 1 = 1%Re). { by []. }
+                                   rewrite H13. apply /RleP. assert (1%Re = 1%:R). { auto. } 
+                                   rewrite H14. apply nat_ring_mn_le. apply fact_gt0.
+                          * rewrite /lambda. apply pow_x_lt_1_rel.
+                            ++ apply /RltP. apply C_mod_gt_0. apply eigen_not_zero.
+                            ++ apply H.
+                            ++ admit.
+                  * apply Rle_ge. apply Rlt_le. apply Rmult_lt_0_compat.
+                    { apply pow_lt. by apply nat_ring_lt. }
+                    { apply pow_lt. apply /RltP. apply C_mod_gt_0. apply eigen_not_zero.  }
+            * apply /eqP.
+              assert ( (0 < C_mod (b - a)`!%:R)%Re -> C_mod (b - a)`!%:R <> 0%Re).
+              { nra. } apply H12. apply /RltP. apply C_mod_gt_0.
+              apply /eqP. apply fact_complex_ring_not_0.
+          + apply /eqP.  apply fact_complex_ring_not_0.
+        }
+        { assert ( (b==a)%N \/ (b<a)%N ). 
+          { apply /orP. by rewrite -leq_eqVlt. }
+          destruct H12.
+          - assert ( b = a). { by apply /eqP. }
+            rewrite H13. rewrite H13 in H11.  
+            assert ((a-a)%N = 0%N). 
+            { apply /eqP. by rewrite /leq. }
+            rewrite !H14 //=. rewrite leqnn //=. 
+            rewrite mulr1n subn0 fact0 divr1 expr0 mul1r. rewrite C_mod_pow. 
+            rewrite -RpowE. 
+            assert ((C_mod (lambda A i) ^ n0.+1 - 0)%Re = 
+                        (C_mod (lambda A i) ^ n0.+1) %Re).
+            { nra. } rewrite H15 in H2.
+            rewrite Rabs_right in H2. rewrite /lambda in H2.
+             
+            * by apply (@lambda_hold_for l n n0 eps A i).
+            * apply Rle_ge. rewrite RpowE -C_mod_pow. apply C_mod_ge_0. 
+          - assert ((a <= b)%N = false). { by apply ltn_geF. }
+            rewrite H13 /=. rewrite mulr0n. rewrite C_mod_0.
+            apply posreal_cond.
+        }
+      * apply Rle_ge,C_mod_ge_0.
+  - assert ((b - a > n0.+1)%N). { by apply /ssrnat.ltP. }
+    rewrite bin_small. rewrite mul0r mul0rn C_mod_0 Rabs_R0.
+    by apply posreal_cond. by [].
 + rewrite H0. rewrite C_mod_0. 
   assert ((0 - 0)%Re = 0%Re). { nra. }
   rewrite H9. rewrite Rabs_R0. apply posreal_cond.

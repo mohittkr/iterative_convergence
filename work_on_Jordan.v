@@ -1444,7 +1444,6 @@ Proof.
 intros.
 apply lim_sqr_tends.
 assert(forall m:nat , 
-        (*((nth 0%N sizes j) <= m)%coq_nat -> *)
        (exists k l (a: 'I_k.+1) (b: 'I_k.+1),
         (k <= size_sum sizes)%N /\ 
         (diag_block_mx sizes
@@ -1477,15 +1476,6 @@ assert(forall m:nat ,
 rewrite -is_lim_seq_spec. unfold is_lim_seq'.
 intros. unfold eventually.
 
-
-
-(** forall l, (Rabs
-        (n0.+1%:R ^ n * C_mod (lambda A l) ^ n0.+1 - 0) <
-      eps)%Re **)
-
-
-(** forall l, (Rabs (C_mod (lambda A i) ^ n0.+1 - 0) < eps)%Re **)
-
 assert (forall k:nat,
         let x := C_mod (lambda A i) in
         (0 < x)%Re ->
@@ -1510,8 +1500,7 @@ specialize (H1 n H4 H3).
 rewrite <-is_lim_seq_spec in H1. rewrite /is_lim_seq' in H1.
 rewrite <-is_lim_seq_spec in H2. rewrite /is_lim_seq' in H2.
 
-(** Might have to rework on eps instantiation for H1 to 
-incorporate the constant **)
+
 assert ( (0< (eps* (C_mod (lambda A i) ^ n)))%Re).
 { apply Rmult_lt_0_compat.
   + apply posreal_cond.
@@ -1550,10 +1539,6 @@ assert (Hyp: (Rabs (n0.+1%:R ^ n * C_mod (lambda A i) ^ n0.+1 - 0) <
                 eps * C_mod (lambda A i) ^ n)%Re).
 { auto. } specialize (Hyp H1).
 
-(*
-exists (nth 0%N sizes j).
-intros. specialize(H0 n0 H1). 
-*)
 
 specialize(H0 n0).
 destruct H0.
@@ -1575,13 +1560,7 @@ destruct H0.
         ((((n0.+1)%:R^+(b-a)%N) * ((b-a)`!)%:R^-1) * 
          (nth (0, 0%N) (root_seq_poly (invariant_factors A)) l).1
          ^+ (n0.+1 - (b - a)) *+ (a <= b)))).
-   (* 
-    apply Rle_lt_trans with
-    (Rabs
-     (C_mod
-        (((n0.+1)^(b-a) %/ (b-a)`!)%:R * 
-         (nth (0, 0%N) (root_seq_poly (invariant_factors A)) l).1
-         ^+ (n0.+1 - (b - a)) *+ (a <= b)))²). *)
+   
     - rewrite !Rabs_right. 
         * assert ( (a<=b)%N \/ (a >=b)%N). { apply /orP. apply leq_total. }
           destruct H11.
@@ -1648,8 +1627,7 @@ destruct H0.
               * rewrite H13 in H11.  
                 assert ((a-a)%N = 0%N). 
                 { apply /eqP. by rewrite /leq. }
-                rewrite H12. rewrite bin0. rewrite fact0 expr0. 
-                (*rewrite -ffactnn ffactn0 expr0 fact0 divn1. *)
+                rewrite H12. rewrite bin0. rewrite fact0 expr0.
                 rewrite invr1 !C_mod_1 mulr1. nra.
             - assert ((a <= b)%N = false). { by apply ltn_geF. }
               rewrite H13 /=. rewrite mulr0n. rewrite C_mod_0.
@@ -1660,17 +1638,7 @@ destruct H0.
       * assert ( (a<=b)%N \/ (a >=b)%N). { apply /orP. apply leq_total. }
         destruct H11.
         { rewrite H11 //= !mulr1n. 
-          (** C_mod lambda A l instead of i. Also Need to include 
-              (b-a)  < n 
-              Apply Rlt_trans with 
-               (n0.+1)^n C_mod (lambda A l)^n0.+1 
-
-              Also instantiate eps in H1 with \lambda ^n * eps
-              and then prove that \lambda^n * eps < (b-a)! \lambda^(b-a)
-
-              May need to split b=a and b < a
-
-          **)
+         
           rewrite C_mod_prod. rewrite C_mod_div.
           + rewrite -RmultE. rewrite -RdivE.  
             * assert (Rmult (C_mod (n0.+1%:R ^+ (b - a)) / C_mod (b - a)`!%:R)%Re 
@@ -2074,24 +2042,6 @@ apply (is_lim_seq_ext
            (** now that we have powers for each Jordan block,
               define matrix norm as sums of absolute value
               of each entry in the matrix **)
-
-
-           (** TODO : (i) Write conform_mx V J as J := In order
-                  to do that need to provide a proof that the 
-                  size of matrix J is equal to the size of V.
-                  The size of J is given as the sum of the 
-                  size of Jordan blocks in the sequence.
-                  The type of J is 
-                  diag_block_mx
-                      : forall (R : ringType) (s : seq nat),
-           (forall n : nat, nat -> 'M_n.+1) -> 'M_(size_sum s).+1
-            i.e. Provide a proof that size_sum_s = n.
-
-            (ii) Since there exists a formalization of 
-                  the Jordan expansion: J^m, need to compute the 
-                  matrix norm then
-          **)
-          
   
           - apply (is_lim_seq_ext 
                   (fun m: nat => 
@@ -2173,6 +2123,5 @@ Definition eigen_vector (n:nat) (i: 'I_n.+1) (A: 'M[complex R]_n.+1) :=
   col i (eigen_matrix A).
  
 
-Check eigen_matrix.
 
 

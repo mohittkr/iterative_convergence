@@ -161,7 +161,7 @@ Qed.
 Lemma diag_destruct s F:
   forall i j: 'I_(size_sum s).+1,
   (exists k l m n,
-  (diag_block_mx s F) i j = F k l m n) \/
+    (k <= size_sum s)%N /\ (diag_block_mx s F) i j = F k l m n) \/
     (diag_block_mx s F) i j = 0 :> (complex R).
 Proof.
 case: s => [ | s0 s]; first by right; rewrite /= mxE.
@@ -180,7 +180,9 @@ case : (ltnP i s0.+1)=> [ilts0 | iges0];
   case : (ltnP j s0.+1)=> [jlts0 | jges0].
 - left; exists s0, 0%N, (Ordinal ilts0), (Ordinal jlts0)=> /=.
   rewrite [in LHS]((shifts _).1 ilts0) [in LHS]((shifts _).1 jlts0).
-  by rewrite [LHS]block_mxEul.
+  split. 
+  * by apply leq_addr. 
+  * by rewrite [LHS]block_mxEul.
 - right.
   rewrite [in LHS]((shifts _).1 ilts0) [in LHS]((shifts _).2 jges0).
   by rewrite [LHS]block_mxEur mxE.
@@ -192,8 +194,16 @@ set i' := inord (i - s0.+1); set j' := inord (j - s0.+1)=> jq iq.
 have := (Ih s1 (fun m i => F m i.+1) i' j').
 case => [[k [l [m [n Main]]]] | Main]; last first.
   by right; rewrite iq jq [LHS]block_mxEdr.
-left; exists k, l.+1, m, n.
-by rewrite iq jq [LHS]block_mxEdr.
+left; exists k, l.+1, m, n. destruct Main as [Main' Main].
+split.
++ rewrite /size_sum in Main'.
+  apply leq_trans with (s0 + size_sum_rec s1 s)%N.
+  - assert (k = (0 + k)%N). { by []. } rewrite H.
+    apply leq_add.
+    * by [].
+    * by apply Main'.
+  - by apply leq_add.
++ by rewrite iq jq [LHS]block_mxEdr.
 Qed.
 
 
@@ -1392,6 +1402,23 @@ Qed.
 Axiom eigen_not_zero: 
   forall (i n:nat) (A: 'M[complex R]_n.+1), lambda A i <> 0.
 
+Lemma index_leq: forall (k:nat) (a b:'I_k.+1),
+  ((b-a)<=k)%N.
+Proof.
+intros. 
+assert ( (a <= k)%N). { apply leq_ord. }
+assert ( (b <= k)%N). { apply leq_ord. }
+apply leq_trans with b.
++ apply leq_subr.
++ by [].
+Qed.
+
+(** assumption that the sum of algebraic multiplicity
+  of the eigen values = size of the matrix
+**)
+Hypothesis total_eigen_val: forall (n:nat) (A: 'M[complex R]_n.+1),
+ size_sum
+  [seq x.2.-1 | x <- root_seq_poly (invariant_factors A)] = n.
 
 Lemma each_enrty_zero_lim:
   forall (n:nat) (A: 'M[complex R]_n.+1),
@@ -1418,7 +1445,8 @@ intros.
 apply lim_sqr_tends.
 assert(forall m:nat , 
         (*((nth 0%N sizes j) <= m)%coq_nat -> *)
-       (exists k l (a: 'I_k.+1) (b: 'I_k.+1), 
+       (exists k l (a: 'I_k.+1) (b: 'I_k.+1),
+        (k <= size_sum sizes)%N /\ 
         (diag_block_mx sizes
          (fun n0 i1 : nat =>
           \matrix_(i2, j0) (('C(m.+1, j0 - i2))%:R *
@@ -1531,6 +1559,7 @@ specialize(H0 n0).
 destruct H0.
 + destruct H0 as [k H0]. destruct H0 as [l H0].
   destruct H0 as [a H0]. destruct H0 as [b H0].
+  destruct H0 as [size_cond H0].
   rewrite H0. rewrite mxE. 
   (** now we have entries in form of an upper triangular matrix.
   destruct it to get the entries **)
@@ -1751,7 +1780,10 @@ destruct H0.
                        - apply Rle_pow.
                          * assert (1%Re = 1%:R). { auto. } rewrite H12.
                            by apply nat_ring_mn_le.
-                         * admit.
+                         * apply /ssrnat.leP. apply leq_trans with k.
+                           ++ by apply index_leq.
+                           ++ assert (n = size_sum sizes). { by rewrite total_eigen_val. }
+                              by rewrite H12.
                     ++ apply Rlt_le_trans with (eps * C_mod (lambda A i) ^ n)%Re.
                        - apply Hyp.
                        - assert (Rmult (eps * C_mod (b - a)`!%:R)%Re 
@@ -1781,7 +1813,10 @@ destruct H0.
                           * rewrite /lambda. apply pow_x_lt_1_rel.
                             ++ apply /RltP. apply C_mod_gt_0. apply eigen_not_zero.
                             ++ apply H.
-                            ++ admit.
+                            ++ apply leq_trans with k.
+                               - by apply index_leq.
+                               - assert (n = size_sum sizes). { by rewrite total_eigen_val. }
+                                 by rewrite H10.
                   * apply Rle_ge. apply Rlt_le. apply Rmult_lt_0_compat.
                     { apply pow_lt. by apply nat_ring_lt. }
                     { apply pow_lt. apply /RltP. apply C_mod_gt_0. apply eigen_not_zero.  }
@@ -1819,7 +1854,7 @@ destruct H0.
 + rewrite H0. rewrite C_mod_0. 
   assert ((0 - 0)%Re = 0%Re). { nra. }
   rewrite H9. rewrite Rabs_R0. apply posreal_cond.
-Admitted.
+Qed.
 
 
 
@@ -1943,12 +1978,6 @@ induction n.
 Qed.
 
 
-(** assumption that the sum of algebraic multiplicity
-  of the eigen values = size of the matrix
-**)
-Hypothesis total_eigen_val: forall (n:nat) (A: 'M[complex R]_n.+1),
- size_sum
-  [seq x.2.-1 | x <- root_seq_poly (invariant_factors A)] = n.
 
 Lemma mat_norm_converges: 
   forall (n:nat) (A: 'M[complex R]_n.+1),

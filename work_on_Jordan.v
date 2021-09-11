@@ -74,11 +74,7 @@ Proof.
 intros. by rewrite H.
 Qed.
 
-
-(** The lemmas matrix_norm_equality and mat_power look 
-  obvious if size of B = size of A, but stuck at how to 
-  prove them formally
-**)
+ 
 Lemma matrix_norm_equality: 
   forall (m n:nat) (A : 'M[complex R]_m.+1) (B: 'M[complex R]_n.+1),
   m = n ->
@@ -115,8 +111,6 @@ Definition lambda (n:nat) (A: 'M[complex R]_n.+1) (i:nat) : complex R:=
   let sp:= root_seq_poly (invariant_factors A) in
   (nth (0,0%N) sp i).1.
 
-Variable ii jj kk:nat.
-Check ('C(ii.+1, jj - kk))%:R.
 
 Lemma diag_ext: forall (n n0:nat) (A: 'M[complex R]_n.+1),  
 diag_block_mx
@@ -141,9 +135,6 @@ intros. apply ext_block.
 intros. by rewrite Jordan_expn.
 Qed.
 
-Check geometric.
-Check cvg_geometric.
-Check cvg_geometric.
 
 Lemma lim_exp_0 (x : [archiFieldType of R]) : `|x| < 1 ->
   ((fun n => x ^+ n) --> 0%Re).
@@ -2109,12 +2100,6 @@ apply: sigW.
 case: (V_exists A)=> P [Pu PA].
 exists P; apply/andP; split;[exact: Pu | apply/eqP; exact PA].
 Qed.
-
-(*
-Lemma exp_cvg0 (x : R) :
-   0 < x < 1 ->
-   ((x ^ n) @[n --> +oo] --> 0)%classic.
-*)
 
 Definition eigen_matrix (n:nat) (A: 'M[complex R]_n.+1):= 
   proj1_sig (eigen_matrix_set A).

@@ -25,7 +25,7 @@ Open Scope classical_set_scope.
 
 From mathcomp Require Import complex.
 Require Import complex_mat_vec_prop.
-Require Import work_on_Jordan iter_convergence.
+Require Import iter_necessity iter_convergence.
 
 Import ComplexField. 
 

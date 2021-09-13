@@ -24,50 +24,13 @@ Import Order.TTheory GRing.Theory Num.Def Num.Theory.
 Open Scope classical_set_scope.
 
 From mathcomp Require Import complex.
-Require Import work_on_Jordan.
+Require Import complex_mat_vec_prop work_on_Jordan.
+Import ComplexField.
+
 
 
 (** Define the solution vector at mth iteration **)
 Parameter Xm: forall (n:nat) (m:nat), 'cV[R]_n.+1. 
-
-(** define a complex matrix **)
-Definition RtoC_mat (n:nat) (A: 'M[R]_n): 'M[complex R]_n := 
-  \matrix_(i<n, j<n) ((A i j) +i* 0)%C.
-
-(** Define L2 norm of a vector **)
-
-Definition vec_norm (n:nat) (x: 'cV[R]_n.+1)  := 
-  sqrt (\big[+%R/0]_l (Rsqr (x l 0))).
-
-(** Define vector norm for a complex vector **)
-Definition vec_norm_C (n:nat) (x: 'cV[complex R]_n.+1):=
-  sqrt (\big[+%R/0]_l (Rsqr (C_mod (x l 0)))).
-
-
-Definition vec_not_zero (n:nat) (x: 'cV[complex R]_n.+1):=
-  forall i:'I_n.+1,  x i 0 <> 0.
-
-Lemma sum_gt_0: forall (n:nat) (u: 'I_n.+1 -> R),   
-   (forall l:'I_n.+1, 0 < (u l) )-> 
-      \big[+%R/0]_l (u l) >0.
-Proof.
-intros. induction  n.
-+ simpl. rewrite big_ord_recr //=. rewrite !big_ord0.
-  rewrite add0r. apply H. 
-+ simpl. rewrite big_ord_recr //=.  
-  apply /RltbP. apply Rplus_lt_0_compat.
-  apply /RltbP. apply IHn. 
-  intros. apply H. apply /RltbP. apply H. 
-Qed. 
-
-
-Lemma vec_norm_eq: forall (n:nat) (x y: 'cV[R]_n.+1), 
-   x=y -> vec_norm x = vec_norm y.
-Proof.
-intros.
-rewrite H. reflexivity.
-Qed.
-
 
 Lemma Mopp_mult_r: 
   forall (m n p:nat) (A: 'M[R]_(m.+1,n.+1)) (B: 'M[R]_(n.+1,p.+1)),
@@ -128,9 +91,6 @@ Definition matrix_norm (n:nat) (A: 'M[complex R]_n.+1) :=
     Lub_Rbar (fun x=> exists v: 'cV[complex R]_n.+1, vec_norm_C v <> 0 /\
                 x= (vec_norm_C  (mulmx A v))/ (vec_norm_C v)).
 
-Definition RtoC_vec (n:nat) (v: 'cV[R]_n.+1) : 'cV[complex R]_n.+1:=
-  \col_i ((v i 0) +i* 0)%C.
-
 
 (** If all ||S v|| / ||v|| = 0 , then it's maximum will also be 0**)
 Hypothesis lim_max: forall (n:nat) (v: 'cV[R]_n.+1) (A: 'M[R]_n.+1), 
@@ -138,103 +98,6 @@ Hypothesis lim_max: forall (n:nat) (v: 'cV[R]_n.+1) (A: 'M[R]_n.+1),
     let vc:= RtoC_vec v in 
       is_lim_seq (fun m: nat => (vec_norm_C (mulmx (RtoC_mat (A^+m.+1)) vc) / (vec_norm_C vc))%Re) 0%Re ->
         is_lim_seq (fun m:nat => matrix_norm (RtoC_mat (A^+m.+1))) 0%Re.
-
-
-Lemma vec_norm_R_C: forall (n:nat) (v: 'cV[R]_n.+1),
-  vec_norm_C (RtoC_vec  v) = vec_norm v.
-Proof.
-intros. rewrite /vec_norm_C /vec_norm.
-have H1: \big[+%R/0]_l (C_mod (RtoC_vec v l 0))² = \big[+%R/0]_l (v l 0)².
-{ apply eq_big. by []. intros. rewrite mxE /C_mod /=.
-  assert (0^+2 = 0%Re). { by rewrite expr2 mul0r. } rewrite H0 Rplus_0_r.
-  rewrite Rsqr_sqrt.
-  + rewrite -RpowE /Rsqr. nra.
-  + assert (((v i 0) ^+ 2) = Rsqr (v i 0)).
-    { rewrite -RpowE /Rsqr. nra. } rewrite H1.
-    apply Rle_0_sqr.
-} by rewrite H1.
-Qed.
-
-Lemma C_destruct: forall (x: complex R), x = (Re x +i* Im x)%C.
-Proof.
-by move => [a b]. 
-Qed.
-
-Lemma Re_plus_compat: forall (x y: complex R), 
-  Re (x + y) = Re x + Re y.
-Proof.
-by move => [a b] [c d] /=. 
-Qed.
-
-Lemma Im_plus_compat: forall (x y: complex R), 
-  Im (x + y) = Im x + Im y.
-Proof.
-by move => [a b] [c d] /=. 
-Qed.
-
-Lemma eq_big_Re_C: forall (n:nat) (u v: 'I_n.+1 -> complex R),
-   (\big[+%R/0]_(j<n.+1) Re ((u j) * (v j))%C) = Re (\big[+%R/0]_(j<n.+1) ((u j)* (v j))).
-Proof.
-intros.
-induction n.
-+ by rewrite !big_ord_recr //= !big_ord0 !add0r. 
-+ rewrite big_ord_recr //=. rewrite IHn -Re_plus_compat.
-  rewrite [in RHS]big_ord_recr //=.
-Qed.
-
-Lemma eq_big_Im_C: forall (n:nat) (u v: 'I_n.+1 -> complex R),
-   (\big[+%R/0]_(j<n.+1) Im ((u j) * (v j))%C) = Im (\big[+%R/0]_(j<n.+1) ((u j)* (v j))).
-Proof.
-intros.
-induction n.
-+ by rewrite !big_ord_recr //= !big_ord0 !add0r. 
-+ rewrite big_ord_recr //=. rewrite IHn -Im_plus_compat.
-  rewrite [in RHS]big_ord_recr //=.
-Qed.
-
-Lemma big_0_sum: forall (n:nat),
-  \big[+%R/0]_(j<n.+1) 0 = 0%Re.
-Proof.
-intros. induction n.
-+ by rewrite !big_ord_recr //= big_ord0 add0r.
-+ rewrite big_ord_recr //=. rewrite IHn. apply add0r.
-Qed. 
-
-Lemma mat_vec_unfold: forall (n:nat) (A: 'M[R]_n.+1 ) (v: 'cV[R]_n.+1),
-    RtoC_vec (mulmx A v) = mulmx (RtoC_mat A) (RtoC_vec v).
-Proof.
-intros. apply matrixP. unfold eqrel. intros. rewrite !mxE.
-rewrite [RHS]C_destruct. apply /eqP. rewrite eq_complex /=.
-apply /andP. split.
-+ apply /eqP. rewrite -eq_big_Re_C. apply eq_big. by [].
-  intros. by rewrite /RtoC_mat /RtoC_vec !mxE /= mul0r subr0.
-+ apply /eqP. rewrite -eq_big_Im_C. rewrite -[LHS](big_0_sum n).
-  apply eq_big. by []. intros. 
-  by rewrite /RtoC_mat /RtoC_vec !mxE //= mul0r mulr0 add0r.
-Qed.
-
-Lemma sum_n_ge_0: forall (n:nat) (u: 'I_n.+1 ->R), 
-    (forall i:'I_n.+1, 0<= (u i)) -> 
-    0 <= \big[+%R/0]_i (u i).
-Proof.
-intros. induction n.
-+ by rewrite big_ord_recr //= big_ord0 add0r. 
-+ rewrite big_ord_recr //=. apply /RleP. 
-  apply Rplus_le_le_0_compat. apply /RleP. apply IHn. 
-  intros. apply H. apply /RleP. apply H.
-Qed.
-
-Lemma vec_norm_C_ge_0: forall (n:nat) (v: 'cV[complex R]_n.+1), 
-  (0<= vec_norm_C v)%Re.
-Proof.
-intros.
-unfold vec_norm_C.
-apply sqrt_positivity. apply /RleP.
-apply sum_n_ge_0. intros.
-assert (0 = Rsqr 0). { symmetry. apply Rsqr_0. } rewrite H. apply /RleP.
-apply Rsqr_incr_1. apply C_mod_ge_0.
-nra. apply C_mod_ge_0.
-Qed.
 
 
 Hypothesis matrix_norm_compat: 
@@ -306,97 +169,7 @@ rewrite H in H1. clear H.
 apply (@powr_decr (Rabs q) N.+1). apply Rabs_pos. rewrite RpowE. apply H1.
 Qed.
 
-Lemma non_zero_vec_norm: forall (n:nat) (v: 'cV[complex R]_n.+1),
-  vec_not_zero v -> (vec_norm_C v <> 0)%Re.
-Proof.
-intros.
-unfold vec_not_zero in H. 
-assert ((0< vec_norm_C v)%Re -> (vec_norm_C v <> 0)%Re).
-{ nra. } apply H0. unfold vec_norm_C. 
-apply sqrt_lt_R0. apply /RltbP. apply sum_gt_0.  
-intros. apply /RltbP. apply Rlt_0_sqr. by apply C_mod_not_zero.
-Qed.
 
-Definition scal_vec_C (n:nat) (l:complex R) (v: 'cV[complex R]_n.+1):=
-  \col_(i<n.+1) (l * (v i 0))%C.
-
-Lemma ei_vec_ei_compat: forall (n:nat) (x:complex R) (v: 'cV[complex R]_n.+1), 
-  vec_norm_C (scal_vec_C x v) = C_mod x * vec_norm_C v.
-Proof.
-intros. unfold vec_norm_C. 
-have H1: sqrt (Rsqr (C_mod x)) = C_mod x. 
-  { apply sqrt_Rsqr. apply C_mod_ge_0. }
-rewrite -H1 -RmultE -sqrt_mult_alt.
-have H2: (\big[+%R/0]_l (C_mod (scal_vec_C x v l 0))²) = 
-           ((C_mod x)² *  \big[+%R/0]_l (C_mod (v l 0))²).
-{ rewrite mulr_sumr. apply eq_big. by []. intros. 
-  rewrite mxE C_mod_prod -RmultE. apply Rsqr_mult.
-} by rewrite H2. 
-assert (0%Re = Rsqr 0). { symmetry. apply Rsqr_0. } rewrite H.
-apply Rsqr_incr_1. apply C_mod_ge_0. nra. apply C_mod_ge_0.
-Qed.
-
-Lemma scal_vec_1: forall (n:nat) (v: 'cV[complex R]_n.+1), 
-  v= scal_vec_C (1%C) v.
-Proof.
-intros. apply matrixP. unfold eqrel. intros. rewrite mxE.
-symmetry. assert (y=0).  { apply ord1. } by rewrite H mul1r. 
-Qed.
-
-Lemma RtoC_Mone: forall n:nat, @RtoC_mat n 1%:M = 1%:M.
-Proof.
-intros. rewrite /RtoC_mat. apply matrixP. unfold eqrel.
-intros. rewrite !mxE.
-case: (x == y); simpl;apply /eqP;rewrite eq_complex /=;by apply /andP.
-Qed. 
-
-Lemma C_equals: forall (x y: complex R),
-  (Re x = Re y) /\ (Im x = Im y) -> x = y.
-Proof.
-move =>[a b] [c d] //= H. destruct H. rewrite H H0 //=.
-Qed.
-
-Lemma RtoC_mat_prod: forall (n:nat) (A B: 'M[R]_n.+1),
-  mulmx (RtoC_mat A) (RtoC_mat B) = RtoC_mat (mulmx A B).
-Proof.
-intros. apply matrixP. unfold eqrel. intros.
-rewrite !mxE. apply C_equals. split.
-+ simpl. rewrite -eq_big_Re_C. apply eq_big. by [].
-  intros. by rewrite /RtoC_mat !mxE //= mul0r subr0.
-+ rewrite //= -eq_big_Im_C -[RHS](big_0_sum n). apply eq_big.
-  by []. intros. by rewrite /RtoC_mat !mxE //= mul0r mulr0 add0r.
-Qed.
-
-Lemma scal_of_scal_vec : 
- forall (n:nat) (x l:complex R) (v: 'cV[complex R]_n.+1),
-  scal_vec_C x (scal_vec_C l v) = scal_vec_C (x* l)%C v.
-Proof.
-intros. unfold scal_vec_C. apply matrixP. unfold eqrel. intros.
-by rewrite !mxE /= mulrA.
-Qed.
-
-Lemma scal_vec_C_comm : 
-forall (n:nat) (x l:complex R) (v: 'cV[complex R]_n.+1),
-  scal_vec_C x (scal_vec_C l v) = scal_vec_C l (scal_vec_C x v).
-Proof.
-intros.
-unfold scal_vec_C. apply matrixP. unfold eqrel. intros.
-rewrite !mxE /=.
-have H1: (x * (l * v x0 0))%C  = ((x* l) * (v x0 0))%C.
-{ apply mulrA. } rewrite H1. 
-have H2: (l * (x * v x0 0))%C = ((l* x) * (v x0 0))%C.
-{ apply mulrA. } rewrite H2. 
-assert ((x* l)%C = (l* x)%C). { apply mulrC. } by rewrite H.
-Qed.
-
-
-Lemma big_scal: forall (n:nat) (u: 'I_n.+1 -> complex R) (x:complex R),
-  (x* \big[+%R/0]_j (u j))%C = \big[+%R/0]_j (x* (u j))%C.
-Proof.
-intros. induction n.
-+ by rewrite !big_ord_recr //= !big_ord0 !add0r. 
-+ rewrite big_ord_recr //= mulrDr IHn [RHS]big_ord_recr //=.
-Qed.
 
 Lemma eigen_power: forall (n m:nat) (i: 'I_n.+1) (A: 'M[R]_n.+1), 
   let Ap:= RtoC_mat A in 

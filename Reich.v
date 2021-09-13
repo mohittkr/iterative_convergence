@@ -24,23 +24,14 @@ Import Order.TTheory GRing.Theory Num.Def Num.Theory.
 Open Scope classical_set_scope.
 
 From mathcomp Require Import complex.
+Require Import complex_mat_vec_prop.
 Require Import work_on_Jordan iter_convergence.
 
-Import ComplexField.
+Import ComplexField. 
 
 Definition symmetric (n:nat) (A: 'M[complex R]_n.+1):= 
   forall i j:'I_n.+1, A i j = A j i.
 
-Definition transpose_C (m n:nat) (A: 'M[complex R]_(m,n)):=
-  \matrix_(i<n,j<m) A j i.
-
-
-(** Define conjugates **)
-Definition conjugate (m n:nat) (A: 'M[complex R]_(m,n)):=
-  \matrix_(i<m,j<n) conjc (A i j).
-
-Definition conjugate_transpose (m n:nat) (A: 'M[complex R]_(m,n)):=
-  transpose_C (conjugate A).
 
 Definition is_positive_definite (n:nat) (A: 'M[R]_n.+1):=
   (fun (x: 'cV[complex R]_n.+1)=> vec_not_zero x ->
@@ -74,7 +65,6 @@ assert (i==x0  = false). { by apply negbTE. }
 by rewrite H0. 
 Qed.
 
-Definition RtoC (x:R):= (x +i* 0)%C.
 
 Lemma diag_prod_C: forall (n:nat) (d:'rV[R]_n) (x: 'cV[complex R]_n),
   mulmx (RtoC_mat (diag_mx d)) x = \col_i (RtoC (d 0 i) * x i 0).
@@ -96,47 +86,6 @@ split.
 + by [].
 Qed.
 
-
-
-Lemma sum_gt_0: forall (n:nat) (u: 'I_n.+1-> R),  
-   (forall l:'I_n.+1, 0 < (u l) )-> 
-      \big[+%R/0]_l (u l) >0.
-Proof.
-intros. induction  n.
-+ by rewrite big_ord_recr //= big_ord0 add0r.
-+ rewrite big_ord_recr //=.
-  apply /RltbP. apply Rplus_lt_0_compat.
-  apply /RltbP. apply IHn. intros. apply H.
-  apply /RltbP. apply H. 
-Qed. 
-
-Lemma conj_mag: 
-  forall x:complex R, (x* conjc x)%C = RtoC (Rsqr (C_mod x)).
-Proof.
-intros. rewrite /conjc /RtoC /C_mod.
-assert ( x = (Re x +i* Im x)%C). { apply C_destruct. }
-rewrite H //=. apply /eqP. rewrite eq_complex //=.
-apply /andP. split.
-+ apply /eqP. rewrite -mulN1r mulrN mulrNN mul1r.
-  rewrite Rsqr_sqrt.
-  - rewrite -!RpowE -RplusE -!RmultE. nra.
-  - rewrite -!RpowE. nra.
-+ apply /eqP. rewrite mulrN mulrC //=. 
-  rewrite -!RmultE -RplusE. apply Rplus_opp_l. 
-Qed.  
-
-
-
-Lemma big_scal_com: 
-  forall (n:nat) (x: complex R) (u : 'I_n.+1 -> complex R),
-  x * (\big[+%R/0]_j (u j)) = \big[+%R/0]_j (x * (u j)).
-Proof.
-intros. induction n.
-+ by rewrite !big_ord_recr //= !big_ord0 //= !add0r.
-+ rewrite big_ord_recr //= [RHS]big_ord_recr //=.
-  by rewrite -IHn mulrDr.
-Qed. 
- 
 
 Lemma is_positive_definite_diag: 
   forall (n:nat) (x: 'cV[complex R]_n.+1) (A: 'M[R]_n.+1),
@@ -174,13 +123,8 @@ assert (Re (x l 0 * conjc (x l 0)) = Rsqr (C_mod (x l 0))).
 Qed.
 
 
-Definition scal_of_mat0 (A: 'cV[complex R]_1):= A 0 0.
-
 Definition A1_inverse_exists (n:nat) (A: 'M[complex R]_n.+1):=
   forall i:'I_n.+1, A i i <> 0.
-
-Definition scal_mat_C (m n :nat) (l:complex R) (x: 'M[complex R]_(m,n)):= 
-    \matrix_(i<m,j<n) (l* (x i j))%C.
 
 
 (*** Matrix equality ***)
@@ -192,14 +136,6 @@ Proof.
 intros. rewrite H. reflexivity.
 Qed.
 
-
-Lemma scal_conv_scal_vec: forall (x:complex R) (v: 'M[complex R]_1),
-  scal_of_mat0 (scal_vec_C x v) = (x* (scal_of_mat0 v))%C.
-Proof.
-intros. by rewrite /scal_of_mat0 /scal_vec_C !mxE.
-Qed.
-
-
 Lemma conj_transpose_A1: forall (n:nat) (A: 'M[R]_n),
     conjugate_transpose (RtoC_mat (A1 A)) = transpose_C (RtoC_mat (A1 A)).
 Proof.
@@ -208,14 +144,6 @@ rewrite /conjc. apply /eqP. rewrite eq_complex //=. apply /andP.
 split.
 + by apply /eqP.
 + apply /eqP. by rewrite oppr0.
-Qed.
-
-Lemma scal_mat_to_vec: 
-  forall (m : nat) (l:complex R) (v: 'cV[complex R]_m.+1),
-  scal_mat_C l v = scal_vec_C l v.
-Proof.
-intros. apply matrixP. unfold eqrel. intros. rewrite !mxE. 
-assert (y=0). { apply ord1. } by rewrite H.
 Qed.
 
 
@@ -261,13 +189,6 @@ Proof.
 intros. apply matrixP. unfold eqrel. intros. by rewrite !mxE.
 Qed.
 
-Lemma RtoC_mat_add: forall (n:nat) (A B: 'M[R]_n.+1),
-  RtoC_mat (addmx A B) = addmx (RtoC_mat A) (RtoC_mat B).
-Proof.
-intros. apply matrixP. unfold eqrel. intros. rewrite !mxE.
-apply /eqP. rewrite eq_complex //= add0r. apply /andP.
-split; by apply /eqP.
-Qed.
 
 Lemma A1_tr_split_C: forall (n:nat) (A: 'M[R]_n.+1),
   (forall (i j:'I_n.+1), A i j =  A j i)->
@@ -285,74 +206,6 @@ assert (transpose_R (A1 A) = addmx  (diag_A A) (A2 A)).
 by rewrite H2. 
 Qed.
 
-
-Lemma C_mod_eq_0: forall (x: complex R), 
-  C_mod x = 0 -> x = 0.
-Proof.
-intros. rewrite /C_mod in H.
-assert ((Re x ^+ 2 + Im x ^+ 2) = 0).
-{ apply sqrt_eq_0. 
-  + rewrite -!RpowE -RplusE. nra.
-  + apply H.
-} clear H.
-assert ((Re x ^+ 2 =0) /\ (Im x ^+ 2 = 0)).
-{ apply Rplus_eq_R0. 
-  + rewrite -RpowE. nra.
-  + rewrite -RpowE. nra.
-  + apply H0.
-} destruct H.
-assert (Re x = 0 /\ Im x = 0). 
-{ rewrite -RpowE in H. rewrite -RpowE in H1.
-  split. 
-  + apply Rsqr_0_uniq. rewrite /Rsqr. 
-    assert ((Re x ^ 2)%Re = (Re x * Re x)%Re). { nra. }
-    by rewrite -H2.
-  + apply Rsqr_0_uniq. rewrite /Rsqr. 
-    assert ((Im x ^ 2)%Re = (Im x * Im x)%Re). { nra. }
-    by rewrite -H2.
-} destruct H2. 
-assert (x = (Re x +i* Im x)%C). { apply C_destruct. }
-rewrite H4. apply /eqP. rewrite eq_complex //=.
-apply /andP. by split; apply /eqP. 
-Qed.
-
-Lemma C_mod_gt_0: forall (x: complex R),
-  x <> 0  <->  0 < C_mod x.
-Proof.
-intros x ; split => Hx.
-destruct (C_mod_ge_0 x) => //.
-by apply /RltbP. 
-contradict Hx. by apply C_mod_eq_0.
-assert ((0 < C_mod x)%Re). { by apply /RltbP. }
-contradict H.
-apply Rle_not_lt, Req_le.
-by rewrite H C_mod_0.
-Qed.
-
-Lemma C_mod_inv : forall x : complex R, 
-  x <> 0 -> C_mod (invc x) = Rinv (C_mod x).
-Proof.
-intros x Zx.
-apply Rmult_eq_reg_l with (C_mod x).
-rewrite -[LHS]C_mod_prod.
-rewrite Rinv_r. rewrite mulrC.
-assert (invc x * x = 1). 
-{ rewrite [LHS]mulVc. by rewrite /RtoC.  by apply /eqP. }
-by rewrite H C_mod_1.
-assert ( (0 < C_mod x)%Re -> C_mod x <> 0%Re). { nra. }
-apply H. apply /RltbP. by apply C_mod_gt_0.
-assert ( (0 < C_mod x)%Re -> C_mod x <> 0%Re). { nra. }
-apply H. apply /RltbP. by apply C_mod_gt_0.
-Qed.
-
-
-Lemma Cinv_not_0: 
-  forall x:complex R, x <> 0 -> (invc x)%C <> 0.
-Proof.
-intros. apply C_mod_gt_0.
-rewrite C_mod_inv. apply /RltbP. apply Rinv_0_lt_compat. 
-apply /RltbP. apply C_mod_gt_0. apply H. apply H.
-Qed.
 
 Lemma Mplus_add_mat_eq: 
   forall (m n:nat) (A B C: 'M[complex R]_(m,n)),
@@ -376,208 +229,6 @@ Proof.
 intros. apply matrixP. unfold eqrel. intros. rewrite !mxE. by rewrite addr0.
 Qed.
 
-
-Lemma conj_prod: 
-  forall (x:complex R), ((conjc x)*x)%C = RtoC (Rsqr (C_mod x)).
-Proof.
-move => [a b]. rewrite /conjc /C_mod //= /RtoC.
-apply /eqP. rewrite eq_complex //=. apply /andP.
-split.
-+ apply /eqP. rewrite Rsqr_sqrt.
-  - rewrite -!RpowE -!RmultE -!RoppE -RplusE. nra.
-  - rewrite -!RpowE. nra.
-+ apply /eqP. by rewrite mulNr mulrC addrN.
-Qed.
-
-
-Lemma scal_vec_add_xy: 
-  forall (n:nat) (x y:complex R) (v: 'cV[complex R]_n.+1),
-  addmx (scal_vec_C x v) (scal_vec_C y v) = scal_vec_C (x+y)%C v.
-Proof.
-intros. unfold addmx. unfold scal_vec_C. apply matrixP. unfold eqrel.
-intros. by rewrite !mxE /= mulrDl.
-Qed.
-
-Lemma Cconj_prod: forall (x y: complex R),
-  conjc (x*y)%C = (conjc x * conjc y)%C.
-Proof.
-move => [a b] [c d]. apply /eqP. rewrite eq_complex //=.
-apply /andP. split.
-+ apply /eqP. by rewrite mulrNN.
-+ apply /eqP. by rewrite mulrN mulNr opprD. 
-Qed.
-  
-
-Lemma conj_scal_mat_mul: 
-  forall (m n : nat) (l:complex R) (x: 'M[complex R]_(m,n)),
-  conjugate_transpose (scal_mat_C l x) = scal_mat_C (conjc l) (conjugate_transpose x).
-Proof.
-intros.
-rewrite /conjugate_transpose /transpose_C /scal_mat_C /conjugate. 
-apply matrixP. unfold eqrel. intros.
-rewrite !mxE /=. apply Cconj_prod.
-Qed.
-
-Lemma Ceq_dec: forall (x: complex R),
-  (x==0) || (x != 0).
-Proof.
-move => [a b]. rewrite eq_complex //=.
-assert ( a = 0 \/ a <> 0). { by apply Req_dec. }
-assert ( b = 0 \/ b <> 0). { by apply Req_dec. } 
-destruct H.
-+ rewrite H //=.
-  destruct H0.
-  - rewrite H0 //=. apply /orP. left. 
-    apply /andP. by split; apply /eqP.
-  - apply /orP. right. apply /nandP. by right; apply /eqP.
-+ apply /orP. right. apply /nandP. left. by apply /eqP.
-Qed. 
-
-
-
- 
-Lemma Cmult_neq_0 (z1 z2 : complex R) : 
-  z1 <> 0 -> z2 <> 0 -> z1 * z2 <> 0.
-Proof.
-  intros Hz1 Hz2 => Hz.
-  assert (C_mod (z1 * z2) = 0).
-  by rewrite Hz C_mod_0.
-  rewrite C_mod_prod in H.
-  apply Rmult_integral in H ; destruct H.
-  now apply Hz1, C_mod_eq_0.
-  now apply Hz2, C_mod_eq_0.
-Qed.
-
-
-
-Lemma prod_not_zero: forall (x y: complex R) , 
-  (x*y)%C <>0 <-> (x <> 0) /\ (y <> 0).
-Proof.
-intros.
-split.
-+ intros.
-  split. 
-  - assert ( (x==0) \/ (x!=0)). 
-    { have H1: (x==0) || (x != 0). apply Ceq_dec. 
-      intros. by apply /orP.
-    } destruct H0. 
-    * assert (x=0). { by apply /eqP. } rewrite H1 in H. 
-      by rewrite mul0r in H. 
-    * by apply /eqP.
-  - assert ( (y==0) \/ (y!=0)). 
-    { have H1: (y==0) || (y != 0). apply Ceq_dec. 
-      intros. by apply /orP.
-    } destruct H0. 
-    * assert (y=0). { by apply /eqP. } rewrite H1 in H. 
-      by rewrite mulr0 in H. 
-    * by apply /eqP.
-+ intros. destruct H. 
-  apply Cmult_neq_0. apply H. apply H0.
-Qed.
-
-Lemma Cconj_add: forall (x y: complex R), 
-  conjc (x+y) = conjc x + conjc y.
-Proof.
-move => [a b] [c d]. rewrite /conjc //=. apply /eqP.
-rewrite eq_complex //=. apply /andP. split.
-+ by apply /eqP.
-+ apply /eqP. by rewrite opprD.
-Qed.
-
-Lemma Cconj_sum: forall (p:nat) (x: 'I_p -> complex R),
-  conjc (\big[+%R/0]_(j < p) x j)= \big[+%R/0]_(j < p) conjc (x j).
-Proof.
-intros.
-induction p.
-+ by rewrite !big_ord0 conjc0 //=.
-+ rewrite !big_ord_recl. 
-  rewrite <-IHp. apply Cconj_add.
-Qed.
-
-Lemma conj_matrix_mul : 
-  forall (m n p:nat) (A: 'M[complex R]_(m,p)) (B: 'M[complex R]_(p,n)),
-    conjugate_transpose (mulmx A B) = mulmx
-      (conjugate_transpose B) (conjugate_transpose A).
-Proof.
-intros.
-rewrite /conjugate_transpose /transpose_C /conjugate.
-apply matrixP. unfold eqrel. intros.
-rewrite !mxE /=. 
-have H: conjc (\big[+%R/0]_(j < p) (A y j * B j x)) = 
-            \big[+%R/0]_(j < p) conjc (A y j * B j x).
-{ apply Cconj_sum. }
-rewrite H. apply eq_big. by [].
-intros. by rewrite !mxE Cconj_prod //= mulrC.
-Qed.
-
-
-Lemma conj_of_conj: forall (m n:nat) (x: 'M[complex R]_(m,n)),
-  conjugate_transpose (conjugate_transpose x) = x.
-Proof.
-intros. rewrite /conjugate_transpose /transpose_C /conjugate.
-apply matrixP. unfold eqrel. intros. rewrite !mxE.
-assert ( x x0 y = (Re (x x0 y) +i* Im (x x0 y))%C).
-{ apply C_destruct. } rewrite H /conjc //=. apply /eqP.
-rewrite eq_complex //=. apply /andP. split.
-+ by apply /eqP.
-+ apply /eqP. by rewrite opprK.
-Qed.
-
-
-Lemma conj_transpose_A: forall (n:nat) (A : 'M[R]_n.+1),
-  (forall i j:'I_n.+1,   A i j = A j i) -> 
-  conjugate_transpose (RtoC_mat A) = RtoC_mat A.
-Proof.
-intros. 
-rewrite /conjugate_transpose /RtoC_mat /transpose_C /conjugate.
-apply matrixP. unfold eqrel. intros. rewrite !mxE.
-rewrite /conjc. apply /eqP. rewrite eq_complex //=. apply /andP.
-split.
-+ apply /eqP. apply H.
-+ apply /eqP. apply oppr0.
-Qed.
-
-Lemma scal_vec_eq: 
-  forall (n:nat) (x:complex R) (v1 v2: 'cV[complex R]_n.+1),
-   x <> 0 -> scal_vec_C x v1 = scal_vec_C x v2 -> v1 = v2.
-Proof.
-intros. apply colP. unfold eqfun.
-intros. unfold scal_vec_C in H0. apply matrixP in H0. 
-unfold eqrel in H0. specialize (H0 x0 0).
-rewrite !mxE in H0. rewrite <- mul1r.
-have H1: v1 x0 0 = (1 * v1 x0 0)%C. 
-{ by rewrite mul1r. } 
-have H2: (invc x * x)%C = 1. { apply mulVc. by apply /eqP. }
-rewrite <-H2. rewrite -!mulrA.
-rewrite H0. by rewrite mulrA mulrC H2 mulr1.
-Qed.
-
-Lemma scal_vec_add: 
-  forall (n:nat) (x: complex R) (v1 v2: 'cV[complex R]_n.+1),
-  addmx (scal_vec_C x v1) (scal_vec_C x v2) =  scal_vec_C x (addmx v1 v2).
-Proof.
-intros. rewrite /addmx /scal_vec_C. apply matrixP. unfold eqrel.
-intros. rewrite !mxE/=. by rewrite mulrDr. 
-Qed.
-
-
-Lemma scal_vec_C_Mopp: forall (n:nat) (x:complex R) (v: 'cV[complex R]_n.+1), 
-  oppmx (scal_vec_C x v) = scal_vec_C (-x)%C v.
-Proof.
-intros. rewrite /scal_vec_C /oppmx. apply matrixP. unfold eqrel.
-intros. by rewrite !mxE /= mulNr. 
-Qed.
-
-Lemma Re_eq: forall (x y:complex R), x= y -> Re x = Re y.
-Proof.
-intros. by rewrite /Re H. 
-Qed.
-
-Lemma Re_prod: 
-  forall (x:R) (y:complex R), Re (RtoC x * y)%C = Re (RtoC x) * Re y.
-Proof.
-by move => x [a b]; rewrite /RtoC //= mul0r subr0.
-Qed.
 
 Theorem Reich: forall (n:nat) (A: 'M[R]_n.+1),
   (forall i:'I_n.+1,  A i i > 0) ->

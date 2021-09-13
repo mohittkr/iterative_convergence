@@ -251,6 +251,27 @@ Qed.
 
 Definition RtoC (x:R):= (x +i* 0)%C.
 
+Lemma C_modE y : C_mod y = normc y.
+Proof.
+rewrite /C_mod RsqrtE /normc; case: y => [ry iy] //=.
+by rewrite RplusE addr_ge0 // sqr_ge0.
+Qed.
+
+Lemma normcV (y : complex R) : y != 0 -> normc (y^-1) = (normc y)^-1.
+Proof.
+move=> yn0.
+have normyn0 : normc y != 0 by apply/eqP=> /eq0_normc /eqP; apply/negP.
+apply: (mulfI normyn0); rewrite mulfV // -normcM mulfV //.
+by rewrite /normc /= expr0n /= addr0 expr1n sqrtr1.
+Qed.
+
+Lemma C_mod_invE (y : complex R) : C_mod (y ^-1) = (C_mod y) ^-1.
+Proof.
+have [/eqP y0 | yn0] := boolP (y == 0); last by rewrite !C_modE normcV.
+rewrite y0 /C_mod /= !mul0r oppr0 expr0n /= RplusE mulr0n add0r RsqrtE //.
+by rewrite sqrtr0 invr0.
+Qed.
+
 Lemma C_mod_eq_0: forall (x: complex R), 
   C_mod x = 0 -> x = 0.
 Proof.

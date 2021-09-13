@@ -133,14 +133,12 @@ Definition RtoC_vec (n:nat) (v: 'cV[R]_n.+1) : 'cV[complex R]_n.+1:=
 
 
 (** If all ||S v|| / ||v|| = 0 , then it's maximum will also be 0**)
-Lemma lim_max: forall (n:nat) (v: 'cV[R]_n.+1) (A: 'M[R]_n.+1), 
+Hypothesis lim_max: forall (n:nat) (v: 'cV[R]_n.+1) (A: 'M[R]_n.+1), 
     vec_norm v <> 0%Re -> 
     let vc:= RtoC_vec v in 
       is_lim_seq (fun m: nat => (vec_norm_C (mulmx (RtoC_mat (A^+m.+1)) vc) / (vec_norm_C vc))%Re) 0%Re ->
         is_lim_seq (fun m:nat => matrix_norm (RtoC_mat (A^+m.+1))) 0%Re.
-Proof.
-intros.
-Admitted.
+
 
 Lemma vec_norm_R_C: forall (n:nat) (v: 'cV[R]_n.+1),
   vec_norm_C (RtoC_vec  v) = vec_norm v.

@@ -52,37 +52,56 @@ Definition A2_J (n:nat) (h:R):=
 Definition S_mat_J (n:nat) (h:R):=
    RtoC_mat (oppmx (mulmx ((invmx (A1_J n h))) (A2_J n h))).
 
-Definition a (m:nat) (h:R) := (S_mat_J m h) (inord 1) (inord 0).
+Definition a (m:nat) (h:R) := (S_mat_J m h) (@inord m 1) 0.
 
-Definition b (m:nat) (h:R) := (S_mat_J m h) (inord 0) (inord 0).
+Definition b (m:nat) (h:R) := (S_mat_J m h) 0 0.
 
-Definition c (m:nat) (h:R) := (S_mat_J m h) (inord 0) (inord 1).
+Definition c (m:nat) (h:R) := (S_mat_J m h) 0 (@inord m 1).
 Definition p (m:nat) (h:R) := ((a m h) * (c m h))%C.
 
 Definition lambda_J (m N:nat) (h:R) := 
   (b N h) + 2* sqrtc(p N h)* RtoC (cos((m.+1%:R * PI)*/ N.+1%:R)).
 
-(*
+
+Hypothesis invmx_A1_J: forall (n:nat) (h:R),
+  invmx (A1_J n h) = (((h^+2)/2) *: 1%:M)%Re.
+
+Lemma invmx_A1_mul_A1_1:forall (n:nat) (h:R), 
+  A1_J n h *m invmx (A1_J n h) = 1%:M.
+Proof.
+intros. rewrite invmx_A1_J. apply matrixP. unfold eqrel.
+intros. rewrite scalemx1. 
+rewrite !mxE. admit.
+Admitted.
+
+Lemma A1_invertible: forall (n:nat) (h:R), 
+  A1_J n h \in unitmx.
+Proof.
+intros. rewrite unitmxE. rewrite unitrE. rewrite -det_inv.
+by rewrite -det_mulmx invmx_A1_mul_A1_1 det1.
+Qed.
+
 Lemma S_mat_simp:
   forall (n:nat) (h:R), 
   S_mat_J n h = 
   RtoC_mat (addmx 1%:M (oppmx (mulmx (invmx (A1_J n h)) (Ah n h)))).
 Proof.
 intros. rewrite /S_mat_J. apply matrixP. unfold eqrel.
-intros. rewrite !mxE.
-case: (x == y).
-+ apply /eqP. rewrite eq_complex //=. apply /andP. split.
-  - apply /eqP. admit.
-  - by [].
-+ apply /eqP. rewrite eq_complex //=. apply /andP. split.
-  - rewrite sub0r. apply /eqP.
-    assert ((\big[+%R/0]_(j < succn n) (invmx (A1_J n h) x j *
-                            A2_J n h j y)) =
-            \big[+%R/0]_(j < succn n) (invmx (A1_J n h) x j *
-                            Ah n h j y)).
-    { apply eq_big. by []. intros. 
-      
- *)
+intros. rewrite mxE.  rewrite [RHS]mxE. apply /eqP.
+rewrite eq_complex //=. apply /andP. split.
++ apply /eqP. rewrite mxE. rewrite [RHS]mxE. rewrite /A2_J.
+  rewrite mulmxDr. rewrite -Mopp_mult_r. 
+  assert ((invmx (A1_J n h) *m A1_J n h) = 1%:M).
+  { apply inverse_A, A1_invertible. } rewrite H.
+  rewrite mxE. rewrite opprD. rewrite addrC.
+  assert ( - @oppmx [ringType of R] n.+1 n.+1 1%:M x y = 1%:M x y) .  
+  { rewrite !mxE. rewrite -!mulNrn. by rewrite opprK. }
+  rewrite H0. 
+  assert (- (invmx (A1_J n h) *m Ah n h) x y = 
+          oppmx (invmx (A1_J n h) *m Ah n h) x y).
+  { by rewrite !mxE.  } by rewrite H1.
++ by [].
+Qed.
 
 Definition a_A (m:nat) (h:R) := (Ah m h) (@inord m 1) 0.
 
@@ -94,13 +113,107 @@ Definition p_A (m:nat) (h:R) := ((a_A m h) * (c_A m h))%Re.
 Definition Lambda_Ah (m N:nat) (h:R) :=
    (b_A N h) + 2* sqrt(p_A N h)* (cos((m.+1%:R * PI)*/ N.+1%:R)).
 
+Lemma Im_p_0: forall (n:nat) (h:R), Im (p n h) = 0.
+Proof.
+intros. rewrite /p /a /c Im_complex_prod.
+assert ( Im (S_mat_J n h 0 (inord 1)) = 0%Re).
+{ by rewrite S_mat_simp /RtoC_mat mxE /=. } rewrite H.
+assert (Im (S_mat_J n h (inord 1) 0) = 0%Re).
+{ by rewrite S_mat_simp /RtoC_mat mxE /=. }  rewrite H0.
+by rewrite mulr0 mul0r addr0.
+Qed.
+
+
+Lemma D_inv_A:forall (n:nat) (h:R),
+  (oppmx (mulmx (invmx (A1_J n h)) (Ah n h))) = 
+   oppmx (((h^+2)/2) *: (Ah n h)).
+Proof.
+intros. apply matrixP. unfold eqrel. intros. rewrite invmx_A1_J.
+by rewrite scalemx1 mul_scalar_mx.
+Qed.
+
+
+Lemma Re_p_ge_0: forall (n:nat) (h:R),
+  (0<n)%N -> (0<h)%Re -> (0 <= Re (p n h))%Re.
+Proof.
+intros. rewrite /p /a /c Re_complex_prod.
+assert ( Im (S_mat_J n h 0 (inord 1)) = 0%Re).
+{ by rewrite S_mat_simp /RtoC_mat mxE /=. } rewrite H1.
+assert (Im (S_mat_J n h (inord 1) 0) = 0%Re).
+{ by rewrite S_mat_simp /RtoC_mat mxE /=. }  rewrite H2.
+rewrite mulr0 subr0 -RmultE.
+rewrite !S_mat_simp !D_inv_A.
+rewrite  !/RtoC_mat !mxE //= eq_sym.
+assert ((0%N == @inord n 1 :> nat)%:R = 0%Re).
+{ assert (@inord n 1 = 1%N :> nat). { by rewrite inordK. }
+  by rewrite H3.
+} rewrite H3. rewrite !sub0r. rewrite eq_sym. 
+assert (0%N == @inord n 1 :> nat = false).
+{ assert (@inord n 1 = 1%N :> nat). { by rewrite inordK. }
+  by rewrite H4.
+} rewrite H4 subn0 eq_sym H4.
+rewrite -RoppE -!RmultE. 
+assert (((h ^+2) * 2^-1 * (1 / (h * (h * 1)) * 1))%Re = (1 / 2)%Re ).
+{ assert ((1 / (h * (h * 1)) * 1)%Re = (/ (h^2))%Re).
+  { rewrite !Rmult_1_r. 
+    assert ((h * h)%Re = (h^2)%Re). { nra. } rewrite H5. nra.
+  } rewrite H5. rewrite -div1r. rewrite -RdivE.
+  + assert (((h ^+2) * (1 / 2) * / h ^ 2)%Re = 
+              ((1 / 2) * ((h ^+2) *  / h ^ 2))%Re).
+    { nra. } rewrite H6. rewrite !RmultE. 
+    assert ((h ^+2 * / h ^ 2) = 1%Re).
+    { assert ((h ^2 * / h ^ 2)%Re = 1%Re).
+      { apply Rinv_r. 
+        assert ((0< (h ^ 2))%Re -> (h ^ 2)%Re <> 0%Re). { nra. }
+        apply H7. apply Rmult_lt_0_compat;nra. 
+      } rewrite -H7. rewrite [RHS]RmultE.
+      apply  Rmult_eq_compat_r. by rewrite RpowE.
+    } rewrite H7. by rewrite mulr1.
+  + apply /eqP. assert ( (0<2)%Re -> 2%Re <> 0%Re). { nra. }
+    apply H6. nra.
+} rewrite H5. nra.
+Qed.
+
+
+
+Lemma p_destruct:forall (n:nat) (h:R),
+  (0<n)%N -> (0<h)%Re -> sqrtc (p n h) = (sqrt (Re (p n h)) +i* 0)%C.
+Proof.
+intros. rewrite sqrtc_sqrtr.
++ apply /eqP. rewrite eq_complex //=.  rewrite RsqrtE. 
+  apply /andP. split; by [].
+  apply /RleP. by apply Re_p_ge_0.
++ rewrite lecE //=. apply /andP. split.
+  - apply /eqP. apply Im_p_0.
+  - apply /RleP. by apply Re_p_ge_0.
+Qed.
+
 Lemma lambda_simp: forall (m N:nat) (h:R),
+  (0<h)%Re -> (0< N)%N -> 
   Re (lambda_J m N h) = (1 + ((h^2)/2)  * (Lambda_Ah m N h))%Re.
+Proof.
+intros. rewrite /lambda_J. rewrite Re_add Re_complex_prod /RtoC //=.
+rewrite mulr0 subr0. rewrite Re_complex_prod //= addr0 mul0r subr0.
+rewrite p_destruct //=. rewrite /p.
+rewrite /b mxE //=. rewrite invmx_A1_J.
+rewrite scalemx1 mul_scalar_mx. rewrite !mxE //=.
+rewrite mulr1n.
+assert ((h ^+ 2 / 2 *
+           ((1 / (h * (h * 1)) * -2)%Re -
+            (1 / (h * (h * 1)) * -2)%Re)) = 0%Re).
+{ rewrite -RplusE -RoppE. 
+  assert ((1 / (h * (h * 1)) * -2 +
+              - (1 / (h * (h * 1)) * -2))%Re = 0%Re).
+  { nra. } rewrite H1. by rewrite mulr0.
+} rewrite H1. clear H1. rewrite oppr0 add0r. rewrite -!RmultE.
+rewrite -RplusE.
+assert ((1 + 1)%Re = 2%Re). { nra. } rewrite H1.
+admit.
 Admitted.
 
 Lemma Jacobi_converges_aux: 
   forall (m n:nat) (h:R), (0< h)%Re ->(0<n)%N -> 
-  (m < succn n)%N ->
+  (m < n)%N ->
   ((1 + ((h^2)/2)  * (Lambda_Ah m n h)) < 1)%Re.
 Proof.
 intros.
@@ -182,7 +295,7 @@ apply Rplus_le_lt_compat.
            * by apply Rlt_le, Rinv_0_lt_compat, nat_ring_lt.
            * rewrite Rmult_comm. apply Rmult_le_compat_l.
             ++ apply Rlt_le, PI_RGT_0.
-            ++ by apply nat_ring_mn_le. 
+            ++ by apply nat_ring_mn_le, ltnW. 
          - apply Rmult_lt_0_compat.
            * apply Rmult_lt_0_compat.
              ++ by apply nat_ring_lt.
@@ -190,14 +303,181 @@ apply Rplus_le_lt_compat.
            * by apply Rinv_0_lt_compat, nat_ring_lt.
 Qed.
 
+Lemma nat_ring_mn_lt: forall (m n:nat),
+  (m< n)%N -> (m%:R < n%:R)%Re.
+Proof.
+intros. induction n.
++ by []. 
++ rewrite leq_eqVlt in H.
+  assert ( (m.+1 == n.+1) \/ (m.+1 < n.+1)%N).
+  { by apply /orP. } destruct H0.
+  - assert ( m.+1 = n.+1). { by apply /eqP. }
+    rewrite -H1.
+    assert ( m%:R = (m%:R + 0)%Re). { nra. } rewrite H2.
+    rewrite -addn1 natrD -RplusE. apply Rplus_le_lt_compat.
+    * nra.
+    * apply Rlt_0_1.
+  - assert ( m%:R = (m%:R + 0)%Re). { nra. } rewrite H1.
+    rewrite -addn1 natrD -RplusE. apply Rplus_lt_compat.
+    * by apply IHn. 
+    * apply Rlt_0_1.
+Qed.
+
+Lemma lambda_J_gt_minus_1: 
+  forall (n:nat) (i: 'I_n.+1) (h:R),
+  (0 < h)%Re -> (0 < n)%N -> (i< n)%N -> 
+  ((- 1)%Re < Re (lambda_J i n h))%Re.
+Proof.
+intros. rewrite lambda_simp /Lambda_Ah.
++ assert ( b_A n h = ((-2) / (h^2))%Re).
+  { rewrite /b_A /Ah mxE /A mxE//=. nra. }
+  rewrite H2. 
+  assert ( sqrt (p_A n h) = ( 1 / (h^2))%Re).
+  { rewrite /p_A.
+    assert ( a_A n h = (1 / h ^ 2)%Re).
+    { rewrite /a_A /Ah mxE /A mxE //=.
+      assert ((@inord n 1) = 1%N :> nat).
+      { by rewrite inordK. } rewrite !H3 //=. 
+        rewrite !Rmult_1_r. nra.
+    } rewrite H3.
+    assert ( c_A n h = (1 / h ^ 2)%Re).
+    { rewrite /c_A /Ah mxE /A mxE //=.
+      assert ((@inord n 1) = 1%N :> nat).
+      { by rewrite inordK. } rewrite !H4 //=. 
+      rewrite !Rmult_1_r. nra.
+    } rewrite H4. rewrite sqrt_square.
+    + nra.
+    + apply Rlt_le. 
+      assert ((1 / h ^ 2)%Re = (/ (h^2))%Re). { nra. } rewrite H5.
+      apply Rinv_0_lt_compat, Rmult_lt_0_compat; nra.
+  } rewrite H3.
+  assert ((2 * (1 / h ^ 2)%Re) = (2 / (h^2))%Re). 
+  { apply Rmult_eq_compat_l. nra.  } rewrite H4.
+  assert ((-2 / h ^ 2)%Re = ((2 / h ^ 2)%Re * (-1))%Re).
+  { nra. } rewrite H5.
+  rewrite -RplusE -RmultE.
+  assert ((2 / h ^ 2 * -1 +
+             2 / h ^ 2 * cos ((succn i)%:R * PI * / (succn n)%:R))%Re = 
+             ((2 / (h^2)) * (-1 + (cos ((succn i)%:R * PI * / (succn n)%:R))))%Re).
+  { nra. } rewrite H6.
+  assert ( (h ^ 2 / 2 *
+               (2 / h ^ 2 *
+                (-1 + cos ((succn i)%:R * PI * / (succn n)%:R))))%Re = 
+            (((h ^ 2 / 2) * (2 / h ^ 2))%Re *
+              (-1 + cos ((succn i)%:R * PI * / (succn n)%:R)))%Re).
+  { nra. } rewrite H7.
+  assert ( ((h ^ 2 / 2) * (2 / h ^ 2))%Re = 1%Re).
+  { assert ( (2 / h ^ 2)%Re = (/ (h ^ 2 / 2 ))%Re).
+    { rewrite Rinv_mult_distr.
+      + rewrite Rinv_involutive; nra.
+      + assert ( (0 < (h ^ 2)%Re)%Re -> (h ^ 2)%Re <> 0%Re).
+        { nra. } apply H8. apply Rmult_lt_0_compat; nra.
+      + nra.
+    } rewrite H8. rewrite Rinv_r. by [].
+    assert ( (0 < (h ^ 2 / 2))%Re -> (h ^ 2 / 2)%Re <> 0%Re).
+    { nra. } apply H9. apply Rmult_lt_0_compat.
+    + apply Rmult_lt_0_compat; nra.
+    + apply Rinv_0_lt_compat; nra.
+  } rewrite H8. rewrite Rmult_1_l.
+  assert ((1 + (-1 + cos ((succn i)%:R * PI * / (succn n)%:R)))%Re = 
+            cos ((succn i)%:R * PI * / (succn n)%:R)).
+  { nra. } rewrite H9.
+  assert (cos PI = (-1)%Re). { by apply cos_PI. } rewrite -H10.
+  apply cos_decreasing_1.
+  + apply Rlt_le. apply Rmult_lt_0_compat.
+    - apply Rmult_lt_0_compat.
+      * by apply nat_ring_lt.
+      * apply PI_RGT_0.
+    - apply Rinv_0_lt_compat. by apply nat_ring_lt.
+  + assert (PI = ((PI * ((succn n)%:R) * / (succn n)%:R))%Re).
+    { rewrite Rmult_assoc. rewrite Rinv_r.
+      + nra.
+      + assert ((0< (succn n)%:R )%Re -> (succn n)%:R <> 0%Re).
+        { nra. } apply H11. by apply nat_ring_lt.
+    } 
+    assert ((((succn i)%:R * PI) * / (succn n)%:R <=
+             ((PI * ((succn n)%:R) * / (succn n)%:R)))%Re ->
+                (((succn i)%:R * PI) * / (succn n)%:R <= PI)%Re).
+    { nra. } apply H12.
+    apply Rmult_le_compat_r.
+    - by apply Rlt_le, Rinv_0_lt_compat, nat_ring_lt.
+    - rewrite Rmult_comm. apply Rmult_le_compat_l.
+      * apply Rlt_le, PI_RGT_0.
+      * by apply nat_ring_mn_le. 
+  + apply Rlt_le, PI_RGT_0.
+  + nra.
+  + assert (PI = ((PI * ((succn n)%:R) * / (succn n)%:R))%Re).
+    { rewrite Rmult_assoc. rewrite Rinv_r.
+      + nra.
+      + assert ((0< (succn n)%:R )%Re -> (succn n)%:R <> 0%Re).
+        { nra. } apply H11. by apply nat_ring_lt.
+    } 
+    assert ((((succn i)%:R * PI) * / (succn n)%:R <
+             ((PI * ((succn n)%:R) * / (succn n)%:R)))%Re ->
+                (((succn i)%:R * PI) * / (succn n)%:R < PI)%Re).
+    { nra. } apply H12. 
+    apply Rmult_lt_compat_r.
+    - by apply Rinv_0_lt_compat, nat_ring_lt.
+    - rewrite Rmult_comm. apply Rmult_lt_compat_l.
+      * apply PI_RGT_0.
+      * by apply nat_ring_mn_lt.
++ by [].
++ by []. 
+Qed.
+
+
+Lemma Im_b_0: forall (n:nat) (h:R),
+  Im (b n h) = 0%Re.
+Proof.
+intros. rewrite /b //= mxE //=.
+Qed.
+
+Lemma Rmult_le_compat_0: forall (x y :R), 
+  (0 <= x)%Re -> (0<=y)%Re  -> (0 <= x*y)%Re.
+Proof.
+intros. assert (0%Re = (0 * 0)%Re). { nra. } rewrite H1.
+apply Rmult_le_compat; nra.
+Qed.
+
+
+Lemma Im_p_sqrt_0:  forall (n:nat) (h:R),
+  (0<n)%N -> (0<h)%Re -> Im (sqrtc (p n h)) = 0%Re.
+Proof.
+intros. by rewrite p_destruct //=. 
+Qed.
+
+
+Lemma Im_lambda_J_eq_0:
+  forall (n:nat) (i: 'I_n.+1) (h:R),
+  (0 < h)%Re -> (0 < n)%N ->
+  (Im (lambda_J i n h)) = 0%Re.
+Proof.
+intros. rewrite /lambda_J Im_add !Im_complex_prod /RtoC //=.
+rewrite !add0r mul0r addr0 mulr0 add0r //=.
+rewrite Im_b_0 Im_p_sqrt_0. rewrite add0r. by rewrite -mulrA mul0r mulr0.
+by []. apply H.
+Qed. 
+
 
 Theorem Jacobi_converges:
   forall (n:nat) (i: 'I_n.+1) (h:R),
+  (0 < h)%Re -> (0 < n)%N -> (i<n)%N -> 
   (C_mod (lambda_J i n h) < 1)%Re. 
 Proof.
-intros. rewrite /lambda_J.
-Admitted. 
-
-
-
+intros. rewrite /C_mod.
+assert ((Im (lambda_J i n h)) = 0%Re). { by apply Im_lambda_J_eq_0. }
+rewrite H2 !expr2 mulr0 -RmultE.
+assert ((Re (lambda_J i n h) * Re (lambda_J i n h) + 0)%Re = 
+        (Re (lambda_J i n h) * Re (lambda_J i n h) )%Re).
+{ nra. } rewrite H3.
+assert (Rsqr (Re (lambda_J i n h)) =
+          (Re (lambda_J i n h) * Re (lambda_J i n h))%Re).
+{ by rewrite /Rsqr. } rewrite -H4.
+rewrite sqrt_Rsqr_abs. apply Rabs_def1.
++ rewrite lambda_simp. 
+  - by apply Jacobi_converges_aux.
+  - by [].
+  - by [].
++ by apply lambda_J_gt_minus_1. 
+Qed.
 

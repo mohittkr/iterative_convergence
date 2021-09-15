@@ -47,45 +47,98 @@ Definition diag_A (n:nat) (A: 'M[R]_n):=diag_mx (d A).
 Definition A1_J (n:nat) (h:R):= diag_A (Ah n h).
 
 (** stating the explicit inverse of A1 since it's diagonal **)
-Hypothesis invmx_A1_J: forall (n:nat) (h:R),
-  invmx (A1_J n h) = ((-(h^+2)/2) *: 1%:M)%Re.
+Lemma invmx_A1_J: forall (n:nat) (h:R),
+  (0<h)%Re -> invmx (A1_J n h) = ((-(h^+2)/2) *: 1%:M)%Re.
+Proof.
+intros. 
+assert ((-(h^+2)/2) = (- (2 / (h^+2)))^-1).
+{ rewrite -[RHS]div1r.
+  rewrite -RoppE -!RpowE -!RdivE.
+  + assert ((1 / (- (2 / h ^ 2)%Re)%Ri)%Re = 
+              (/ (- (2 / h ^ 2)%Re)%Ri)%Re). { nra. } 
+    rewrite H0. rewrite -Ropp_inv_permute.
+    - assert ((- h ^ 2 / 2)%Re = (- ( h ^ 2 / 2))%Re).
+      { nra. } rewrite H1. apply Ropp_eq_compat.
+      rewrite Rinv_mult_distr.
+      rewrite Rinv_involutive.
+      * nra.
+      * assert ( (0< (h ^ 2))%Re -> (h ^ 2)%Re <> 0%Re).
+        { nra. } apply H2. apply Rmult_lt_0_compat; nra.
+      *  nra.
+    - assert ((0< / h ^ 2)%Re -> / h ^ 2 <> 0%Re). { nra. }
+      apply H2. apply Rinv_0_lt_compat.  
+      apply Rmult_lt_0_compat; nra.
+  + assert ((0 < (2 / h ^ 2))%Re -> (2 / h ^ 2)%Re <> 0%Re).
+    { nra. } apply H1. apply Rmult_lt_0_compat.
+    - nra.
+    - apply Rinv_0_lt_compat; apply Rmult_lt_0_compat; nra.
+  + apply /eqP.
+    assert ( (0< (h ^ 2))%Re -> (h ^ 2)%Re <> 0%Re).
+    { nra. } apply H0. apply Rmult_lt_0_compat; nra.
+  + apply /eqP. apply Ropp_neq_0_compat.
+    assert ((0 < (2 / h ^ 2) )%Re -> (2 / h ^ 2)%Re <> 0%Re).
+    { nra. } apply H0. apply Rmult_lt_0_compat.
+    - nra.
+    - apply Rinv_0_lt_compat; apply Rmult_lt_0_compat; nra.
+  + apply /eqP.
+    assert ( (0< (h ^ 2))%Re -> (h ^ 2)%Re <> 0%Re).
+    { nra. } apply H0. apply Rmult_lt_0_compat; nra.
+  + apply /eqP. 
+    assert ((0<2)%Re ->2%Re <> 0%Re). {  nra. } apply H0. nra. 
+} rewrite H0.
+rewrite scalemx1 -invmx_scalar .
+assert ((A1_J n h) = (- (2 / h ^+ 2))%:M).
+{ apply matrixP. unfold eqrel. intros. rewrite !mxE.
+  assert (x == x :> nat). { by []. } rewrite H1.
+  assert ((1 / h ^ 2 * -2)%Re = (- (2 / h ^+ 2))%Re).
+  { assert ((1 / h ^ 2 * -2)%Re = (- (2 / h^2))%Re).
+    { nra. } rewrite H2. by rewrite RpowE.
+  } rewrite H2. rewrite -RoppE -RdivE.
+  + by [].
+  + apply /eqP.
+    assert ( (0< (h ^ 2))%Re -> (h ^ 2)%Re <> 0%Re).
+    { nra. } rewrite -RpowE. apply H3. apply Rmult_lt_0_compat; nra.
+} by rewrite H1.
+Qed.
 
 
 Lemma invmx_A1_mul_A1_1:forall (n:nat) (h:R), 
   (0<h)%Re -> A1_J n h *m invmx (A1_J n h) = 1%:M.
 Proof.
-intros. apply mulmx1C. rewrite invmx_A1_J scalemx1 mul_scalar_mx.
-apply matrixP. unfold eqrel. intros.
-rewrite !mxE //=.
-assert (x == x :> nat). { by []. } rewrite H0.
-rewrite !Rmult_1_r. rewrite mulrnAr.
-assert (((- h ^+ 2)%Ri * 2^-1 * (1 / (h * h) * -2))%Re = 1%Re).
-{ rewrite -RoppE.
-  assert ((- h ^+ 2 * 2^-1 * (1 / (h * h) * -2))%Re  = 
-          ( h ^+ 2 * 2^-1 * (1 / (h * h) * 2))%Re ). 
-  { nra. } rewrite H1. clear H1.
-  assert (((h ^+2) * 2^-1 * (1 / (h * h)))%Re = (1 / 2)%Re ).
-  { assert ((1 / (h * h))%Re = (/ (h^2))%Re).
-    { assert ((h * h)%Re = (h^2)%Re). { nra. } rewrite H1. nra.
-    } rewrite H1. rewrite -div1r. rewrite -RdivE.
-    + assert (((h ^+2) * (1 / 2) * / h ^ 2)%Re = 
-                ((1 / 2) * ((h ^+2) *  / h ^ 2))%Re).
-      { nra. } rewrite H2. rewrite !RmultE. 
-      assert ((h ^+2 * / h ^ 2) = 1%Re).
-      { assert ((h ^2 * / h ^ 2)%Re = 1%Re).
-        { apply Rinv_r. 
-          assert ((0< (h ^ 2))%Re -> (h ^ 2)%Re <> 0%Re). { nra. }
-          apply H3. apply Rmult_lt_0_compat;nra. 
-        } rewrite -H3. rewrite [RHS]RmultE.
-        apply  Rmult_eq_compat_r. by rewrite RpowE.
-      } rewrite H3. by rewrite mulr1.
-    + apply /eqP. assert ( (0<2)%Re -> 2%Re <> 0%Re). { nra. }
-      apply H2. nra.
-  }
-  assert ((h ^+ 2 * 2^-1 * (1 / (h * h) * 2))%Re = 
-            ((h ^+ 2 * 2^-1 * (1 / (h * h))) * 2)%Re).
-  { nra. } rewrite H2. rewrite H1. nra.
-} rewrite -!RmultE. rewrite H1. by [].
+intros. apply mulmx1C. rewrite invmx_A1_J.
++ rewrite scalemx1 mul_scalar_mx.
+  apply matrixP. unfold eqrel. intros.
+  rewrite !mxE //=.
+  assert (x == x :> nat). { by []. } rewrite H0.
+  rewrite !Rmult_1_r. rewrite mulrnAr.
+  assert (((- h ^+ 2)%Ri * 2^-1 * (1 / (h * h) * -2))%Re = 1%Re).
+  { rewrite -RoppE.
+    assert ((- h ^+ 2 * 2^-1 * (1 / (h * h) * -2))%Re  = 
+            ( h ^+ 2 * 2^-1 * (1 / (h * h) * 2))%Re ). 
+    { nra. } rewrite H1. clear H1.
+    assert (((h ^+2) * 2^-1 * (1 / (h * h)))%Re = (1 / 2)%Re ).
+    { assert ((1 / (h * h))%Re = (/ (h^2))%Re).
+      { assert ((h * h)%Re = (h^2)%Re). { nra. } rewrite H1. nra.
+      } rewrite H1. rewrite -div1r. rewrite -RdivE.
+      + assert (((h ^+2) * (1 / 2) * / h ^ 2)%Re = 
+                  ((1 / 2) * ((h ^+2) *  / h ^ 2))%Re).
+        { nra. } rewrite H2. rewrite !RmultE. 
+        assert ((h ^+2 * / h ^ 2) = 1%Re).
+        { assert ((h ^2 * / h ^ 2)%Re = 1%Re).
+          { apply Rinv_r. 
+            assert ((0< (h ^ 2))%Re -> (h ^ 2)%Re <> 0%Re). { nra. }
+            apply H3. apply Rmult_lt_0_compat;nra. 
+          } rewrite -H3. rewrite [RHS]RmultE.
+          apply  Rmult_eq_compat_r. by rewrite RpowE.
+        } rewrite H3. by rewrite mulr1.
+      + apply /eqP. assert ( (0<2)%Re -> 2%Re <> 0%Re). { nra. }
+        apply H2. nra.
+    }
+    assert ((h ^+ 2 * 2^-1 * (1 / (h * h) * 2))%Re = 
+              ((h ^+ 2 * 2^-1 * (1 / (h * h))) * 2)%Re).
+    { nra. } rewrite H2. rewrite H1. nra.
+  } rewrite -!RmultE. rewrite H1. by [].
++ by [].
 Qed.
 
 
@@ -170,7 +223,8 @@ Lemma D_inv_A:forall (n:nat) (h:R),
     oppmx ((-(h^+2)/2) *: (Ah n h)).
 Proof.
 intros. apply matrixP. unfold eqrel. intros. rewrite invmx_A1_J.
-by rewrite scalemx1 mul_scalar_mx.
++ by rewrite scalemx1 mul_scalar_mx.
++ by [].
 Qed.
 
 
@@ -386,7 +440,7 @@ rewrite sqrt_p_evals.
 + assert ((1 / 2)%Re = (/2)%Re). { nra. } rewrite H10.
   rewrite -RmultE. rewrite Rinv_r; nra.
 + by [].
-+ by [].
++ by []. apply H.
 Qed.
 
 Lemma Jacobi_converges_aux: 

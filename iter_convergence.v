@@ -265,6 +265,39 @@ Proof.
 intros. by rewrite -H addmxC -addmxA Mplus_opp_r Mplus_0_r.
 Qed.
 
+Lemma big_ge_0_ex: 
+  forall (n : nat)  (x: 'I_n.+1 -> R) (i: 'I_n.+1) , 
+  (0 <= \big[+%R/0]_(i0 < n.+1 | i0 != i) (x i0)²)%Re.
+Proof.
+intros. apply /RleP.
+apply big_ge_0_ex_abstract.  
+intros. apply /RleP. apply Rle_0_sqr.
+Qed.
+
+
+Lemma big_gt_0_ex: 
+  forall (n : nat) (x: 'I_n.+1 -> R),
+    (exists i : 'I_n.+1, x i <> 0%Re )-> 
+    (0 < (\big[+%R/0]_l (x l)²))%Re.
+Proof.
+intros. destruct H as [i H]. rewrite (bigD1 i) //=. 
+rewrite -RplusE.
+apply Rplus_lt_le_0_compat.
++ by apply Rsqr_pos_lt.
++ by apply big_ge_0_ex.
+Qed.
+
+Lemma vec_norm_not_zero: forall (n : nat) (x: 'cV[R]_n.+1),
+  (exists i:'I_n.+1, x i 0  <> 0%Re) -> 
+  vec_norm x <> 0%Re.
+Proof.
+intros. 
+assert ( (0< vec_norm x)%Re -> vec_norm x <> 0%Re).
+{ nra. } apply H0. rewrite /vec_norm. apply sqrt_lt_R0.
+by apply big_gt_0_ex.
+Qed.
+
+
 (** State the iterative convergence theorem **)
 Theorem iter_convergence: 
   forall (n:nat) (A: 'M[R]_n.+1) (b: 'cV[R]_n.+1) (X: 'cV[R]_n.+1)
@@ -273,7 +306,7 @@ Theorem iter_convergence:
    A1 \in unitmx ->
    A = addmx A1 A2 ->
    (forall m:nat, addmx (mulmx A1 (Xm n m.+1)) (mulmx A2 (Xm n m)) =b) ->
-   (forall i:'I_n.+1, (Xm n 0%nat) i 0 <> X i 0) ->
+   (exists i:'I_n.+1, (Xm n 0%nat) i 0 <> X i 0) ->
    let S_mat:= RtoC_mat (oppmx (mulmx ((invmx A1)) A2)) in 
    ((forall i:'I_n.+1, vec_not_zero (eigen_vector i S_mat)) -> 
     is_lim_seq (fun m:nat => vec_norm (addmx (Xm n m.+1) (oppmx X))) 0%Re <->
@@ -284,15 +317,22 @@ assert ( is_lim_seq (fun m:nat => vec_norm (addmx (Xm n 0) (oppmx X)))
               (vec_norm (addmx (Xm n 0) (oppmx X)))).
 { apply is_lim_seq_const. }
 
+(** Check**)
 assert (vec_norm (addmx (Xm n 0) (oppmx X)) <> 0).
-{ assert ( (0< vec_norm  (addmx (Xm n 0) (oppmx X)))%Re -> 
+{ apply vec_norm_not_zero. destruct H3 as [i H3].
+  exists i.
+(*
+  unfold vec_norm.
+  assert ( (0< vec_norm  (addmx (Xm n 0) (oppmx X)))%Re -> 
             vec_norm  (addmx (Xm n 0) (oppmx X)) <> 0%Re).
  { nra.   }
   apply H6. unfold vec_norm. apply sqrt_lt_R0. apply /RltbP.
   apply sum_gt_0. 
   intros. apply /RltbP.
   apply Rsqr_pos_lt.
-  rewrite !mxE. rewrite -RminusE. apply Rminus_eq_contra. apply H3.
+*)
+  rewrite !mxE.
+  rewrite -RminusE. apply Rminus_eq_contra. apply H3.
 }
 
 assert (forall m : nat,

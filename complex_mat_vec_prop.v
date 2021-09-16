@@ -470,7 +470,15 @@ Qed.
 Lemma big_ge_0_ex_abstract I r (P: pred I) (E : I -> R):
   (forall i, P i -> (0 <= E i)) ->
   (0 <= \big[+%R/0]_(i <-r | P i) E i).
-Admitted.
+Proof.
+move => leE. apply big_ind.
++ apply /RleP. apply Rle_refl.
++ intros. apply /RleP.
+  rewrite -RplusE. apply Rplus_le_le_0_compat.  
+  - by apply /RleP.
+  - by apply /RleP.
++ apply leE.
+Qed.
  
 Lemma Rmult_le_compat_0: forall (x y :R), 
   (0 <= x)%Re -> (0<=y)%Re  -> (0 <= x*y)%Re.

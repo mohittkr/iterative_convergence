@@ -102,7 +102,46 @@ have diag_simpl: (\big[+%R/0]_j
         = 
       \big[+%R/0]_j ((conjc (x j 0))*(RtoC (A j j) * (x j 0))).
 { apply eq_big. by []. intros. by rewrite !mxE /RtoC. }
-rewrite diag_simpl -eq_big_Re_C sum_gt_0 //=. intros. clear diag_simpl.
+rewrite diag_simpl -eq_big_Re_C. 
+(** This is where the exists creates a problem **)
+assert (\big[+%R/0]_(j < succn n) Re
+                            (((x j 0)^*)%C *
+                             (RtoC (A j j) * x j 0)) = 
+        \big[+%R/0]_(j < succn n) Re
+                            ((((x j 0)^*) * (x j 0))%C *
+                             (RtoC (A j j)))).
+{ apply eq_big. by []. intros. rewrite mulrC.
+  assert ((RtoC (A i i) * x i 0 * ((x i 0)^*)%C) = 
+            (RtoC (A i i) * (x i 0 * ((x i 0)^*)%C))).
+  { by rewrite mulrA. } rewrite H2. rewrite mulrC.
+  assert ((((x i 0)^*) * (x i 0))%C = ((x i 0) * ((x i 0)^*))%C).
+  { by rewrite mulrC. } by rewrite H3.
+} rewrite H1. 
+assert ( \big[+%R/0]_(j < succn n) Re
+                            ((((x j 0)^*) * (x j 0))%C *
+                             (RtoC (A j j))) = 
+        \big[+%R/0]_(j < succn n) 
+                            (Re(((x j 0)^*) * (x j 0))%C *
+                              Re (RtoC (A j j)))).
+{ apply eq_big. by []. intros. rewrite Re_complex_prod //=.
+  by rewrite mulr0 subr0.
+} rewrite H2. unfold vec_not_zero in H0.
+destruct H0 as [i H0].
+rewrite (bigD1 i) //=. apply /RltP. 
+rewrite -RplusE.
+apply Rplus_lt_le_0_compat.
++ rewrite -RmultE. apply Rmult_lt_0_compat.
+  - rewrite mulrC conj_mag /=. apply Rsqr_pos_lt.
+    by apply C_mod_not_zero.
+  - by apply /RltP.
++ apply /RleP. apply big_ge_0_ex_abstract.
+  intros. apply /RleP. rewrite -RmultE.
+  apply Rmult_le_compat_0.
+  - rewrite mulrC conj_mag /=. apply Rle_0_sqr.
+  - apply Rlt_le. by apply /RltP.
+  
+ 
+(*sum_gt_0 //=. intros. clear diag_simpl.
 rewrite mulrC -mulrA Re_complex_prod //= mul0r subr0.
 assert (Re (x l 0 * conjc (x l 0)) = Rsqr (C_mod (x l 0))).
 { rewrite /conjc /C_mod. 
@@ -120,6 +159,7 @@ assert (Re (x l 0 * conjc (x l 0)) = Rsqr (C_mod (x l 0))).
             (0 < Re y ^ 2 + Im y ^ 2)%Re). { nra. }
   apply H3. rewrite !RpowE. apply sqr_complex_not_zero.
   rewrite Heqy. apply H0.
+*)
 Qed.
 
 

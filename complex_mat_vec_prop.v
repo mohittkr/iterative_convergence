@@ -369,7 +369,7 @@ Definition vec_norm_C (n:nat) (x: 'cV[complex R]_n.+1):=
 
 
 Definition vec_not_zero (n:nat) (x: 'cV[complex R]_n.+1):=
-  forall i:'I_n.+1,  x i 0 <> 0.
+  exists i:'I_n.+1,  x i 0 <> 0.
 
 Definition RtoC_vec (n:nat) (v: 'cV[R]_n.+1) : 'cV[complex R]_n.+1:=
   \col_i ((v i 0) +i* 0)%C.
@@ -467,7 +467,19 @@ intros. induction  n.
   intros. apply H. apply /RltbP. apply H. 
 Qed. 
 
+Lemma big_ge_0_ex_abstract I r (P: pred I) (E : I -> R):
+  (forall i, P i -> (0 <= E i)) ->
+  (0 <= \big[+%R/0]_(i <-r | P i) E i).
+Admitted.
+ 
+Lemma Rmult_le_compat_0: forall (x y :R), 
+  (0 <= x)%Re -> (0<=y)%Re  -> (0 <= x*y)%Re.
+Proof.
+intros. assert (0%Re = (0 * 0)%Re). { nra. } rewrite H1.
+apply Rmult_le_compat; nra.
+Qed.
 
+ 
 Lemma non_zero_vec_norm: forall (n:nat) (v: 'cV[complex R]_n.+1),
   vec_not_zero v -> (vec_norm_C v <> 0)%Re.
 Proof.
@@ -475,8 +487,22 @@ intros.
 unfold vec_not_zero in H. 
 assert ((0< vec_norm_C v)%Re -> (vec_norm_C v <> 0)%Re).
 { nra. } apply H0. unfold vec_norm_C. 
-apply sqrt_lt_R0. apply /RltbP. apply sum_gt_0.  
-intros. apply /RltbP. apply Rlt_0_sqr. by apply C_mod_not_zero.
+apply sqrt_lt_R0. destruct H as [i H].
+rewrite (bigD1 i) //=.  
+rewrite -RplusE.
+apply Rplus_lt_le_0_compat.
++ assert (0%Re = Rsqr 0). { by rewrite Rsqr_0. }
+  rewrite H1. apply Rsqr_incrst_1.
+  - apply /RltP. by apply C_mod_gt_0.
+  - nra.
+  - apply C_mod_ge_0.
++ apply /RleP. apply big_ge_0_ex_abstract.
+  intros. apply /RleP. apply Rle_0_sqr.
+
+(*
+ apply /RltbP. apply sum_gt_0.  
+intros. apply /RltbP. apply Rlt_0_sqr. admit.
+by apply C_mod_not_zero. *)
 Qed.
 
 Definition scal_vec_C (n:nat) (l:complex R) (v: 'cV[complex R]_n.+1):=

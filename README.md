@@ -26,5 +26,5 @@ cd iterative_convergence
 make
 make install
 ```
-
+All the files are installed in the `user-contrib/iterative_convergence` folder 
 

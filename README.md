@@ -17,6 +17,14 @@ All the developments have been done in Coq 8.12.0. To successfully compile the c
 -  `mathcomp real-closed 1.1.2 or later`
 - To install the matrix canonical forms, clone: `https://github.com/coq-community/matrix_canonical_forms.git`
 
-To compile the provided files just run `make`. 
+# Building and installing instructions
+
+To build and install do:
+```
+git clone https://github.com/mohittkr/iterative_convergence.git
+cd iterative_convergence
+make
+make install
+```
 
 

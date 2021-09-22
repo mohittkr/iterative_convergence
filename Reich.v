@@ -1,3 +1,5 @@
+(** Proof the Reich theorem for the Gauss-Seidel iteration **)
+
 Require Import Reals Psatz R_sqrt R_sqr.
 From mathcomp Require Import all_algebra all_ssreflect ssrnum bigop ssrnat.
 From mathcomp.analysis Require Import boolp Rstruct classical_sets posnum
@@ -29,10 +31,11 @@ Require Import iter_necessity iter_convergence.
 
 Import ComplexField. 
 
+(** Definition of a symmetric matrix **)
 Definition symmetric (n:nat) (A: 'M[complex R]_n.+1):= 
   forall i j:'I_n.+1, A i j = A j i.
 
-
+(** Definition of a positive definite matrix **)
 Definition is_positive_definite (n:nat) (A: 'M[R]_n.+1):=
   (fun (x: 'cV[complex R]_n.+1)=> vec_not_zero x ->
     Re (mulmx (conjugate_transpose x) (mulmx (RtoC_mat A) x) 0 0) >0).
@@ -49,6 +52,7 @@ Definition A2 (n:nat) (A: 'M[R]_n):= \matrix_(i<n, j<n)
 
 Definition d (n:nat) (A: 'M[R]_n):= \row_(i<n) A i i.
 
+(** Diagonal matrix from A**)
 Definition diag_A (n:nat) (A: 'M[R]_n):=diag_mx (d A).
 
 
@@ -87,6 +91,8 @@ split.
 Qed.
 
 
+(** Proof that if the diagonal entries of A are positive then
+  the diagonal matrix from A is positive definite **)
 Lemma is_positive_definite_diag: 
   forall (n:nat) (x: 'cV[complex R]_n.+1) (A: 'M[R]_n.+1),
    (forall i:'I_n.+1,  A i i > 0) -> 
@@ -103,7 +109,6 @@ have diag_simpl: (\big[+%R/0]_j
       \big[+%R/0]_j ((conjc (x j 0))*(RtoC (A j j) * (x j 0))).
 { apply eq_big. by []. intros. by rewrite !mxE /RtoC. }
 rewrite diag_simpl -eq_big_Re_C. 
-(** This is where the exists creates a problem **)
 assert (\big[+%R/0]_(j < succn n) Re
                             (((x j 0)^*)%C *
                              (RtoC (A j j) * x j 0)) = 
@@ -139,30 +144,10 @@ apply Rplus_lt_le_0_compat.
   apply Rmult_le_compat_0.
   - rewrite mulrC conj_mag /=. apply Rle_0_sqr.
   - apply Rlt_le. by apply /RltP.
-  
- 
-(*sum_gt_0 //=. intros. clear diag_simpl.
-rewrite mulrC -mulrA Re_complex_prod //= mul0r subr0.
-assert (Re (x l 0 * conjc (x l 0)) = Rsqr (C_mod (x l 0))).
-{ rewrite /conjc /C_mod. 
-  assert ( x l 0 = (Re (x l 0) +i* Im (x l 0))%C). { apply C_destruct. }
-  rewrite H1 //=. rewrite Rsqr_sqrt. 
-  + rewrite mulrN opprK -!RpowE -!RmultE -RplusE. nra.
-  + rewrite -!RpowE. nra.
-} rewrite H1. apply /RltbP. apply Rmult_lt_0_compat.
-+ by apply /RltbP.
-+ apply Rsqr_pos_lt. unfold vec_not_zero in H0.
-  assert ( Rlt 0%Re (C_mod (x l 0)) -> C_mod (x l 0) <> 0%Re).
-  { nra. } apply H2. rewrite /C_mod -!RpowE. apply sqrt_lt_R0.
-  remember (x l 0) as y.
-  assert ( (Re y ^ 2 + Im y ^ 2)%Re <> 0%Re ->
-            (0 < Re y ^ 2 + Im y ^ 2)%Re). { nra. }
-  apply H3. rewrite !RpowE. apply sqr_complex_not_zero.
-  rewrite Heqy. apply H0.
-*)
 Qed.
 
-
+(** If the diagonal entries are not zero, then the 
+  inverse of A1 exists **)
 Definition A1_inverse_exists (n:nat) (A: 'M[complex R]_n.+1):=
   forall i:'I_n.+1, A i i <> 0.
 
@@ -176,6 +161,7 @@ Proof.
 intros. rewrite H. reflexivity.
 Qed.
 
+(** Define the conjugate transpose of A1 **)
 Lemma conj_transpose_A1: forall (n:nat) (A: 'M[R]_n),
     conjugate_transpose (RtoC_mat (A1 A)) = transpose_C (RtoC_mat (A1 A)).
 Proof.
@@ -186,7 +172,7 @@ split.
 + apply /eqP. by rewrite oppr0.
 Qed.
 
-
+(** Define the transpose of  a real matrix **)
 Definition transpose_R (m n:nat) (A: 'M[R]_(m,n)):= 
   \matrix_(i<n,j<m) A j i.
 
@@ -229,7 +215,7 @@ Proof.
 intros. apply matrixP. unfold eqrel. intros. by rewrite !mxE.
 Qed.
 
-
+(** A1 ^T = D + A2 **)
 Lemma A1_tr_split_C: forall (n:nat) (A: 'M[R]_n.+1),
   (forall (i j:'I_n.+1), A i j =  A j i)->
   transpose_C (RtoC_mat (A1 A)) = 
@@ -270,6 +256,7 @@ intros. apply matrixP. unfold eqrel. intros. rewrite !mxE. by rewrite addr0.
 Qed.
 
 
+(** Proof of the Reich theorem for the Gauss_seidel iteration **)
 Theorem Reich: forall (n:nat) (A: 'M[R]_n.+1),
   (forall i:'I_n.+1,  A i i > 0) ->
   (forall i j:'I_n.+1,   A i j = A j i) ->  

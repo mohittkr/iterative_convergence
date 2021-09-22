@@ -32,6 +32,7 @@ Import ComplexField.
 (** Define the solution vector at mth iteration **)
 Parameter Xm: forall (n:nat) (m:nat), 'cV[R]_n.+1. 
 
+(** - (A B) = A * (-B) **)
 Lemma Mopp_mult_r: 
   forall (m n p:nat) (A: 'M[R]_(m.+1,n.+1)) (B: 'M[R]_(n.+1,p.+1)),
    oppmx (mulmx A B) = mulmx A (oppmx B).
@@ -41,6 +42,7 @@ rewrite -sumrN. apply eq_big. by []. intros. rewrite mxE.
 by rewrite -mulrN.
 Qed. 
 
+(** -(A B) = (-A) * B **)
 Lemma Mopp_mult_l: 
   forall (m n p:nat) (A: 'M[R]_(m.+1,n.+1)) (B: 'M[R]_(n.+1,p.+1)),
    oppmx (mulmx A B) = mulmx (oppmx A) B.
@@ -50,11 +52,13 @@ rewrite -sumrN. apply eq_big. by []. intros. rewrite mxE.
 by rewrite mulNr.
 Qed.
 
+(** -(-A) = A **)
 Lemma Mopp_opp : 
   forall (m n:nat) (A: 'M[R]_(m.+1,n.+1)), oppmx (oppmx A) = A.
 Proof.
 intros. apply matrixP. unfold eqrel. intros. rewrite !mxE. apply opprK.
 Qed.
+
 
 Lemma inverse_A: forall (n:nat) (A: 'M[R]_n.+1),
   A \in unitmx -> 
@@ -87,6 +91,7 @@ Proof.
 intros. apply matrixP. unfold eqrel. intros. rewrite !mxE. apply addNr.
 Qed.
 
+(** Define 2 -norm of a matrix **)
 Definition matrix_norm (n:nat) (A: 'M[complex R]_n.+1) :=
     Lub_Rbar (fun x=> exists v: 'cV[complex R]_n.+1, vec_norm_C v <> 0 /\
                 x= (vec_norm_C  (mulmx A v))/ (vec_norm_C v)).
@@ -99,7 +104,7 @@ Hypothesis lim_max: forall (n:nat) (v: 'cV[R]_n.+1) (A: 'M[R]_n.+1),
       is_lim_seq (fun m: nat => (vec_norm_C (mulmx (RtoC_mat (A^+m.+1)) vc) / (vec_norm_C vc))%Re) 0%Re ->
         is_lim_seq (fun m:nat => matrix_norm (RtoC_mat (A^+m.+1))) 0%Re.
 
-
+(** ||Ax|| <= ||A|| ||x|| **)
 Hypothesis matrix_norm_compat: 
   forall (n:nat) (x: 'cV[complex R]_n.+1) (A: 'M[complex R]_n.+1),
     vec_norm_C x <> 0 -> vec_norm_C (mulmx A x) <= ((matrix_norm A) * vec_norm_C x)%Re.
@@ -147,7 +152,7 @@ assert (x=0%Re \/ (0<x)%Re). { nra. } destruct H1.
     intros. nra.
 Qed.
 
-
+(** \lim_{m \to \infty} q^n = 0 --> |q| < 1 **)
 Lemma is_lim_seq_geom_nec (q:R): 
   is_lim_seq (fun n => (q ^ n.+1)%Re) 0%Re -> Rabs q <1.
 Proof. 
@@ -170,7 +175,7 @@ apply (@powr_decr (Rabs q) N.+1). apply Rabs_pos. rewrite RpowE. apply H1.
 Qed.
 
 
-
+(** Av = \lambda v --> A^m v = \lambda^m v **)
 Lemma eigen_power: forall (n m:nat) (i: 'I_n.+1) (A: 'M[R]_n.+1), 
   let Ap:= RtoC_mat A in 
   mulmx Ap (eigen_vector i Ap) = scal_vec_C (lambda Ap i) (eigen_vector i Ap) ->
@@ -239,6 +244,7 @@ Axiom eg_axiom: forall (n:nat) (A: 'M[complex R]_n.+1)  (i:'I_n.+1),
   vec_not_zero (eigen_vector i A) -> 
     mulmx A (eigen_vector i A)= scal_vec_C (lambda A i) (eigen_vector i A).
 
+
 Lemma mat_power_R_C_compat: forall (m n: nat) (A: 'M[R]_n.+1),
   let Ap:= RtoC_mat A in RtoC_mat (A^+m) = Ap^+m.
 Proof.
@@ -274,7 +280,7 @@ apply big_ge_0_ex_abstract.
 intros. apply /RleP. apply Rle_0_sqr.
 Qed.
 
-
+(** If x i <> 0 --> \sum_i (x i ) > 0 **)
 Lemma big_gt_0_ex: 
   forall (n : nat) (x: 'I_n.+1 -> R),
     (exists i : 'I_n.+1, x i <> 0%Re )-> 
@@ -287,6 +293,7 @@ apply Rplus_lt_le_0_compat.
 + by apply big_ge_0_ex.
 Qed.
 
+(** (x i) <> 0 --> ||x|| <> 0 **) 
 Lemma vec_norm_not_zero: forall (n : nat) (x: 'cV[R]_n.+1),
   (exists i:'I_n.+1, x i 0  <> 0%Re) -> 
   vec_norm x <> 0%Re.
@@ -317,20 +324,10 @@ assert ( is_lim_seq (fun m:nat => vec_norm (addmx (Xm n 0) (oppmx X)))
               (vec_norm (addmx (Xm n 0) (oppmx X)))).
 { apply is_lim_seq_const. }
 
-(** Check**)
+
 assert (vec_norm (addmx (Xm n 0) (oppmx X)) <> 0).
 { apply vec_norm_not_zero. destruct H3 as [i H3].
   exists i.
-(*
-  unfold vec_norm.
-  assert ( (0< vec_norm  (addmx (Xm n 0) (oppmx X)))%Re -> 
-            vec_norm  (addmx (Xm n 0) (oppmx X)) <> 0%Re).
- { nra.   }
-  apply H6. unfold vec_norm. apply sqrt_lt_R0. apply /RltbP.
-  apply sum_gt_0. 
-  intros. apply /RltbP.
-  apply Rsqr_pos_lt.
-*)
   rewrite !mxE.
   rewrite -RminusE. apply Rminus_eq_contra. apply H3.
 }

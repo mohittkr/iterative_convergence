@@ -1,3 +1,5 @@
+(** Proof of the convergence of the Jacobi iterative process
+  using an example **)
 Require Import Reals Psatz R_sqrt R_sqr.
 From mathcomp Require Import all_algebra all_ssreflect ssrnum bigop ssrnat.
 From mathcomp.analysis Require Import boolp Rstruct classical_sets posnum
@@ -43,7 +45,7 @@ Definition d (n:nat) (A: 'M[R]_n):= \row_(i<n) A i i.
 
 Definition diag_A (n:nat) (A: 'M[R]_n):=diag_mx (d A).
 
-
+(** Define the A1 matrix for the Jacobi process **)
 Definition A1_J (n:nat) (h:R):= diag_A (Ah n h).
 
 (** stating the explicit inverse of A1 since it's diagonal **)
@@ -101,7 +103,7 @@ assert ((A1_J n h) = (- (2 / h ^+ 2))%:M).
 } by rewrite H1.
 Qed.
 
-
+(** A1 * A1^-1 = I **)
 Lemma invmx_A1_mul_A1_1:forall (n:nat) (h:R), 
   (0<h)%Re -> A1_J n h *m invmx (A1_J n h) = 1%:M.
 Proof.
@@ -141,7 +143,7 @@ intros. apply mulmx1C. rewrite invmx_A1_J.
 + by [].
 Qed.
 
-
+(** A1 is invertible **)
 Lemma A1_invertible: forall (n:nat) (h:R), 
   (0<h)%Re -> A1_J n h \in unitmx.
 Proof.
@@ -150,10 +152,11 @@ rewrite -det_mulmx. rewrite invmx_A1_mul_A1_1. by rewrite det1.
 by [].
 Qed.
 
-
+(** Define the A2 matrix of the Jacobi process **)
 Definition A2_J (n:nat) (h:R):= 
   addmx (Ah n h) (oppmx (A1_J n h)).
 
+(** Define the iteration matrix for the Jacobi method **)
 Definition S_mat_J (n:nat) (h:R):=
    RtoC_mat (oppmx (mulmx ((invmx (A1_J n h))) (A2_J n h))).
 
@@ -187,6 +190,7 @@ Definition b (m:nat) (h:R) := (S_mat_J m h) 0 0.
 Definition c (m:nat) (h:R) := (S_mat_J m h) 0 (@inord m 1).
 Definition p (m:nat) (h:R) := ((a m h) * (c m h))%C.
 
+(** Define the eigenvalue of the Jacobi iterative matrix **)
 Definition lambda_J (m N:nat) (h:R) := 
   (b N h) + 2* sqrtc(p N h)* RtoC (cos((m.+1%:R * PI)*/ N.+2%:R)).
 
@@ -198,8 +202,10 @@ Definition b_A (m:nat) (h:R) := (Ah m h) 0  0.
 Definition c_A (m:nat) (h:R) := (Ah m h) 0 (@inord m 1).
 Definition p_A (m:nat) (h:R) := ((a_A m h) * (c_A m h))%Re.
 
+(** Define the eigenvalue of the Ah matrix **)
 Definition Lambda_Ah (m N:nat) (h:R) :=
    (b_A N h) + 2* sqrt(p_A N h)* (cos((m.+1%:R * PI)*/ N.+2%:R)).
+
 
 Lemma Im_p_0: forall (n:nat) (h:R), (0<h)%Re -> Im (p n h) = 0.
 Proof.
@@ -352,7 +358,7 @@ rewrite !S_mat_simp.
 + by [].
 Qed.
 
-
+(** Re (\lambda_J )= 1+ h^2/2 * (\lambda (Ah)) **)
 Lemma lambda_simp: forall (m N:nat) (h:R),
   (0<h)%Re -> (0< N)%N -> 
   Re (lambda_J m N h) = (1 + ((h^2)/2)  * (Lambda_Ah m N h))%Re.
@@ -443,6 +449,7 @@ rewrite sqrt_p_evals.
 + by []. apply H.
 Qed.
 
+(** Re (\lambda_J) < 1 **)
 Lemma Jacobi_converges_aux: 
   forall (m n:nat) (h:R), (0< h)%Re ->(0<n)%N -> 
   (m < n.+1)%N -> 
@@ -555,6 +562,8 @@ intros. induction n.
     * apply Rlt_0_1.
 Qed.
 
+
+(** Re (\lambda_J) > -1 **)
 Lemma lambda_J_gt_minus_1: 
   forall (n:nat) (i: 'I_n.+1) (h:R),
   (0 < h)%Re -> (0 < n)%N ->  
@@ -696,7 +705,7 @@ rewrite Im_b_0 Im_p_sqrt_0. rewrite add0r. by rewrite -mulrA mul0r mulr0.
 by []. apply H.
 Qed. 
 
-
+(** Theorem for convrgence of the Jacobi iterative method **)
 Theorem Jacobi_converges:
   forall (n:nat) (i: 'I_n.+1) (h:R),
   (0 < h)%Re -> (0 < n)%N -> 

@@ -42,10 +42,11 @@ Proof.
 by apply Jordan.
 Qed.
 
+(** Define the Frobenius matrix norm **)
 Definition mat_norm (n:nat) (A: 'M[complex R]_n.+1) : R:=
   sqrt (\sum_i (\sum_j (Rsqr (C_mod (A i j))))).
 
-
+(** If A= B , C*A = C*B **)
 Lemma matrix_eq1: 
   forall (n m p:nat) (A B C: 'M[complex R]_n.+1),
    A = B -> mulmx C A = mulmx C B.
@@ -59,6 +60,7 @@ Hypothesis matrix_norm_prod:
   forall (n:nat) (A B: 'M[complex R]_n.+1),
   mat_norm  (mulmx A B) <= (mat_norm  A)* (mat_norm B).
 
+(** the frobenius matrix norm is greater than 0 **)
 Lemma mat_norm_ge_zero:
   forall (n:nat) (A B: 'M[complex R]_n.+1),
   (0 <= mat_norm A)%Re.
@@ -66,14 +68,14 @@ Proof.
 intros. unfold mat_norm. apply sqrt_pos.
 Qed.
 
-
+(** If matrices A and B are equal, their norms are equal as well **)
 Lemma mat_norm_eq: forall (n:nat) (A B: 'M[complex R]_n.+1),
    A = B -> mat_norm A = mat_norm B.
 Proof.
 intros. by rewrite H.
 Qed.
 
- 
+(** Properties of conform_mx between two matrices **)
 Lemma matrix_norm_equality: 
   forall (m n:nat) (A : 'M[complex R]_m.+1) (B: 'M[complex R]_n.+1),
   m = n ->
@@ -96,21 +98,13 @@ Lemma conform_mx_mat_power:
 Proof.
 by intros m n k A B mn; move: B; rewrite -mn=> B; rewrite !conform_mx_id. Qed.
 
-(** \lim_{m \to \infty} ||A^m||= 0. Here I am trying to use 
-the Jordan decomposition, A = V J V^{-1}.
-
-\lim_{m \to \infty} ||(V J V^{-1})^m|| =0. 
-This should reduce to proving 
-\lim_{m \to \infty} ||V|| ||J^m|| ||V^{-1}|| = 0
-
-**) 
 
 (** Define the ith eigen_value of A **)
 Definition lambda (n:nat) (A: 'M[complex R]_n.+1) (i:nat) : complex R:=
   let sp:= root_seq_poly (invariant_factors A) in
   (nth (0,0%N) sp i).1.
 
-
+(** Here we use the expansion of the Jordan block J^m **)
 Lemma diag_ext: forall (n n0:nat) (A: 'M[complex R]_n.+1),  
 diag_block_mx
   [seq x0.2.-1
@@ -145,9 +139,9 @@ apply: funext => n.
 by rewrite /geometric /= mul1r.
 Qed.
 
-(** Add a lemma that each entry of the Jordan matrix goes
-  to zero as m \to \infty **)
 
+(** Extract the diagonal Jordan block and the remaining zero entries 
+from the block diagonal Jordan form **)
 Lemma diag_destruct s F:
   forall i j: 'I_(size_sum s).+1,
   (exists k l m n,
@@ -196,7 +190,8 @@ split.
 + by rewrite iq jq [LHS]block_mxEdr.
 Qed.
 
-
+(** Compatibility of the multiplication of naturals 
+  and their cast to complex ring type **)
 Lemma mul_ring: forall (m n:nat),
     (m * n)%:R = (m%:R * n %:R) :> complex R.
 Proof.
@@ -206,6 +201,8 @@ intros. induction n.
   by rewrite -IHn natrD.
 Qed.
 
+(** Compatibility of the multiplication of naturals 
+  and their cast to real ring type **)
 Lemma mul_ring_real: forall (m n:nat),
   (m * n)%:R = m%:R * n%:R :>R.
 Proof.
@@ -215,7 +212,7 @@ intros. induction n.
   by rewrite -IHn natrD.
 Qed.
 
-
+(** Proof that factorial(n) <= n^n **)
 Lemma n_fact_le_pow: forall (n:nat),
   (n`! <= n^n)%N.
 Proof.
@@ -280,6 +277,7 @@ assert ( (0 < Re)%Re -> Re <> 0%Re). { nra. }
 apply H2. by apply /RltP.
 Qed.
 
+(** Imaginary part of the coercion from nat to complex = 0 **)
 Lemma nat_complex_0: forall (k:nat),
   Im (k%:R) = 0%Re.
 Proof.
@@ -288,8 +286,8 @@ intros. induction k.
 + rewrite -addn1 natrD Im_add IHk add0r //=.
 Qed.
 
-
-Lemma Re_comple_gt_0: forall (k:nat),
+(** Real part of the coercion from nat to complex > 0 **)
+Lemma Re_complex_gt_0: forall (k:nat),
   (0 < Re k.+1%:R)%Re.
 Proof.
 intros. induction k.
@@ -318,10 +316,11 @@ intros. apply leq_not_0. induction k.
     assert ( Im k`!%:R = 0%Re). { by apply /eqP. }
     rewrite H1 mulr0 subr0. apply /RltP. 
     apply Rmult_lt_0_compat.
-    * apply Re_comple_gt_0.
+    * apply Re_complex_gt_0.
     * by apply /RltP.
 Qed.
 
+(** Coercion of the choice function from nat to complex ring **)
 Lemma choice_to_ring: forall (n k:nat),
   (0<n)%N -> (k<=n)%N ->
   'C(n,k)%:R = 
@@ -544,7 +543,7 @@ destruct H0.
       apply H1. apply fact_ring_gt_0.
 Qed.
 
-
+(** Proof that n C k is less than equal to n^k / k! **)
 Lemma choice_to_ring_le: forall (n k:nat),
   (0<n)%N -> (k<=n)%N ->
   ('C(n,k)%:R <= (n%:R^+k / (k`!)%:R) :> complex R) .
@@ -578,7 +577,7 @@ intros. rewrite choice_to_ring.
 + by []. 
 Qed.
 
-
+ 
 Lemma C_mod_le_rel_c : forall (x y: complex R),
   (0 <= Re x)%Re -> (0 <= Re y)%Re -> 
   (x <= y)%C -> C_mod x <= C_mod y.
@@ -601,7 +600,7 @@ intros. rewrite /C_mod. apply /RleP. apply sqrt_le_1.
   - by [].
 Qed.
 
-
+(** If |x| < 1, then \lim_{m \to \infty} ||x^m+1|| = 0 **)
 Lemma is_lim_seq_geom_pow: forall (x : R),
   Rabs x < 1 -> is_lim_seq (fun m:nat => (x^m.+1)%Re) 0%Re.
 Proof.
@@ -632,6 +631,7 @@ intros. induction n.
   - rewrite -RpowE. nra.
 Qed. 
 
+(** Proof that their exists a real between two real numbers **)
 Lemma exist_real_between: forall (a b:R),
   (a < b)%Re -> 
   exists c:R, (a < c)%Re /\ (c < b)%Re.
@@ -639,7 +639,8 @@ Proof.
 intros. exists ((a+b)/2)%Re. nra.
 Qed.
 
-
+(** Proof that for a decreasing geometric series, the n^th term
+  is smaller than or equal to the first term of the series **)
 Lemma geom_series: forall (a: nat -> R) (n N:nat) (r:R),
   (0 < r)%Re -> (r < 1)%Re -> 
   (N <= n)%N -> 
@@ -819,7 +820,8 @@ rewrite Rabs_right.
 + apply Rle_ge, Rlt_le, H0.
 Qed.
 
-
+(** Proof: \lim_{m \to \infty} a n = 1 --> 
+           \lim_{m \to \infty} (a n)^k = 1 **)
 Lemma is_lim_pow_const: forall (a : nat -> R) (k:nat),
   is_lim_seq (fun n:nat => a n) 1%Re ->
   is_lim_seq (fun n:nat => ((a n)^k)%Re) 1%Re.
@@ -834,7 +836,8 @@ intros. induction k.
     by apply is_lim_seq_mult'.
 Qed.
  
-
+(** Comptability between the INR from standard reals and 
+  the mathcomp coercion from nats to reals **)
 Lemma INR_eq:forall (n:nat),
   / (INR n + 1) = (1 / n.+1%:R)%Re.
 Proof.
@@ -894,7 +897,8 @@ intros. induction k.
   { nra. } rewrite H1 H0. nra.
 Qed. 
 
-
+(** Proof: \lim_{m \to \infty} m^k x^m = 0. Proof done using 
+  ratio test for sequences and comparison with geometric sequences **)
 Lemma lim_npowk_mul_to_zero: forall (x:R) (k:nat),
   (0 < x)%Re -> 
   Rabs x < 1 -> 
@@ -976,7 +980,8 @@ assert ( let a:= (fun m:nat => ((m.+1)%:R^k * x^ m.+1)%Re) in
       ++ apply Rle_ge. by apply Rlt_le.
 Qed.
 
-
+(** Proof: \lim_{m \to \infty} x m = 0 -->
+            \lim_{m \to \infty} (x m)^2 = 0 **)
 Lemma lim_sqr_tends: forall (x: nat -> R),
   is_lim_seq (fun m:nat => x m) 0%Re ->
   is_lim_seq (fun m:nat => Rsqr (x m)) 0%Re.
@@ -1138,7 +1143,8 @@ Hypothesis total_eigen_val: forall (n:nat) (A: 'M[complex R]_n.+1),
  size_sum
   [seq x.2.-1 | x <- root_seq_poly (invariant_factors A)] = n.
 
-Lemma each_enrty_zero_lim:
+(** Proof that each term of the Jordan block tends to zero **)
+Lemma each_entry_zero_lim:
   forall (n:nat) (A: 'M[complex R]_n.+1),
   let sp := root_seq_poly (invariant_factors A) in
   let sizes := [seq x0.2.-1 | x0 <- sp] in
@@ -1570,7 +1576,8 @@ induction n.
     * by apply H.
 Qed.  
   
-
+(** If each entry of the Jordan block tends to zero, then the matrix
+  norm defined as the sum of squares of the entries, tend to zero too **)
 Lemma entry_sum_lim_zero :
 forall (n:nat) (A: 'M[complex R]_n.+1),
 (forall (i: 'I_(size_sum
@@ -1601,7 +1608,7 @@ intros.
 apply lim_sum_i.
 intros x.
 apply lim_sum_i.
-intros y. by apply each_enrty_zero_lim. 
+intros y. by apply each_entry_zero_lim. 
 Qed.
 
 
@@ -1612,6 +1619,8 @@ intros. apply Rsqr_pos_lt.
 assert ((0<x)%Re). { apply posreal_cond. } nra.
 Qed.
 
+(** Proof: \lim_{m \to \infty} x m = 0 -->
+           \lim_{m \to \infty} sqrt (x m) = 0 **)
 Lemma lim_sqrt (x : nat -> R):
   (forall n:nat, (0<= x n)%Re) ->
   is_lim_seq (fun m: nat => x m)  0%Re->
@@ -1664,7 +1673,8 @@ induction n.
 Qed.
 
 
-
+(** Proof of the necessity condition : 
+    |\lambda | < 1 --> \lim_{m \to \infty} ||A^m|| = 0 **)
 Lemma mat_norm_converges: 
   forall (n:nat) (A: 'M[complex R]_n.+1),
   (forall (i: 'I_n.+1), (C_mod (lambda A i) < 1)%Re) -> 
@@ -1828,9 +1838,11 @@ case: (V_exists A)=> P [Pu PA].
 exists P; apply/andP; split;[exact: Pu | apply/eqP; exact PA].
 Qed.
 
+(** Define an eigen matrix **)
 Definition eigen_matrix (n:nat) (A: 'M[complex R]_n.+1):= 
   proj1_sig (eigen_matrix_set A).
 
+(** Define i^th eigen vector as the i^th column of the eigen matrix **)
 Definition eigen_vector (n:nat) (i: 'I_n.+1) (A: 'M[complex R]_n.+1) :=
   col i (eigen_matrix A).
  

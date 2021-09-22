@@ -1,3 +1,6 @@
+(** Formalization of generic properties of complex
+  numbers, complex vectors and complex matrices *)
+
 Require Import Reals Psatz R_sqrt R_sqr.
 From mathcomp Require Import all_algebra all_ssreflect ssrnum bigop.
 From mathcomp.analysis Require Import boolp Rstruct classical_sets posnum
@@ -24,12 +27,13 @@ Import Order.TTheory GRing.Theory Num.Def Num.Theory.
 Open Scope classical_set_scope.
 
 From mathcomp Require Import complex.
+Import ComplexField.
 
-
+(** Define the modulus of a complex number **)
 Definition C_mod (x: R[i]):=
    sqrt ( (Re x)^+2 + (Im x)^+2).
 
-
+(** Properties of the modulus of a complex number **)
 Lemma C_mod_0: C_mod 0 = 0%Re.
 Proof.
 by rewrite /C_mod /= expr2 mul0r Rplus_0_r sqrt_0.
@@ -181,30 +185,6 @@ intros. rewrite /C_mod -[RHS]RdivE.
   by apply sqr_complex_not_zero.  
 Qed.
 
-Lemma posreal_cond: forall (x:posreal), (0< x)%Re.
-Proof.
-intros. destruct x. auto.
-Qed.
-
-Lemma real_sub_0r : forall (x: R), (x-0)%Re = x.
-Proof.
-intros. by rewrite RminusE subr0.
-Qed.
-
-Lemma Rsqr_ge_0: forall (x:R), (0<=x)%Re -> (0<= Rsqr x)%Re.
-Proof.
-intros. unfold Rsqr. assert (0%Re = (0*0)%Re). { nra. }
-rewrite H0. apply Rmult_le_compat;nra. 
-Qed.
-
-Import ComplexField.
-
-Lemma complex_not_0_sym: forall (x : complex R),
-  Re x != 0 \/ Im x != 0 -> (Re x +i* Im x)%C != 0.
-Proof.
-intros. rewrite eq_complex /=. by apply /nandP.
-Qed.
-
 
 Lemma C_mod_not_zero: forall (x: complex R), 
   x <> 0 -> C_mod x <> 0.
@@ -235,22 +215,22 @@ intros. induction n.
 + by rewrite !exprS C_mod_prod IHn.
 Qed.
 
-Lemma x_pow_n_not_0: forall (x:R) (n:nat), x <> 0 -> x^+n <> 0.
-Proof.
-move => x n H. induction n.
-+ rewrite expr0. by apply /eqP.
-+ rewrite exprS. by apply Rmult_integral_contrapositive.
-Qed.
-
-
 Lemma C_destruct: forall (x: complex R), x = (Re x +i* Im x)%C.
 Proof.
 by move => [a b]. 
 Qed.
 
+Lemma complex_not_0_sym: forall (x : complex R),
+  Re x != 0 \/ Im x != 0 -> (Re x +i* Im x)%C != 0.
+Proof.
+intros. rewrite eq_complex /=. by apply /nandP.
+Qed.
 
+(** Define a coercion from real to complex **)
 Definition RtoC (x:R):= (x +i* 0)%C.
 
+(** Compatibilty between C_mod and normc in the mathcomp/complex
+  libary **)
 Lemma C_modE y : C_mod y = normc y.
 Proof.
 rewrite /C_mod RsqrtE /normc; case: y => [ry iy] //=.
@@ -352,6 +332,36 @@ Proof.
 move => [a b] [c d] //=.
 Qed.
 
+(** Some trivial proprties of the reals **)
+Lemma posreal_cond: forall (x:posreal), (0< x)%Re.
+Proof.
+intros. destruct x. auto.
+Qed.
+
+Lemma real_sub_0r : forall (x: R), (x-0)%Re = x.
+Proof.
+intros. by rewrite RminusE subr0.
+Qed.
+
+Lemma Rsqr_ge_0: forall (x:R), (0<=x)%Re -> (0<= Rsqr x)%Re.
+Proof.
+intros. unfold Rsqr. assert (0%Re = (0*0)%Re). { nra. }
+rewrite H0. apply Rmult_le_compat;nra. 
+Qed.
+
+Lemma x_pow_n_not_0: forall (x:R) (n:nat), x <> 0 -> x^+n <> 0.
+Proof.
+move => x n H. induction n.
++ rewrite expr0. by apply /eqP.
++ rewrite exprS. by apply Rmult_integral_contrapositive.
+Qed.
+
+Lemma Rmult_le_compat_0: forall (x y :R), 
+  (0 <= x)%Re -> (0<=y)%Re  -> (0 <= x*y)%Re.
+Proof.
+intros. assert (0%Re = (0 * 0)%Re). { nra. } rewrite H1.
+apply Rmult_le_compat; nra.
+Qed.
 
 
 (** define a complex matrix **)
@@ -359,7 +369,6 @@ Definition RtoC_mat (n:nat) (A: 'M[R]_n): 'M[complex R]_n :=
   \matrix_(i<n, j<n) ((A i j) +i* 0)%C.
 
 (** Define L2 norm of a vector **)
-
 Definition vec_norm (n:nat) (x: 'cV[R]_n.+1)  := 
   sqrt (\big[+%R/0]_l (Rsqr (x l 0))).
 
@@ -367,10 +376,11 @@ Definition vec_norm (n:nat) (x: 'cV[R]_n.+1)  :=
 Definition vec_norm_C (n:nat) (x: 'cV[complex R]_n.+1):=
   sqrt (\big[+%R/0]_l (Rsqr (C_mod (x l 0)))).
 
-
+(** Define a non-zero vector **)
 Definition vec_not_zero (n:nat) (x: 'cV[complex R]_n.+1):=
   exists i:'I_n.+1,  x i 0 <> 0.
 
+(** Define a coercion from the real vector to a complex vector **)
 Definition RtoC_vec (n:nat) (v: 'cV[R]_n.+1) : 'cV[complex R]_n.+1:=
   \col_i ((v i 0) +i* 0)%C.
 
@@ -390,6 +400,7 @@ have H1: \big[+%R/0]_l (C_mod (RtoC_vec v l 0))² = \big[+%R/0]_l (v l 0)².
 Qed.
 
 
+(** \sum_j (Re ((u j) * (v j)) = Re (\sum_j ((u j) * (v j))) **)
 Lemma eq_big_Re_C: forall (n:nat) (u v: 'I_n.+1 -> complex R),
    (\big[+%R/0]_(j<n.+1) Re ((u j) * (v j))%C) = Re (\big[+%R/0]_(j<n.+1) ((u j)* (v j))).
 Proof.
@@ -400,6 +411,7 @@ induction n.
   rewrite [in RHS]big_ord_recr //=.
 Qed.
 
+(** \sum_j (Im ((u j) * (v j)) = Im (\sum_j ((u j) * (v j))) **)
 Lemma eq_big_Im_C: forall (n:nat) (u v: 'I_n.+1 -> complex R),
    (\big[+%R/0]_(j<n.+1) Im ((u j) * (v j))%C) = Im (\big[+%R/0]_(j<n.+1) ((u j)* (v j))).
 Proof.
@@ -410,6 +422,7 @@ induction n.
   rewrite [in RHS]big_ord_recr //=.
 Qed.
 
+(** \sum_j 0 = 0 **)
 Lemma big_0_sum: forall (n:nat),
   \big[+%R/0]_(j<n.+1) 0 = 0%Re.
 Proof.
@@ -431,6 +444,7 @@ apply /andP. split.
   by rewrite /RtoC_mat /RtoC_vec !mxE //= mul0r mulr0 add0r.
 Qed.
 
+
 Lemma sum_n_ge_0: forall (n:nat) (u: 'I_n.+1 ->R), 
     (forall i:'I_n.+1, 0<= (u i)) -> 
     0 <= \big[+%R/0]_i (u i).
@@ -442,6 +456,7 @@ intros. induction n.
   intros. apply H. apply /RleP. apply H.
 Qed.
 
+(** 0 <= ||v|| **)
 Lemma vec_norm_C_ge_0: forall (n:nat) (v: 'cV[complex R]_n.+1), 
   (0<= vec_norm_C v)%Re.
 Proof.
@@ -467,6 +482,8 @@ intros. induction  n.
   intros. apply H. apply /RltbP. apply H. 
 Qed. 
 
+(** Generic property of big operator for reals. Missing 
+  in the mathcomp. **)
 Lemma big_ge_0_ex_abstract I r (P: pred I) (E : I -> R):
   (forall i, P i -> (0 <= E i)) ->
   (0 <= \big[+%R/0]_(i <-r | P i) E i).
@@ -480,14 +497,7 @@ move => leE. apply big_ind.
 + apply leE.
 Qed.
  
-Lemma Rmult_le_compat_0: forall (x y :R), 
-  (0 <= x)%Re -> (0<=y)%Re  -> (0 <= x*y)%Re.
-Proof.
-intros. assert (0%Re = (0 * 0)%Re). { nra. } rewrite H1.
-apply Rmult_le_compat; nra.
-Qed.
-
- 
+(** v <> 0 --> 0 < ||v|| **) 
 Lemma non_zero_vec_norm: forall (n:nat) (v: 'cV[complex R]_n.+1),
   vec_not_zero v -> (vec_norm_C v <> 0)%Re.
 Proof.
@@ -506,38 +516,15 @@ apply Rplus_lt_le_0_compat.
   - apply C_mod_ge_0.
 + apply /RleP. apply big_ge_0_ex_abstract.
   intros. apply /RleP. apply Rle_0_sqr.
-
-(*
- apply /RltbP. apply sum_gt_0.  
-intros. apply /RltbP. apply Rlt_0_sqr. admit.
-by apply C_mod_not_zero. *)
 Qed.
 
-Definition scal_vec_C (n:nat) (l:complex R) (v: 'cV[complex R]_n.+1):=
-  \col_(i<n.+1) (l * (v i 0))%C.
-
-Lemma ei_vec_ei_compat: forall (n:nat) (x:complex R) (v: 'cV[complex R]_n.+1), 
-  vec_norm_C (scal_vec_C x v) = C_mod x * vec_norm_C v.
+Lemma vec_norm_eq: forall (n:nat) (x y: 'cV[R]_n.+1), 
+   x=y -> vec_norm x = vec_norm y.
 Proof.
-intros. unfold vec_norm_C. 
-have H1: sqrt (Rsqr (C_mod x)) = C_mod x. 
-  { apply sqrt_Rsqr. apply C_mod_ge_0. }
-rewrite -H1 -RmultE -sqrt_mult_alt.
-have H2: (\big[+%R/0]_l (C_mod (scal_vec_C x v l 0))²) = 
-           ((C_mod x)² *  \big[+%R/0]_l (C_mod (v l 0))²).
-{ rewrite mulr_sumr. apply eq_big. by []. intros. 
-  rewrite mxE C_mod_prod -RmultE. apply Rsqr_mult.
-} by rewrite H2. 
-assert (0%Re = Rsqr 0). { symmetry. apply Rsqr_0. } rewrite H.
-apply Rsqr_incr_1. apply C_mod_ge_0. nra. apply C_mod_ge_0.
+intros.
+rewrite H. reflexivity.
 Qed.
 
-Lemma scal_vec_1: forall (n:nat) (v: 'cV[complex R]_n.+1), 
-  v= scal_vec_C (1%C) v.
-Proof.
-intros. apply matrixP. unfold eqrel. intros. rewrite mxE.
-symmetry. assert (y=0).  { apply ord1. } by rewrite H mul1r. 
-Qed.
 
 Lemma RtoC_Mone: forall n:nat, @RtoC_mat n 1%:M = 1%:M.
 Proof.
@@ -563,7 +550,6 @@ rewrite !mxE. apply C_equals. split.
   by []. intros. by rewrite /RtoC_mat !mxE //= mul0r mulr0 add0r.
 Qed.
 
-
 Lemma RtoC_mat_add: forall (n:nat) (A B: 'M[R]_n.+1),
   RtoC_mat (addmx A B) = addmx (RtoC_mat A) (RtoC_mat B).
 Proof.
@@ -573,6 +559,40 @@ split; by apply /eqP.
 Qed.
 
 
+(** Properties of scale operation of vectors and matrices **)
+
+
+(** define the scale operation for a complex vector **)
+Definition scal_vec_C (n:nat) (l:complex R) (v: 'cV[complex R]_n.+1):=
+  \col_(i<n.+1) (l * (v i 0))%C.
+
+(** ||scale c v|| = |c| * ||v|| **)
+Lemma ei_vec_ei_compat: forall (n:nat) (x:complex R) (v: 'cV[complex R]_n.+1), 
+  vec_norm_C (scal_vec_C x v) = C_mod x * vec_norm_C v.
+Proof.
+intros. unfold vec_norm_C. 
+have H1: sqrt (Rsqr (C_mod x)) = C_mod x. 
+  { apply sqrt_Rsqr. apply C_mod_ge_0. }
+rewrite -H1 -RmultE -sqrt_mult_alt.
+have H2: (\big[+%R/0]_l (C_mod (scal_vec_C x v l 0))²) = 
+           ((C_mod x)² *  \big[+%R/0]_l (C_mod (v l 0))²).
+{ rewrite mulr_sumr. apply eq_big. by []. intros. 
+  rewrite mxE C_mod_prod -RmultE. apply Rsqr_mult.
+} by rewrite H2. 
+assert (0%Re = Rsqr 0). { symmetry. apply Rsqr_0. } rewrite H.
+apply Rsqr_incr_1. apply C_mod_ge_0. nra. apply C_mod_ge_0.
+Qed.
+
+(** v = scale 1 v **)
+Lemma scal_vec_1: forall (n:nat) (v: 'cV[complex R]_n.+1), 
+  v= scal_vec_C (1%C) v.
+Proof.
+intros. apply matrixP. unfold eqrel. intros. rewrite mxE.
+symmetry. assert (y=0).  { apply ord1. } by rewrite H mul1r. 
+Qed.
+
+
+(** scale x (scale l v) = scale (l*v) v **)
 Lemma scal_of_scal_vec : 
  forall (n:nat) (x l:complex R) (v: 'cV[complex R]_n.+1),
   scal_vec_C x (scal_vec_C l v) = scal_vec_C (x* l)%C v.
@@ -581,6 +601,7 @@ intros. unfold scal_vec_C. apply matrixP. unfold eqrel. intros.
 by rewrite !mxE /= mulrA.
 Qed.
 
+(** scale x (scale l v) = scale l (scale x v) **)
 Lemma scal_vec_C_comm : 
 forall (n:nat) (x l:complex R) (v: 'cV[complex R]_n.+1),
   scal_vec_C x (scal_vec_C l v) = scal_vec_C l (scal_vec_C x v).
@@ -595,7 +616,7 @@ have H2: (l * (x * v x0 0))%C = ((l* x) * (v x0 0))%C.
 assert ((x* l)%C = (l* x)%C). { apply mulrC. } by rewrite H.
 Qed.
 
-
+(** x * \sum_j (u j) = \sum_j (x * (u j)) **)
 Lemma big_scal: forall (n:nat) (u: 'I_n.+1 -> complex R) (x:complex R),
   (x* \big[+%R/0]_j (u j))%C = \big[+%R/0]_j (x* (u j))%C.
 Proof.
@@ -604,28 +625,97 @@ intros. induction n.
 + rewrite big_ord_recr //= mulrDr IHn [RHS]big_ord_recr //=.
 Qed.
 
-Lemma vec_norm_eq: forall (n:nat) (x y: 'cV[R]_n.+1), 
-   x=y -> vec_norm x = vec_norm y.
+(** Define scale operation for a complex matrix **)
+Definition scal_mat_C (m n :nat) (l:complex R) (x: 'M[complex R]_(m,n)):= 
+    \matrix_(i<m,j<n) (l* (x i j))%C.
+
+
+Lemma big_scal_com: 
+  forall (n:nat) (x: complex R) (u : 'I_n.+1 -> complex R),
+  x * (\big[+%R/0]_j (u j)) = \big[+%R/0]_j (x * (u j)).
 Proof.
-intros.
-rewrite H. reflexivity.
+intros. induction n.
++ by rewrite !big_ord_recr //= !big_ord0 //= !add0r.
++ rewrite big_ord_recr //= [RHS]big_ord_recr //=.
+  by rewrite -IHn mulrDr.
+Qed. 
+
+
+Lemma scal_mat_to_vec: 
+  forall (m : nat) (l:complex R) (v: 'cV[complex R]_m.+1),
+  scal_mat_C l v = scal_vec_C l v.
+Proof.
+intros. apply matrixP. unfold eqrel. intros. rewrite !mxE. 
+assert (y=0). { apply ord1. } by rewrite H.
+Qed.
+
+(** scale x v + scale y v = scale (x+y) v **)
+Lemma scal_vec_add_xy: 
+  forall (n:nat) (x y:complex R) (v: 'cV[complex R]_n.+1),
+  addmx (scal_vec_C x v) (scal_vec_C y v) = scal_vec_C (x+y)%C v.
+Proof.
+intros. unfold addmx. unfold scal_vec_C. apply matrixP. unfold eqrel.
+intros. by rewrite !mxE /= mulrDl.
+Qed.
+
+Lemma scal_vec_eq: 
+  forall (n:nat) (x:complex R) (v1 v2: 'cV[complex R]_n.+1),
+   x <> 0 -> scal_vec_C x v1 = scal_vec_C x v2 -> v1 = v2.
+Proof.
+intros. apply colP. unfold eqfun.
+intros. unfold scal_vec_C in H0. apply matrixP in H0. 
+unfold eqrel in H0. specialize (H0 x0 0).
+rewrite !mxE in H0. rewrite <- mul1r.
+have H1: v1 x0 0 = (1 * v1 x0 0)%C. 
+{ by rewrite mul1r. } 
+have H2: (invc x * x)%C = 1. { apply mulVc. by apply /eqP. }
+rewrite <-H2. rewrite -!mulrA.
+rewrite H0. by rewrite mulrA mulrC H2 mulr1.
+Qed.
+
+(** scale x v1 + scale x v2 = scale x (v1 + v2) **)
+Lemma scal_vec_add: 
+  forall (n:nat) (x: complex R) (v1 v2: 'cV[complex R]_n.+1),
+  addmx (scal_vec_C x v1) (scal_vec_C x v2) =  scal_vec_C x (addmx v1 v2).
+Proof.
+intros. rewrite /addmx /scal_vec_C. apply matrixP. unfold eqrel.
+intros. rewrite !mxE/=. by rewrite mulrDr. 
+Qed.
+
+(** -(scale x v)  =  scale (-x) v **)
+Lemma scal_vec_C_Mopp: forall (n:nat) (x:complex R) (v: 'cV[complex R]_n.+1), 
+  oppmx (scal_vec_C x v) = scal_vec_C (-x)%C v.
+Proof.
+intros. rewrite /scal_vec_C /oppmx. apply matrixP. unfold eqrel.
+intros. by rewrite !mxE /= mulNr. 
+Qed.
+
+Definition scal_of_mat0 (A: 'cV[complex R]_1):= A 0 0.
+
+
+Lemma scal_conv_scal_vec: forall (x:complex R) (v: 'M[complex R]_1),
+  scal_of_mat0 (scal_vec_C x v) = (x* (scal_of_mat0 v))%C.
+Proof.
+intros. by rewrite /scal_of_mat0 /scal_vec_C !mxE.
 Qed.
 
 
-
+(** Define transpose of a complex matrix  **)
 Definition transpose_C (m n:nat) (A: 'M[complex R]_(m,n)):=
   \matrix_(i<n,j<m) A j i.
 
 
-(** Define conjugates **)
+(** Define conjugate of a complex matrix **)
 Definition conjugate (m n:nat) (A: 'M[complex R]_(m,n)):=
   \matrix_(i<m,j<n) conjc (A i j).
 
+(** Define conjugate tranpose of a complex matrix **)
 Definition conjugate_transpose (m n:nat) (A: 'M[complex R]_(m,n)):=
   transpose_C (conjugate A).
 
+(** Generic properties of complex conjugates **)
 
-
+(** x* conj x = ||x||^2 :> complex **)
 Lemma conj_mag: 
   forall x:complex R, (x* conjc x)%C = RtoC (Rsqr (C_mod x)).
 Proof.
@@ -641,52 +731,6 @@ apply /andP. split.
   rewrite -!RmultE -RplusE. apply Rplus_opp_l. 
 Qed.  
 
-Definition scal_mat_C (m n :nat) (l:complex R) (x: 'M[complex R]_(m,n)):= 
-    \matrix_(i<m,j<n) (l* (x i j))%C.
-
-
-
-Lemma big_scal_com: 
-  forall (n:nat) (x: complex R) (u : 'I_n.+1 -> complex R),
-  x * (\big[+%R/0]_j (u j)) = \big[+%R/0]_j (x * (u j)).
-Proof.
-intros. induction n.
-+ by rewrite !big_ord_recr //= !big_ord0 //= !add0r.
-+ rewrite big_ord_recr //= [RHS]big_ord_recr //=.
-  by rewrite -IHn mulrDr.
-Qed. 
-
-Lemma scal_mat_to_vec: 
-  forall (m : nat) (l:complex R) (v: 'cV[complex R]_m.+1),
-  scal_mat_C l v = scal_vec_C l v.
-Proof.
-intros. apply matrixP. unfold eqrel. intros. rewrite !mxE. 
-assert (y=0). { apply ord1. } by rewrite H.
-Qed.
- 
-
-
-Lemma conj_prod: 
-  forall (x:complex R), ((conjc x)*x)%C = RtoC (Rsqr (C_mod x)).
-Proof.
-move => [a b]. rewrite /conjc /C_mod //= /RtoC.
-apply /eqP. rewrite eq_complex //=. apply /andP.
-split.
-+ apply /eqP. rewrite Rsqr_sqrt.
-  - rewrite -!RpowE -!RmultE -!RoppE -RplusE. nra.
-  - rewrite -!RpowE. nra.
-+ apply /eqP. by rewrite mulNr mulrC addrN.
-Qed.
-
-
-Lemma scal_vec_add_xy: 
-  forall (n:nat) (x y:complex R) (v: 'cV[complex R]_n.+1),
-  addmx (scal_vec_C x v) (scal_vec_C y v) = scal_vec_C (x+y)%C v.
-Proof.
-intros. unfold addmx. unfold scal_vec_C. apply matrixP. unfold eqrel.
-intros. by rewrite !mxE /= mulrDl.
-Qed.
-
 Lemma Cconj_prod: forall (x y: complex R),
   conjc (x*y)%C = (conjc x * conjc y)%C.
 Proof.
@@ -696,7 +740,7 @@ apply /andP. split.
 + apply /eqP. by rewrite mulrN mulNr opprD. 
 Qed.
   
-
+(** conj (scale l x) = scale (conj l) x^* **)
 Lemma conj_scal_mat_mul: 
   forall (m n : nat) (l:complex R) (x: 'M[complex R]_(m,n)),
   conjugate_transpose (scal_mat_C l x) = scal_mat_C (conjc l) (conjugate_transpose x).
@@ -722,8 +766,6 @@ destruct H.
 + apply /orP. right. apply /nandP. left. by apply /eqP.
 Qed. 
 
-
-
  
 Lemma Cmult_neq_0 (z1 z2 : complex R) : 
   z1 <> 0 -> z2 <> 0 -> z1 * z2 <> 0.
@@ -736,8 +778,6 @@ Proof.
   now apply Hz1, C_mod_eq_0.
   now apply Hz2, C_mod_eq_0.
 Qed.
-
-
 
 Lemma prod_not_zero: forall (x y: complex R) , 
   (x*y)%C <>0 <-> (x <> 0) /\ (y <> 0).
@@ -773,6 +813,19 @@ rewrite eq_complex //=. apply /andP. split.
 + apply /eqP. by rewrite opprD.
 Qed.
 
+Lemma conj_prod: 
+  forall (x:complex R), ((conjc x)*x)%C = RtoC (Rsqr (C_mod x)).
+Proof.
+move => [a b]. rewrite /conjc /C_mod //= /RtoC.
+apply /eqP. rewrite eq_complex //=. apply /andP.
+split.
++ apply /eqP. rewrite Rsqr_sqrt.
+  - rewrite -!RpowE -!RmultE -!RoppE -RplusE. nra.
+  - rewrite -!RpowE. nra.
++ apply /eqP. by rewrite mulNr mulrC addrN.
+Qed.
+
+(** conj (\sum_j (x j)) = \sum_j (conj (x j)) **)
 Lemma Cconj_sum: forall (p:nat) (x: 'I_p -> complex R),
   conjc (\big[+%R/0]_(j < p) x j)= \big[+%R/0]_(j < p) conjc (x j).
 Proof.
@@ -783,6 +836,7 @@ induction p.
   rewrite <-IHp. apply Cconj_add.
 Qed.
 
+(** (A B)^* = B^* A^* **)
 Lemma conj_matrix_mul : 
   forall (m n p:nat) (A: 'M[complex R]_(m,p)) (B: 'M[complex R]_(p,n)),
     conjugate_transpose (mulmx A B) = mulmx
@@ -799,7 +853,7 @@ rewrite H. apply eq_big. by [].
 intros. by rewrite !mxE Cconj_prod //= mulrC.
 Qed.
 
-
+(** x^* ^* = x**)
 Lemma conj_of_conj: forall (m n:nat) (x: 'M[complex R]_(m,n)),
   conjugate_transpose (conjugate_transpose x) = x.
 Proof.
@@ -812,7 +866,7 @@ rewrite eq_complex //=. apply /andP. split.
 + apply /eqP. by rewrite opprK.
 Qed.
 
-
+(** conjugate transpose of a real matrix is the matrix itself **)
 Lemma conj_transpose_A: forall (n:nat) (A : 'M[R]_n.+1),
   (forall i j:'I_n.+1,   A i j = A j i) -> 
   conjugate_transpose (RtoC_mat A) = RtoC_mat A.
@@ -826,36 +880,6 @@ split.
 + apply /eqP. apply oppr0.
 Qed.
 
-Lemma scal_vec_eq: 
-  forall (n:nat) (x:complex R) (v1 v2: 'cV[complex R]_n.+1),
-   x <> 0 -> scal_vec_C x v1 = scal_vec_C x v2 -> v1 = v2.
-Proof.
-intros. apply colP. unfold eqfun.
-intros. unfold scal_vec_C in H0. apply matrixP in H0. 
-unfold eqrel in H0. specialize (H0 x0 0).
-rewrite !mxE in H0. rewrite <- mul1r.
-have H1: v1 x0 0 = (1 * v1 x0 0)%C. 
-{ by rewrite mul1r. } 
-have H2: (invc x * x)%C = 1. { apply mulVc. by apply /eqP. }
-rewrite <-H2. rewrite -!mulrA.
-rewrite H0. by rewrite mulrA mulrC H2 mulr1.
-Qed.
-
-Lemma scal_vec_add: 
-  forall (n:nat) (x: complex R) (v1 v2: 'cV[complex R]_n.+1),
-  addmx (scal_vec_C x v1) (scal_vec_C x v2) =  scal_vec_C x (addmx v1 v2).
-Proof.
-intros. rewrite /addmx /scal_vec_C. apply matrixP. unfold eqrel.
-intros. rewrite !mxE/=. by rewrite mulrDr. 
-Qed.
-
-
-Lemma scal_vec_C_Mopp: forall (n:nat) (x:complex R) (v: 'cV[complex R]_n.+1), 
-  oppmx (scal_vec_C x v) = scal_vec_C (-x)%C v.
-Proof.
-intros. rewrite /scal_vec_C /oppmx. apply matrixP. unfold eqrel.
-intros. by rewrite !mxE /= mulNr. 
-Qed.
 
 Lemma Re_eq: forall (x y:complex R), x= y -> Re x = Re y.
 Proof.
@@ -866,13 +890,5 @@ Lemma Re_prod:
   forall (x:R) (y:complex R), Re (RtoC x * y)%C = Re (RtoC x) * Re y.
 Proof.
 by move => x [a b]; rewrite /RtoC //= mul0r subr0.
-Qed.
-
-Definition scal_of_mat0 (A: 'cV[complex R]_1):= A 0 0.
-
-Lemma scal_conv_scal_vec: forall (x:complex R) (v: 'M[complex R]_1),
-  scal_of_mat0 (scal_vec_C x v) = (x* (scal_of_mat0 v))%C.
-Proof.
-intros. by rewrite /scal_of_mat0 /scal_vec_C !mxE.
 Qed.
 

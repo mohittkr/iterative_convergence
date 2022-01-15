@@ -240,10 +240,12 @@ induction m.
     } by rewrite H6.
 Qed.
 
+(*
+
 Axiom eg_axiom: forall (n:nat) (A: 'M[complex R]_n.+1)  (i:'I_n.+1), 
   vec_not_zero (eigen_vector i A) -> 
     mulmx A (eigen_vector i A)= scal_vec_C (lambda A i) (eigen_vector i A).
-
+*)
 
 Lemma mat_power_R_C_compat: forall (m n: nat) (A: 'M[R]_n.+1),
   let Ap:= RtoC_mat A in RtoC_mat (A^+m) = Ap^+m.
@@ -315,7 +317,8 @@ Theorem iter_convergence:
    (forall m:nat, addmx (mulmx A1 (Xm n m.+1)) (mulmx A2 (Xm n m)) =b) ->
    (exists i:'I_n.+1, (Xm n 0%nat) i 0 <> X i 0) ->
    let S_mat:= RtoC_mat (oppmx (mulmx ((invmx A1)) A2)) in 
-   ((forall i:'I_n.+1, vec_not_zero (eigen_vector i S_mat)) -> 
+   ((forall i:'I_n.+1, vec_not_zero (eigen_vector i S_mat) /\  lambda S_mat i <> 0 /\
+    mulmx S_mat (eigen_vector i S_mat)= scal_vec_C (lambda S_mat i) (eigen_vector i S_mat)) ->
     is_lim_seq (fun m:nat => vec_norm (addmx (Xm n m.+1) (oppmx X))) 0%Re <->
      (forall (i: 'I_n.+1), (C_mod (lambda S_mat i) < 1)%Re)).
 Proof.
@@ -583,7 +586,7 @@ assert (is_lim_seq (fun m:nat => matrix_norm
                   ((oppmx (mulmx (invmx A1) A2))^n0.+1 ))
                (eigen_vector i S_mat) = scal_vec_C ((lambda S_mat i)^n0.+1) (eigen_vector i S_mat)).
     { unfold S_mat. apply eigen_power. 
-      apply eg_axiom. fold S_mat. apply H4. 
+      (*apply eg_axiom. *) fold S_mat. apply H4. 
     }
     rewrite H12. reflexivity.
     apply (is_lim_seq_le_le (fun m:nat => 0%Re) (fun m : nat =>
@@ -628,7 +631,7 @@ assert (is_lim_seq (fun m:nat => matrix_norm
               (fun m : nat => mat_norm (S_mat ^ m.+1))).
     - intros. apply mat_2_norm_F_norm_compat.
     - apply is_lim_seq_const. 
-    - apply mat_norm_converges. apply H9.
+    - apply mat_norm_converges. apply H9. apply H4.
 }
 
 apply iff_trans with (is_lim_seq

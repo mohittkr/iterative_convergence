@@ -266,14 +266,16 @@ Theorem Reich: forall (n:nat) (A: 'M[R]_n.+1),
   A1 A \in unitmx -> 
   forall i j:'I_n.+1, 
     (let S:=mulmx (RtoC_mat (invmx (A1 A))) (RtoC_mat (A2 A)) in 
-          vec_not_zero (eigen_vector i S) -> C_mod (lambda S i) < 1  <-> 
+         (vec_not_zero (eigen_vector i S) /\ (lambda  S i <> 0) /\
+          mulmx S (eigen_vector i S)= scal_vec_C (lambda S i) (eigen_vector i S))  -> 
+      C_mod (lambda S i) < 1  <-> 
             is_positive_definite A (eigen_vector i S)).
 Proof.
 intros.
 
 (*** Working with the ith characteristic pair  **)
 assert ( mulmx S (eigen_vector i S)= scal_vec_C (lambda S i) (eigen_vector i S)).
-{ apply eg_axiom. auto. } 
+{ apply H4. } 
 
 remember (lambda S i) as li.
 remember (eigen_vector i S) as vi.
@@ -342,19 +344,20 @@ assert (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi=
     
 (** (1+li)<>0 **)
 assert ( (RtoC 1+li)%C <> 0%C).
-{ specialize (H1 vi H4).
+{ destruct H4.
+  specialize (H1 vi H4).
   assert ( ((RtoC 1 + li)%C * (scal_of_mat0
               (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)))%C <> 0%C <->
               (RtoC 1 + li)%C <> 0%C /\ (scal_of_mat0
               (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)) <> 0%C).
-  { apply prod_not_zero. } destruct H9.
+  { apply prod_not_zero. } destruct H10.
   assert (scal_of_mat0 (scal_vec_C (RtoC 1 + li)%C  (mulmx
            (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi) )=
             ((RtoC 1 + li)%C *
                    (scal_of_mat0
                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)))%C).
-  { apply scal_conv_scal_vec. } rewrite <-H11 in H9. rewrite <-H8 in H9.
-  specialize (H9 H1). destruct H9. apply H9.
+  { apply scal_conv_scal_vec. } rewrite <-H12 in H10. rewrite <-H8 in H10.
+  specialize (H10 H1). destruct H10. apply H10.
 }
 
 (** conjugate transpose, LHS and RHS: (4) to (5) **)
@@ -760,14 +763,14 @@ split.
       - nra.
     + assert ( is_positive_definite (diag_A A) vi ).
       { apply is_positive_definite_diag. auto. }
-      unfold is_positive_definite in H27.
+      unfold is_positive_definite in H27. destruct H4.
       specialize (H27 H4). unfold scal_of_mat0. apply Rlt_gt.
       apply /RltbP. rewrite mulmxA in H27. apply H27.
   } rewrite <-H26 in H27. unfold scal_of_mat0 in H27. rewrite mulmxA.
   apply /RltbP. apply H27.
 
 
-+ intros. unfold is_positive_definite in H22.
++ intros. unfold is_positive_definite in H22. destruct H4.
   specialize (H22 H4).
   assert (is_positive_definite (diag_A A) (eigen_vector i S )).
   { apply is_positive_definite_diag. auto. }
@@ -787,7 +790,7 @@ split.
                (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A))
                   vi)) = ((RtoC (1 - (C_mod li)²)) * 
                     scal_of_mat0 (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))%C).
-  { apply scal_conv_scal_vec. } rewrite H25 in H24. clear H25.
+  { apply scal_conv_scal_vec. } rewrite H26 in H25. clear H26.
 
   assert (scal_of_mat0
             (scal_vec_C (RtoC (C_mod (RtoC 1 + li)%C)²)
@@ -796,7 +799,7 @@ split.
                      (RtoC_mat (diag_A A))) vi)) = ((RtoC (C_mod (RtoC 1 + li)%C)²) *
                 scal_of_mat0 (mulmx  (mulmx (conjugate_transpose vi)
                      (RtoC_mat (diag_A A))) vi))%C).
-  { apply scal_conv_scal_vec. } rewrite H25 in H24. clear H25.
+  { apply scal_conv_scal_vec. } rewrite H26 in H25. clear H26.
 
   assert (((RtoC (1 - (C_mod li)²)%R) *
              scal_of_mat0
@@ -815,7 +818,7 @@ split.
                (mulmx
                   (mulmx (conjugate_transpose vi)
                      (RtoC_mat (diag_A A))) vi))%C)).
-  { apply Re_eq. } specialize (H25 H24).
+  { apply Re_eq. } specialize (H26 H25).
   
   assert (Re
             (RtoC (1 - (C_mod li)²)%R *
@@ -824,7 +827,7 @@ split.
                   vi))%C = Re (RtoC (1 - (C_mod li)²)%R) * Re (scal_of_mat0
                (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A))
                   vi))).
-  { apply Re_prod. } rewrite H26 in H25. clear H26.
+  { apply Re_prod. } rewrite H27 in H26. clear H27.
 
   assert (Re
             ((RtoC (C_mod (RtoC 1 + li)%C)²) *
@@ -835,10 +838,10 @@ split.
                 (Re (scal_of_mat0 (mulmx
                   (mulmx (conjugate_transpose vi)
                      (RtoC_mat (diag_A A))) vi)))).
-  { apply Re_prod. } rewrite H26 in H25. clear H26. unfold scal_of_mat0 in H25.
+  { apply Re_prod. } rewrite H27 in H26. clear H27. unfold scal_of_mat0 in H26.
 
-  rewrite <-Heqvi in H23. unfold is_positive_definite in H23.
-  specialize (H23 H4).
+  rewrite <-Heqvi in H24. unfold is_positive_definite in H24.
+  specialize (H24 H4).
 
   assert (Rmult (Re (RtoC (C_mod (RtoC 1 + li)%C)²))  
                 (Re (scal_of_mat0 (mulmx
@@ -847,16 +850,16 @@ split.
   { apply /RltbP. apply Rmult_gt_0_compat.
     unfold RtoC. simpl. apply Rlt_gt. apply Rsqr_pos_lt.
     assert ( Rlt 0%Re (C_mod ((1 +i* 0)%C+ li)%C) -> C_mod ((1 +i* 0)%C+ li)%C <> 0%Re). { nra. }
-    apply H26. apply /RltP. apply C_mod_gt_0. apply H9. apply /RltbP. rewrite mulmxA in H23. apply H23.
-  }  unfold scal_of_mat0 in H26. rewrite <-H25 in H26. apply /RltbP.
+    apply H27. apply /RltP. apply C_mod_gt_0. apply H9. apply /RltbP. rewrite mulmxA in H24. apply H24.
+  }  unfold scal_of_mat0 in H27. rewrite <-H26 in H27. apply /RltbP.
   apply Rsqr_incrst_0.
-  - assert ( Rsqr 1 = 1%Re). { apply Rsqr_1. } rewrite H27. apply Rplus_lt_reg_r with (-1).
-    assert ((1 + -1)%Re=0%Re). { nra. }  rewrite H28.
-    assert (((C_mod li)² + -1)%Re = ((C_mod li)² -1)%Re). { nra. } rewrite H29.
-    apply Ropp_lt_cancel. assert ((-0)%Re=0%Re).  { nra. } rewrite H30.
-    assert ((- ((C_mod li)² - 1))%Re = (1- (C_mod li)²)%Re). { nra. } rewrite H31.
+  - assert ( Rsqr 1 = 1%Re). { apply Rsqr_1. } rewrite H28. apply Rplus_lt_reg_r with (-1).
+    assert ((1 + -1)%Re=0%Re). { nra. }  rewrite H29.
+    assert (((C_mod li)² + -1)%Re = ((C_mod li)² -1)%Re). { nra. } rewrite H30.
+    apply Ropp_lt_cancel. assert ((-0)%Re=0%Re).  { nra. } rewrite H31.
+    assert ((- ((C_mod li)² - 1))%Re = (1- (C_mod li)²)%Re). { nra. } rewrite H32.
     assert (Re (RtoC (1 - (C_mod li)²)) = (1 - (C_mod li)²)%Re). 
-    { unfold RtoC. simpl. reflexivity. } rewrite <-H32.
+    { unfold RtoC. simpl. reflexivity. } rewrite <-H33.
     apply Rmult_lt_reg_r with (Re
         ((mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A))
               vi) 0 0)). 
@@ -864,7 +867,7 @@ split.
     * assert ( 0 *
                   Re
                     ((mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi) 0 0)= 0%Re).
-      { by rewrite mul0r. } apply /RltbP. rewrite RmultE. rewrite H33. apply H26.
+      { by rewrite mul0r. } apply /RltbP. rewrite RmultE. rewrite H34. apply H27.
   - apply C_mod_ge_0.
   - apply Rlt_le. apply Rlt_0_1.
 Qed.

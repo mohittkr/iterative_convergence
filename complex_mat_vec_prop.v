@@ -312,6 +312,35 @@ apply H. apply /RltbP. by apply C_mod_gt_0.
 Qed.
 
 
+Lemma C_mod_gt_not_zero: forall x: complex R,
+  C_mod x <> 0 -> 0 < C_mod x.
+Proof.
+intros. rewrite /C_mod. rewrite /C_mod in H. apply /RltP.
+apply sqrt_lt_R0. 
+assert (Re x = 0%Re \/ (Re x <> 0)%Re).
+{ nra. }
+assert (Im x = 0%Re \/ (Im x <> 0)%Re).
+{ nra. } destruct H0.
++ destruct H1.
+  - rewrite H0 H1 in H.
+    by rewrite expr2 mulr0 Rplus_0_r sqrt_0 in H.
+  - rewrite H0 expr2 mulr0 Rplus_0_l -RpowE.
+    assert ((Im x ^ 2)%Re = Rsqr (Im x)). { rewrite /Rsqr. nra. }
+    rewrite H2. by apply Rsqr_pos_lt.
++ destruct H1.
+  - rewrite H1. assert ( (0 ^+ 2)%Re = 0%Re). { by rewrite expr2 mulr0. }
+    rewrite H2 Rplus_0_r -RpowE.
+    assert ((Re x ^ 2)%Re = Rsqr (Re x)). { rewrite /Rsqr. nra. }
+    rewrite H3. by apply Rsqr_pos_lt.
+  - apply Rplus_lt_0_compat.
+    * rewrite -RpowE.
+      assert ((Re x ^ 2)%Re = Rsqr (Re x)). { rewrite /Rsqr. nra. }
+      rewrite H2. by apply Rsqr_pos_lt.
+    * rewrite -RpowE.
+      assert ((Im x ^ 2)%Re = Rsqr (Im x)). { rewrite /Rsqr. nra. }
+      rewrite H2. by apply Rsqr_pos_lt.
+Qed.
+
 Lemma Cinv_not_0: 
   forall x:complex R, x <> 0 -> (invc x)%C <> 0.
 Proof.
@@ -383,6 +412,14 @@ Definition vec_not_zero (n:nat) (x: 'cV[complex R]_n.+1):=
 (** Define a coercion from the real vector to a complex vector **)
 Definition RtoC_vec (n:nat) (v: 'cV[R]_n.+1) : 'cV[complex R]_n.+1:=
   \col_i ((v i 0) +i* 0)%C.
+
+(** Define vector norm for a complex vector **)
+Definition vec_norm_rowv (n:nat) (x: 'rV[complex R]_n.+1):=
+  sqrt (\big[+%R/0]_l (Rsqr (C_mod (x 0 l)))).
+
+(** Define a non-zero row vector **)
+Definition vec_not_zero_row (n:nat) (x: 'rV[complex R]_n.+1):=
+  exists i:'I_n.+1,  x 0 i <> 0.
 
 Lemma vec_norm_R_C: forall (n:nat) (v: 'cV[R]_n.+1),
   vec_norm_C (RtoC_vec  v) = vec_norm v.
@@ -469,6 +506,18 @@ apply Rsqr_incr_1. apply C_mod_ge_0.
 nra. apply C_mod_ge_0.
 Qed.
 
+Lemma vec_norm_rowv_ge_0: forall (n:nat) (v: 'rV[complex R]_n.+1), 
+  (0<= vec_norm_rowv v)%Re.
+Proof.
+intros.
+unfold vec_norm_rowv.
+apply sqrt_positivity. apply /RleP.
+apply sum_n_ge_0. intros.
+assert (0 = Rsqr 0). { symmetry. apply Rsqr_0. } rewrite H. apply /RleP.
+apply Rsqr_incr_1. apply C_mod_ge_0.
+nra. apply C_mod_ge_0.
+Qed.
+
 Lemma sum_gt_0: forall (n:nat) (u: 'I_n.+1 -> R),   
    (forall l:'I_n.+1, 0 < (u l) )-> 
       \big[+%R/0]_l (u l) >0.
@@ -512,6 +561,27 @@ apply Rplus_lt_le_0_compat.
 + assert (0%Re = Rsqr 0). { by rewrite Rsqr_0. }
   rewrite H1. apply Rsqr_incrst_1.
   - apply /RltP. by apply C_mod_gt_0.
+  - nra.
+  - apply C_mod_ge_0.
++ apply /RleP. apply big_ge_0_ex_abstract.
+  intros. apply /RleP. apply Rle_0_sqr.
+Qed.
+
+
+Lemma non_zero_vec_norm_row: forall (n:nat) (v: 'rV[complex R]_n.+1),
+ v != 0 -> (vec_norm_rowv v <> 0)%Re.
+Proof.
+intros.
+assert (exists i, v 0 i != 0). { by apply /rV0Pn. } 
+assert ((0< vec_norm_rowv v)%Re -> (vec_norm_rowv v <> 0)%Re).
+{ nra. } apply H1. unfold vec_norm_rowv. 
+apply sqrt_lt_R0. destruct H0 as [i H0].
+rewrite (bigD1 i) //=.  
+rewrite -RplusE.
+apply Rplus_lt_le_0_compat.
++ assert (0%Re = Rsqr 0). { by rewrite Rsqr_0. }
+  rewrite H2. apply Rsqr_incrst_1.
+  - apply /RltP. apply C_mod_gt_0. by apply /eqP.
   - nra.
   - apply C_mod_ge_0.
 + apply /RleP. apply big_ge_0_ex_abstract.
@@ -566,6 +636,10 @@ Qed.
 Definition scal_vec_C (n:nat) (l:complex R) (v: 'cV[complex R]_n.+1):=
   \col_(i<n.+1) (l * (v i 0))%C.
 
+(** define the scale operation for a complex vector **)
+Definition scal_vec_rowC (n:nat) (l:complex R) (v: 'rV[complex R]_n.+1):=
+  \row_(i<n.+1) (l * (v 0 i))%C.
+
 (** ||scale c v|| = |c| * ||v|| **)
 Lemma ei_vec_ei_compat: forall (n:nat) (x:complex R) (v: 'cV[complex R]_n.+1), 
   vec_norm_C (scal_vec_C x v) = C_mod x * vec_norm_C v.
@@ -583,12 +657,37 @@ assert (0%Re = Rsqr 0). { symmetry. apply Rsqr_0. } rewrite H.
 apply Rsqr_incr_1. apply C_mod_ge_0. nra. apply C_mod_ge_0.
 Qed.
 
+(** ||scale c v|| = |c| * ||v|| **)
+Lemma ei_vec_ei_compat_row: forall (n:nat) (x:complex R) (v: 'rV[complex R]_n.+1), 
+  vec_norm_rowv (scal_vec_rowC x v) = C_mod x * vec_norm_rowv v.
+Proof.
+intros. unfold vec_norm_rowv. 
+have H1: sqrt (Rsqr (C_mod x)) = C_mod x. 
+  { apply sqrt_Rsqr. apply C_mod_ge_0. }
+rewrite -H1 -RmultE -sqrt_mult_alt.
+have H2: (\big[+%R/0]_l (C_mod (scal_vec_rowC x v 0 l))²) = 
+           ((C_mod x)² *  \big[+%R/0]_l (C_mod (v 0 l))²).
+{ rewrite mulr_sumr. apply eq_big. by []. intros. 
+  rewrite mxE C_mod_prod -RmultE. apply Rsqr_mult.
+} by rewrite H2. 
+assert (0%Re = Rsqr 0). { symmetry. apply Rsqr_0. } rewrite H.
+apply Rsqr_incr_1. apply C_mod_ge_0. nra. apply C_mod_ge_0.
+Qed.
+
+
 (** v = scale 1 v **)
 Lemma scal_vec_1: forall (n:nat) (v: 'cV[complex R]_n.+1), 
   v= scal_vec_C (1%C) v.
 Proof.
 intros. apply matrixP. unfold eqrel. intros. rewrite mxE.
 symmetry. assert (y=0).  { apply ord1. } by rewrite H mul1r. 
+Qed.
+
+Lemma scal_vec_1_row: forall (n:nat) (v: 'rV[complex R]_n.+1), 
+  v= scal_vec_rowC (1%C) v.
+Proof.
+intros. apply matrixP. unfold eqrel. intros. rewrite mxE.
+symmetry. assert (x=0).  { apply ord1. } by rewrite H mul1r. 
 Qed.
 
 
@@ -600,6 +699,15 @@ Proof.
 intros. unfold scal_vec_C. apply matrixP. unfold eqrel. intros.
 by rewrite !mxE /= mulrA.
 Qed.
+
+Lemma scal_of_scal_vec_row : 
+ forall (n:nat) (x l:complex R) (v: 'rV[complex R]_n.+1),
+  scal_vec_rowC x (scal_vec_rowC l v) = scal_vec_rowC (x* l)%C v.
+Proof.
+intros. unfold scal_vec_rowC. apply matrixP. unfold eqrel. intros.
+by rewrite !mxE /= mulrA.
+Qed.
+
 
 (** scale x (scale l v) = scale l (scale x v) **)
 Lemma scal_vec_C_comm : 
@@ -615,6 +723,57 @@ have H2: (l * (x * v x0 0))%C = ((l* x) * (v x0 0))%C.
 { apply mulrA. } rewrite H2. 
 assert ((x* l)%C = (l* x)%C). { apply mulrC. } by rewrite H.
 Qed.
+
+
+Lemma scal_vec_C_row_comm : 
+forall (n:nat) (x l:complex R) (v: 'rV[complex R]_n.+1),
+  scal_vec_rowC x (scal_vec_rowC l v) = scal_vec_rowC l (scal_vec_rowC x v).
+Proof.
+intros.
+unfold scal_vec_rowC. apply matrixP. unfold eqrel. intros.
+rewrite !mxE /=.
+have H1: (x * (l * v 0 y))%C  = ((x* l) * (v 0 y))%C.
+{ apply mulrA. } rewrite H1. 
+have H2: (l * (x * v 0 y))%C = ((l* x) * (v 0 y))%C.
+{ apply mulrA. } rewrite H2. 
+assert ((x* l)%C = (l* x)%C). { apply mulrC. } by rewrite H.
+Qed.
+
+
+Lemma scale_vec_mat_conv:
+  forall (n:nat) (l:complex R) (v: 'rV[complex R]_n.+1) (A: 'M[complex R]_n.+1),
+  scal_vec_rowC l (v *m A) = (scal_vec_rowC l v) *m A.
+Proof.
+intros. apply matrixP. unfold eqrel. intros.
+rewrite !mxE. 
+assert (x = 0). { by apply ord1. } rewrite H.
+rewrite /scal_vec_rowC //=. 
+assert (\big[+%R/0]_(j < n.+1) ((\row_i (l * v 0 i)) 0
+                          j * A j y)= 
+      \big[+%R/0]_(j < n.+1) ((l * v 0 j) * A j y)).
+{ apply eq_big. by []. intros. by rewrite !mxE. }
+rewrite H0. rewrite big_distrr //=. apply eq_big.
+by []. intros. by rewrite mulrA.
+Qed.
+
+Lemma scal_vec_mathcomp_compat_col:
+  forall (n:nat) (l: complex R) (v: 'cV[complex R]_n.+1),
+  l *: v = (scal_vec_C l v).
+Proof.
+intros. apply matrixP. unfold eqrel. intros.
+rewrite !mxE. 
+assert (y = 0). { by apply ord1. } by rewrite H.
+Qed.
+
+Lemma scal_vec_mathcomp_compat:
+  forall (n:nat) (l: complex R) (v: 'rV[complex R]_n.+1),
+  l *: v = (scal_vec_rowC l v).
+Proof.
+intros. apply matrixP. unfold eqrel. intros.
+rewrite !mxE. 
+assert (x = 0). { by apply ord1. } by rewrite H.
+Qed.
+
 
 (** x * \sum_j (u j) = \sum_j (x * (u j)) **)
 Lemma big_scal: forall (n:nat) (u: 'I_n.+1 -> complex R) (x:complex R),

@@ -56,10 +56,109 @@ intros. rewrite H. reflexivity.
 Qed.
 
 
+Lemma big_sum_ge_ex_abstract I r (P: pred I) (E1 E2: I -> R):
+  (forall i, P i -> (E1 i <= E2 i)%Re) ->
+  (\big[+%R/0]_(i <-r | P i) E1 i <= \big[+%R/0]_(i <-r | P i) E2 i).
+Proof.
+move => leE12. apply /RleP. apply big_ind2.
++ nra.
++ intros. rewrite -!RplusE. by apply Rplus_le_compat.
++ apply leE12.
+Qed.
+
+
+Lemma big_split_sum_prod (n:nat) F1 F2:
+  (forall i:'I_n.+1, (0<=F1 i)%Re /\ (0<=F2 i)%Re) ->
+  \big[+%R/0]_(i < n.+1) (F1 i * F2 i)%Re <=
+    \big[+%R/0]_(i < n.+1) F1 i * \big[+%R/0]_(i < n.+1) F2 i.
+Proof.
+induction n.
++ rewrite !big_ord_recr  !big_ord0//= !add0r.
+  by rewrite RmultE.
++ intros. rewrite big_ord_recr //=. 
+  assert (\big[+%R/0]_(i < n.+2) F2 i = 
+          (\big[+%R/0]_(i < n.+1) F2
+                          (widen_ord (leqnSn n.+1) i) + F2 ord_max)).
+  { by rewrite big_ord_recr //=. } rewrite H0. clear H0.
+  assert (\big[+%R/0]_(i < n.+2) F1 i = 
+          (\big[+%R/0]_(i < n.+1) F1
+                          (widen_ord (leqnSn n.+1) i) + F1 ord_max)).
+  { by rewrite big_ord_recr //=. } rewrite H0. clear H0. apply /RleP.
+  apply Rle_trans with 
+  ((\big[+%R/0]_(i < n.+1) F1
+                          (widen_ord (leqnSn n.+1) i) * 
+    \big[+%R/0]_(i < n.+1) F2
+                          (widen_ord (leqnSn n.+1) i)) + 
+   (F1 ord_max * F2 ord_max)%Re).
+  - apply Rplus_le_compat_r.
+    rewrite -RmultE. apply /RleP. apply IHn.
+    intros. specialize (H (widen_ord (leqnSn n.+1) i)).
+    apply H.
+  - rewrite -!RplusE. rewrite !RmultE. rewrite -!RmultE.
+    assert (forall a b c d:R, 
+            (0<=a)%Re -> (0<=b)%Re -> (0<=c)%Re -> (0<=d)%Re ->
+          ((a *b + c * d) <= ((a+c) * (b+d)))%Re).
+    { intros. nra. } apply H0.
+    * rewrite -(big_0_sum n).
+      apply /RleP. apply big_sum_ge_ex_abstract. intros.
+      specialize (H (widen_ord (leqnSn n.+1) i)). by destruct H. 
+    * rewrite -(big_0_sum n).
+      apply /RleP. apply big_sum_ge_ex_abstract. intros.
+      specialize (H (widen_ord (leqnSn n.+1) i)). by destruct H.
+    * specialize (H ord_max). by destruct H.
+    * specialize (H ord_max). by destruct H.
+Qed.
+
+
 (** property of matrix norm, ||A B|| <= ||A||* ||B|| **)
-Hypothesis matrix_norm_prod: 
+Lemma matrix_norm_prod: 
   forall (n:nat) (A B: 'M[complex R]_n.+1),
   mat_norm  (mulmx A B) <= (mat_norm  A)* (mat_norm B).
+Proof.
+intros. rewrite /mat_norm. rewrite -RmultE.
+rewrite -sqrt_mult.
++ apply /RleP. apply sqrt_le_1_alt. apply /RleP. rewrite RmultE.
+  apply /RleP. 
+  apply Rle_trans with 
+  (\big[+%R/0]_i (\big[+%R/0]_j (C_mod (A i j))² * 
+                  \big[+%R/0]_j (C_mod (B i j))²)%Re).
+  - apply /RleP. apply big_sum_ge_ex_abstract.
+    intros. apply Rle_trans with 
+    (\big[+%R/0]_j ((C_mod (A i j))² * (C_mod (B i j))²)%Re).
+    * apply /RleP. apply big_sum_ge_ex_abstract. intros.
+      rewrite mxE. rewrite -Rsqr_mult. 
+      apply Rsqr_incr_1 .
+      ++ rewrite RmultE -C_mod_prod. admit.
+      ++ apply C_mod_ge_0.
+      ++ rewrite RmultE. rewrite -C_mod_prod. apply C_mod_ge_0.
+    * apply /RleP. apply big_split_sum_prod .
+      intros. split.
+      ++ apply Rsqr_ge_0. apply C_mod_ge_0.
+      ++ apply Rsqr_ge_0. apply C_mod_ge_0.
+  - rewrite -RmultE. apply /RleP. apply big_split_sum_prod .
+    intros. split.
+    * rewrite -(big_0_sum n).
+      apply /RleP. apply big_sum_ge_ex_abstract. intros.
+      apply Rsqr_ge_0. apply C_mod_ge_0.
+    * rewrite -(big_0_sum n).
+      apply /RleP. apply big_sum_ge_ex_abstract. intros.
+      apply Rsqr_ge_0. apply C_mod_ge_0.
++ rewrite -(big_0_sum n).
+  apply /RleP. apply big_sum_ge_ex_abstract.
+  intros. 
+  assert (0%Re = \big[+%R/0]_(j<n.+1) 0).
+  { by rewrite (big_0_sum n). } rewrite H0.
+  apply /RleP. apply big_sum_ge_ex_abstract.
+  intros. apply Rsqr_ge_0. apply C_mod_ge_0.
++ rewrite -(big_0_sum n).
+  apply /RleP. apply big_sum_ge_ex_abstract.
+  intros. 
+  assert (0%Re = \big[+%R/0]_(j<n.+1) 0).
+  { by rewrite (big_0_sum n). } rewrite H0.
+  apply /RleP. apply big_sum_ge_ex_abstract.
+  intros. apply Rsqr_ge_0. apply C_mod_ge_0.
+Admitted.
+
 
 (** the frobenius matrix norm is greater than 0 **)
 Lemma mat_norm_ge_zero:
@@ -1698,14 +1797,25 @@ induction n.
   - apply H.
 Qed.
 
+(** Define 2 -norm of a matrix **)
+Definition matrix_norm (n:nat) (A: 'M[complex R]_n.+1) :=
+    Lub_Rbar (fun x=> 
+      exists v: 'cV[complex R]_n.+1, vec_norm_C v <> 0 /\
+                x = (vec_norm_C  (mulmx A v))/ (vec_norm_C v)).
 
+Hypothesis matrix_norm_ge_0 :
+  forall (n:nat) (A: 'M[complex R]_n.+1),
+  (0 <= matrix_norm A)%Re.
 
-(** Proof of the necessity condition : 
-    |\lambda | < 1 --> \lim_{m \to \infty} ||A^m|| = 0 **)
+(** 2 norm of a matrix <= Frobenius norm of the matrix **)
+Hypothesis mat_2_norm_F_norm_compat:
+  forall (n:nat) (A: 'M[complex R]_n.+1),
+  (0 <= matrix_norm A <= mat_norm A)%Re.
+
 Lemma mat_norm_converges: 
   forall (n:nat) (A: 'M[complex R]_n.+1),
   (forall (i: 'I_n.+1), (C_mod (lambda A i) < 1)%Re) -> 
-  is_lim_seq (fun m:nat => mat_norm (A^+m.+1)) 0%Re.
+  is_lim_seq (fun m:nat => matrix_norm (A^+m.+1)) 0%Re.
 Proof.
 intros.
 have H1: exists V, V \in unitmx /\ 
@@ -1722,9 +1832,9 @@ assert (A = mulmx (invmx V)
   rewrite -mulmxA. by apply matrix_eq1.
 } rewrite H0.
 apply (is_lim_seq_ext 
-          (fun m:nat => mat_norm (mulmx (invmx V) (mulmx
+          (fun m:nat => matrix_norm (mulmx (invmx V) (mulmx
             ((conform_mx V (Jordan_form A))^+m.+1) V))) 
-          (fun m:nat => mat_norm ((mulmx (invmx V) (mulmx
+          (fun m:nat => matrix_norm ((mulmx (invmx V) (mulmx
             (conform_mx V (Jordan_form A)) V))^+m.+1)) ).
 + intros.
   assert (((invmx V *m (conform_mx V (Jordan_form A) *m V)) ^+ n0.+1) = 
@@ -1750,6 +1860,17 @@ apply (is_lim_seq_ext
       { by rewrite !mulmxA. } by rewrite H6. 
   } by rewrite -H3.
   apply (is_lim_seq_le_le (fun m:nat => 0)
+          (fun m : nat =>
+               matrix_norm
+                 (invmx V *m (conform_mx V (Jordan_form A)
+                              ^+ m.+1 *m V)))
+           (fun m : nat => mat_norm
+            (invmx V *m (conform_mx V (Jordan_form A) ^+ m.+1 *m V)))).
+  * intros. split.
+    - apply matrix_norm_ge_0.
+    - apply mat_2_norm_F_norm_compat.
+  * apply is_lim_seq_const.
+  * apply (is_lim_seq_le_le (fun m:nat => 0)
           (fun m : nat => mat_norm
             (invmx V *m (conform_mx V (Jordan_form A) ^+ m.+1 *m V)))
           (fun m : nat => (mat_norm (invmx V)) * (mat_norm  
@@ -1854,6 +1975,7 @@ apply (is_lim_seq_ext
         }
         { apply is_lim_seq_const. } 
 Qed.
+
 
 (*
 (** Try to extract V from the definition of similar **)

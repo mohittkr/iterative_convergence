@@ -461,7 +461,7 @@ Qed.
 
 (** \sum_j 0 = 0 **)
 Lemma big_0_sum: forall (n:nat),
-  \big[+%R/0]_(j<n.+1) 0 = 0%Re.
+  \big[+%R/0]_(j<n.+1) 0%Re = 0%Re.
 Proof.
 intros. induction n.
 + by rewrite !big_ord_recr //= big_ord0 add0r.

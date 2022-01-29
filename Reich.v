@@ -7,7 +7,7 @@ From mathcomp.analysis Require Import boolp Rstruct classical_sets posnum
 Require Import Coquelicot.Lim_seq.
 Require Import Coquelicot.Rbar.
 Require Import Coquelicot.Hierarchy Coquelicot.Lub.
-From mathcomp Require Import mxalgebra matrix all_field.
+From mathcomp Require Import mxalgebra matrix all_field vector.
 From canonical_forms Require Import jordan similar closed_poly frobenius_form.
 From CoqEAL Require Import mxstructure ssrcomplements.
 
@@ -258,16 +258,17 @@ intros. apply matrixP. unfold eqrel. intros. rewrite !mxE. by rewrite addr0.
 Qed.
 
 
-(** Given a set of bases, x can be uniquely repesented in them **)
+(**a lemma for representation of a vector in terms of basis **) 
+
 Hypothesis vec_base_repr:
   forall (n:nat) (x: 'cV[complex R]_n.+1) (v: seq 'cV[complex R]_n.+1) ,
   (0 < size v <= n.+1)%N -> 
+  (forall k : seq (complex R), \sum_(i< size v) (nth 0%C k i) *: (nth 0 v i) = 0  ->
+      (forall i, (i < size v)%N ->  nth 0%C k i = 0)) -> 
    exists s: seq (complex R),
     size s = size v /\
-     (exists  j, (j < size s)%N /\ nth 0 s j != 0) /\ 
     x = \big[+%R/0]_(j < size v) ((nth 0%C s j) *: (nth 0 v j)).
-
-
+ 
 
 Lemma matrix_vec_transpose (n:nat) (A: 'M[complex R]_n.+1) (v: 'rV[complex R]_n.+1):
   A^T *m v^T = (v *m A)^T.
@@ -283,10 +284,90 @@ Proof.
 apply matrixP. unfold eqrel. intros. by rewrite !mxE.
 Qed.
 
-Hypothesis right_eigen_vector_exists:
+
+Lemma char_poly_A_A_tr:
+  forall (n:nat) (A: 'M[complex R]_n.+1),
+  char_poly A = char_poly A^T.
+Proof.
+intros. rewrite /char_poly /char_poly_mx.
+rewrite -det_tr.
+rewrite /determinant //=. apply eq_big.
++ by [].
++ intros. 
+  assert (\big[ *%R/1]_(i0 < succn n) ('X%:M - map_mx polyC A)^T
+                              i0
+                              (perm.PermDef.fun_of_perm
+                                 i i0) = 
+          \big[ *%R/1]_(i0 < succn n) ('X%:M - map_mx polyC A^T)
+                              i0
+                              (perm.PermDef.fun_of_perm
+                                 i i0)).
+  { apply eq_big. by []. intros. 
+    rewrite !mxE. 
+    by rewrite eq_sym.
+  } by rewrite H0.
+Qed. 
+
+
+Lemma eigen_val_mat_transpose:
+  forall (n:nat) (l: complex R) (A: 'M[complex R]_n.+1),
+  @eigenvalue (complex_fieldType _) n.+1 A l = 
+  @eigenvalue (complex_fieldType _) n.+1 A^T l.
+Proof.
+intros. rewrite !eigenvalue_root_char.
+assert ((char_poly A) = (char_poly A^T)).
+{ apply char_poly_A_A_tr. } by rewrite H.
+Qed.
+
+Lemma A_tr_tr: forall (n:nat) (A: 'M[complex R]_n.+1),
+  A = (A^T)^T.
+Proof.
+intros. apply matrixP. unfold eqrel. intros.
+by rewrite !mxE.
+Qed.
+
+
+Lemma A_v_tr:
+  forall (n:nat) (A: 'M[complex R]_n.+1) (v: 'rV[complex R]_n.+1),
+  A *m v^T = (v *m A^T)^T.
+Proof.
+intros. apply matrixP. unfold eqrel. intros. rewrite !mxE.
+apply eq_big. by [].
+intros. rewrite !mxE. by rewrite mulrC.
+Qed.
+
+Lemma v_l_tr:
+  forall (n:nat) (l: complex R) (v: 'rV[complex R]_n.+1),
+  l *: v^T = (l *: v)^T.
+Proof.
+intros. apply matrixP. unfold eqrel. intros.
+by rewrite !mxE.
+Qed.
+
+
+Lemma right_eigen_vector_exists:
   forall (n:nat) (i: 'I_n.+1) (A: 'M[complex R]_n.+1),
   @eigenvalue (complex_fieldType _) n.+1 A (@lambda n A i) ->  
    exists v: 'cV_n.+1, (mulmx A v = (lambda A i) *: v) /\ (v !=0).
+Proof.
+intros.
+assert ( @eigenvalue (complex_fieldType _) n.+1 A^T (@lambda n A i)).
+{ by rewrite -eigen_val_mat_transpose. }
+assert (exists v : 'rV_(succn n),
+           v *m A^T = lambda A i *: v /\ v != 0).
+{ assert (exists2 v : 'rV_n.+1, v *m A^T = (lambda A i) *: v & v != 0).
+  { by apply /eigenvalueP. } destruct H1. exists x. by split.
+} destruct H1 as [v H1].
+exists v^T. destruct H1.
+split.
++ rewrite [in LHS]A_v_tr. rewrite v_l_tr. by rewrite H1.
++ apply /cV0Pn.
+  assert (exists i, v 0 i != 0).
+  { by apply /rV0Pn. } destruct H3 as [k H3].
+  exists k. by rewrite mxE.
+Qed.
+
+
 
 Lemma conjugate_transpose_const 
   (n:nat) (l:complex R) (vi: 'cV[complex R]_n.+1) (A: 'M[R]_n.+1):
@@ -717,27 +798,53 @@ split.
 + intros. 
   unfold is_positive_definite.
   intros.
-  assert (forall (x: 'cV[complex R]_n.+1) (v: seq 'cV[complex R]_n.+1) ,
-            (0 < size v <= n.+1)%N ->
-             exists s: seq (complex R),
-              size s = size v /\ 
-              (exists  j, (j < size s)%N /\ nth 0 s j != 0) /\
-              x = \big[+%R/0]_(j < size v) ((nth 0%C s j) *: (nth 0 v j))).
-  { by apply vec_base_repr . } 
-  specialize (H25 x [:: vi]).
+  assert (forall (n:nat) (x: 'cV[complex R]_n.+1) (v: seq 'cV[complex R]_n.+1) ,
+          (0 < size v <= n.+1)%N -> 
+          (forall k : seq (complex R), \sum_(i< size v) (nth 0%C k i) *: (nth 0 v i) = 0  ->
+              (forall i, (i < size v)%N ->  nth 0%C k i = 0)) -> 
+           exists s: seq (complex R),
+            size s = size v /\
+            x = \big[+%R/0]_(j < size v) ((nth 0%C s j) *: (nth 0 v j))).
+  { by apply vec_base_repr. } 
+  specialize (H25 n x [:: vi]).
   assert ((0 < size [:: vi] <= succn n)%N).
   { rewrite //=. } specialize (H25 H26).
+  assert ((forall k : seq R[i],
+           \big[+%R/0]_(i < size [:: vi]) 
+           (k`_i *: [:: vi]`_i) = 0 ->
+           forall i : nat,
+           (i < size [:: vi])%N -> k`_i = 0)).
+  { intros. rewrite /size big_ord_recr //=  big_ord0 in H27.
+    rewrite add0r in H27. 
+    rewrite /size in H28.
+    assert (i0=0%N). 
+    { apply ltnSE in H28.  rewrite leqn0 in H28. by apply /eqP. }
+    rewrite H29. 
+    assert (k`_0 *: vi == 0). { by apply /eqP. }
+    rewrite scalemx_eq0 in H30.
+    assert ((k`_0 == 0) \/ (vi == 0)). { by apply /orP. }
+    destruct H31.
+    - by apply /eqP.
+    - assert (vi = 0). { by apply /eqP. } 
+      contradict H32. apply /eqP. by apply H5.
+  } specialize (H25 H27). 
   destruct H25 as [s H25]. rewrite big_ord_recr //= big_ord0 add0r in H25.
-  destruct H25. destruct H27.
+  destruct H25. 
   rewrite H28. rewrite conjugate_transpose_const.
   apply /RltP. rewrite -RmultE. apply Rmult_lt_0_compat.
-  + assert (forall x:R, (0 < x)%Re -> (0 < Rsqr x)%Re ). 
-    { intros. unfold Rsqr. by apply Rmult_lt_0_compat. }
-    apply H29. apply /RltP. apply C_mod_gt_0. apply /eqP.
-    destruct H27 as [k H27]. destruct H27.
-    assert (k=0%N). 
-    { rewrite H25 in H27. apply ltnSE in H27.  rewrite leqn0 in H27. by apply /eqP. }
-    by rewrite H31 in H30.
+  + assert (s`_0 = 0 \/ s`_0 <> 0).
+    { assert ((C_mod (s`_0) = 0%Re) \/  (C_mod (s`_0) <> 0)%Re).
+      { nra. } destruct H29.
+      + left. by apply C_mod_eq_0.
+      + right.  rewrite C_mod_gt_0. by apply C_mod_gt_not_zero. 
+    } destruct H29.
+    * rewrite H29 in H28.
+      assert (0 *: vi = 0).
+      { apply matrixP. unfold eqrel. intros. by rewrite !mxE mul0r. }
+      rewrite H30 in H28. contradict H28. by apply /eqP.
+    * assert (forall x:R, (0 < x)%Re -> (0 < Rsqr x)%Re ). 
+      { intros. unfold Rsqr. by apply Rmult_lt_0_compat. }
+      apply H30. apply /RltP. by apply C_mod_gt_0. 
   + assert (scal_of_mat0 (scal_vec_C (RtoC (1 - (C_mod li)²))
             (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)) = 
            scal_of_mat0 (scal_vec_C (RtoC (C_mod (RtoC 1 + li)%C)²)

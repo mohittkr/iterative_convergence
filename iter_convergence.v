@@ -93,8 +93,9 @@ Qed.
 
 (** Define 2 -norm of a matrix **)
 Definition matrix_norm (n:nat) (A: 'M[complex R]_n.+1) :=
-    Lub_Rbar (fun x=> exists v: 'cV[complex R]_n.+1, vec_norm_C v <> 0 /\
-                x= (vec_norm_C  (mulmx A v))/ (vec_norm_C v)).
+    Lub_Rbar (fun x=> 
+      exists v: 'cV[complex R]_n.+1, vec_norm_C v <> 0 /\
+                x = (vec_norm_C  (mulmx A v))/ (vec_norm_C v)).
 
 
 (** If all ||S v|| / ||v|| = 0 , then it's maximum will also be 0**)
@@ -104,12 +105,13 @@ Hypothesis lim_max: forall (n:nat) (v: 'cV[R]_n.+1) (A: 'M[R]_n.+1),
       is_lim_seq (fun m: nat => (vec_norm_C (mulmx (RtoC_mat (A^+m.+1)) vc) / (vec_norm_C vc))%Re) 0%Re ->
         is_lim_seq (fun m:nat => matrix_norm (RtoC_mat (A^+m.+1))) 0%Re.
 
+
 (** ||Ax|| <= ||A|| ||x|| **)
 Hypothesis matrix_norm_compat: 
   forall (n:nat) (x: 'cV[complex R]_n.+1) (A: 'M[complex R]_n.+1),
     vec_norm_C x <> 0 -> vec_norm_C (mulmx A x) <= ((matrix_norm A) * vec_norm_C x)%Re.
 
-
+(** ||xA|| <= ||x|| ||A|| **)
 Hypothesis matrix_norm_compat_row: 
   forall (n:nat) (x: 'rV[complex R]_n.+1) (A: 'M[complex R]_n.+1),
     vec_norm_rowv x <> 0 -> vec_norm_rowv (mulmx x A) <= ((matrix_norm A) * vec_norm_rowv x)%Re.
@@ -211,11 +213,6 @@ induction m.
 + by rewrite !expr0 RtoC_Mone.
 + by rewrite !exprS -RtoC_mat_prod IHm.
 Qed.
-
-(** 2 norm of a matrix <= Frobenius norm of the matrix **)
-Hypothesis mat_2_norm_F_norm_compat:
-  forall (n:nat) (A: 'M[complex R]_n.+1),
-  (0 <= matrix_norm A <= mat_norm A)%Re.
 
 Lemma Mopp_add_left: forall (m n:nat) (A B C: 'M[R]_(m,n)),
   A = addmx B C -> addmx A (oppmx B) = C.
@@ -580,13 +577,7 @@ assert (is_lim_seq (fun m:nat => matrix_norm
                 ((oppmx (mulmx (invmx A1) A2))^+n0.+1) =
                   (RtoC_mat (oppmx (mulmx (invmx A1) A2)))^+n0.+1).
     { apply mat_power_R_C_compat. } by rewrite H10. 
-    fold S_mat.
-    apply (is_lim_seq_le_le (fun m:nat => 0%Re) 
-              (fun m : nat => matrix_norm (S_mat ^+ m.+1))
-              (fun m : nat => mat_norm (S_mat ^+ m.+1))).
-    - intros. apply mat_2_norm_F_norm_compat.
-    - apply is_lim_seq_const. 
-    - apply mat_norm_converges. apply H9.  
+    fold S_mat. apply mat_norm_converges. apply H9.
 }
 
 apply iff_trans with (is_lim_seq

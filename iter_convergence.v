@@ -32,6 +32,7 @@ Import ComplexField.
 (** Define the solution vector at mth iteration **)
 Parameter Xm: forall (n:nat) (m:nat), 'cV[R]_n.+1. 
 
+
 (** - (A B) = A * (-B) **)
 Lemma Mopp_mult_r: 
   forall (m n p:nat) (A: 'M[R]_(m.+1,n.+1)) (B: 'M[R]_(n.+1,p.+1)),
@@ -99,10 +100,11 @@ Definition matrix_norm (n:nat) (A: 'M[complex R]_n.+1) :=
 
 
 (** If all ||S v|| / ||v|| = 0 , then it's maximum will also be 0**)
-Hypothesis lim_max: forall (n:nat) (v: 'cV[R]_n.+1) (A: 'M[R]_n.+1), 
-    vec_norm v <> 0%Re -> 
+Hypothesis lim_max: forall (n:nat) (A: 'M[R]_n.+1),
+   (exists v: 'cV[R]_n.+1, 
+    vec_norm v <> 0%Re /\ 
     let vc:= RtoC_vec v in 
-      is_lim_seq (fun m: nat => (vec_norm_C (mulmx (RtoC_mat (A^+m.+1)) vc) / (vec_norm_C vc))%Re) 0%Re ->
+      is_lim_seq (fun m: nat => (vec_norm_C (mulmx (RtoC_mat (A^+m.+1)) vc) / (vec_norm_C vc))%Re) 0%Re) ->
         is_lim_seq (fun m:nat => matrix_norm (RtoC_mat (A^+m.+1))) 0%Re.
 
 
@@ -412,7 +414,10 @@ assert (is_lim_seq (fun m : nat => vec_norm  (addmx (Xm n m.+1) (oppmx X))) 0%Re
 { split.
   + intros.
 
-    apply (@lim_max n (addmx (Xm n 0) (oppmx X)) (oppmx (mulmx (invmx A1) A2)) ).
+
+    apply lim_max.
+    exists (addmx (Xm n 0) (oppmx X)) .
+    split. 
     - apply H6.
     - assert (0%Re = (0/ (vec_norm_C  (RtoC_vec  (addmx (Xm n 0) (oppmx X)))))%Re). { nra. } rewrite H9.
        apply is_lim_seq_div'.

@@ -1051,3 +1051,9 @@ Proof.
 by move => x [a b]; rewrite /RtoC //= mul0r subr0.
 Qed.
 
+
+(** Define 2 -norm of a matrix **)
+Definition matrix_norm (n:nat) (A: 'M[complex R]_n.+1) :=
+    Lub_Rbar (fun x=> 
+      exists v: 'cV[complex R]_n.+1, vec_norm_C v <> 0 /\
+                x = (vec_norm_C  (mulmx A v))/ (vec_norm_C v)).

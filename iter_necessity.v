@@ -110,54 +110,6 @@ induction n.
 Qed.
 
 
-(** property of matrix norm, ||A B|| <= ||A||* ||B|| **)
-Lemma matrix_norm_prod: 
-  forall (n:nat) (A B: 'M[complex R]_n.+1),
-  mat_norm  (mulmx A B) <= (mat_norm  A)* (mat_norm B).
-Proof.
-intros. rewrite /mat_norm. rewrite -RmultE.
-rewrite -sqrt_mult.
-+ apply /RleP. apply sqrt_le_1_alt. apply /RleP. rewrite RmultE.
-  apply /RleP. 
-  apply Rle_trans with 
-  (\big[+%R/0]_i (\big[+%R/0]_j (C_mod (A i j))² * 
-                  \big[+%R/0]_j (C_mod (B i j))²)%Re).
-  - apply /RleP. apply big_sum_ge_ex_abstract.
-    intros. apply Rle_trans with 
-    (\big[+%R/0]_j ((C_mod (A i j))² * (C_mod (B i j))²)%Re).
-    * apply /RleP. apply big_sum_ge_ex_abstract. intros.
-      rewrite mxE. rewrite -Rsqr_mult. 
-      apply Rsqr_incr_1 .
-      ++ rewrite RmultE -C_mod_prod. admit.
-      ++ apply C_mod_ge_0.
-      ++ rewrite RmultE. rewrite -C_mod_prod. apply C_mod_ge_0.
-    * apply /RleP. apply big_split_sum_prod .
-      intros. split.
-      ++ apply Rsqr_ge_0. apply C_mod_ge_0.
-      ++ apply Rsqr_ge_0. apply C_mod_ge_0.
-  - rewrite -RmultE. apply /RleP. apply big_split_sum_prod .
-    intros. split.
-    * rewrite -(big_0_sum n).
-      apply /RleP. apply big_sum_ge_ex_abstract. intros.
-      apply Rsqr_ge_0. apply C_mod_ge_0.
-    * rewrite -(big_0_sum n).
-      apply /RleP. apply big_sum_ge_ex_abstract. intros.
-      apply Rsqr_ge_0. apply C_mod_ge_0.
-+ rewrite -(big_0_sum n).
-  apply /RleP. apply big_sum_ge_ex_abstract.
-  intros. 
-  assert (0%Re = \big[+%R/0]_(j<n.+1) 0).
-  { by rewrite (big_0_sum n). } rewrite H0.
-  apply /RleP. apply big_sum_ge_ex_abstract.
-  intros. apply Rsqr_ge_0. apply C_mod_ge_0.
-+ rewrite -(big_0_sum n).
-  apply /RleP. apply big_sum_ge_ex_abstract.
-  intros. 
-  assert (0%Re = \big[+%R/0]_(j<n.+1) 0).
-  { by rewrite (big_0_sum n). } rewrite H0.
-  apply /RleP. apply big_sum_ge_ex_abstract.
-  intros. apply Rsqr_ge_0. apply C_mod_ge_0.
-Admitted.
 
 
 (** the frobenius matrix norm is greater than 0 **)
@@ -1797,15 +1749,15 @@ induction n.
   - apply H.
 Qed.
 
-(** Define 2 -norm of a matrix **)
-Definition matrix_norm (n:nat) (A: 'M[complex R]_n.+1) :=
-    Lub_Rbar (fun x=> 
-      exists v: 'cV[complex R]_n.+1, vec_norm_C v <> 0 /\
-                x = (vec_norm_C  (mulmx A v))/ (vec_norm_C v)).
 
 Hypothesis matrix_norm_ge_0 :
   forall (n:nat) (A: 'M[complex R]_n.+1),
   (0 <= matrix_norm A)%Re.
+
+
+Hypothesis matrix_norm_prod:
+  forall (n:nat) (A B: 'M[complex R]_n.+1),
+  (matrix_norm (A *m B) <= matrix_norm A * matrix_norm B)%Re.
 
 (** 2 norm of a matrix <= Frobenius norm of the matrix **)
 Hypothesis mat_2_norm_F_norm_compat:
@@ -1814,6 +1766,7 @@ Hypothesis mat_2_norm_F_norm_compat:
 
 Lemma mat_norm_converges: 
   forall (n:nat) (A: 'M[complex R]_n.+1),
+  (forall i:'I_n.+1, @eigenvalue (complex_fieldType _) n.+1 A (lambda A i)) ->
   (forall (i: 'I_n.+1), (C_mod (lambda A i) < 1)%Re) -> 
   is_lim_seq (fun m:nat => matrix_norm (A^+m.+1)) 0%Re.
 Proof.
@@ -1830,7 +1783,7 @@ assert (A = mulmx (invmx V)
   have H3: mulmx (invmx V) V = 1%:M. 
   { by apply mulVmx. } rewrite -H3.
   rewrite -mulmxA. by apply matrix_eq1.
-} rewrite H0.
+} rewrite H3.
 apply (is_lim_seq_ext 
           (fun m:nat => matrix_norm (mulmx (invmx V) (mulmx
             ((conform_mx V (Jordan_form A))^+m.+1) V))) 
@@ -1858,47 +1811,51 @@ apply (is_lim_seq_ext
                invmx V *m conform_mx V (Jordan_form A)^+ n0.+1 *m V *m 
                 (invmx V *m conform_mx V (Jordan_form A) *m V).
       { by rewrite !mulmxA. } by rewrite H6. 
-  } by rewrite -H3.
+  } by rewrite -H4.
   apply (is_lim_seq_le_le (fun m:nat => 0)
           (fun m : nat =>
-               matrix_norm
-                 (invmx V *m (conform_mx V (Jordan_form A)
-                              ^+ m.+1 *m V)))
-           (fun m : nat => mat_norm
-            (invmx V *m (conform_mx V (Jordan_form A) ^+ m.+1 *m V)))).
+                  matrix_norm
+                       (invmx V *m (conform_mx V (Jordan_form A)
+                                    ^+ m.+1 *m V)))
+        (fun m : nat => ((matrix_norm (invmx V)) *
+             (matrix_norm
+               (conform_mx V (Jordan_form A)
+                            ^+ m.+1 *m V)))%Re)).
   * intros. split.
     - apply matrix_norm_ge_0.
-    - apply mat_2_norm_F_norm_compat.
+    - apply matrix_norm_prod.
   * apply is_lim_seq_const.
-  * apply (is_lim_seq_le_le (fun m:nat => 0)
-          (fun m : nat => mat_norm
-            (invmx V *m (conform_mx V (Jordan_form A) ^+ m.+1 *m V)))
-          (fun m : nat => (mat_norm (invmx V)) * (mat_norm  
-                (conform_mx V (Jordan_form A) ^+ m.+1 *m V)))).
-  intros.
-  + split.
-    - by apply mat_norm_ge_zero.
-    - apply /RleP. apply matrix_norm_prod.
-  + apply is_lim_seq_const.
-  + assert ( 0%Re = (mat_norm  (invmx V) * 0)%Re).
-    { nra. } rewrite H3.
+  * assert ( 0%Re = ((matrix_norm  (invmx V)) * 0)%Re).
+    { nra. } rewrite H4.
     apply is_lim_seq_mult'.
-    - apply is_lim_seq_const.
-    - apply (is_lim_seq_le_le (fun m:nat => 0)
-              (fun n0 : nat => mat_norm 
-                 (conform_mx V (Jordan_form A) ^+ n0.+1 *m V))
-              (fun n0 : nat => 
-                    (mat_norm  (conform_mx V (Jordan_form A) ^+ n0.+1)) *
-                    (mat_norm  V))).
-      intros.
-      * split.
-        { by apply mat_norm_ge_zero. }
-        { apply /RleP. apply matrix_norm_prod. }
-      * apply is_lim_seq_const.
-      * assert ( 0%Re = (0 * (mat_norm  V))%Re).
-        { nra. } rewrite H4.
-        apply is_lim_seq_mult'.
-        { 
+    ++ apply is_lim_seq_const.
+    ++ apply (is_lim_seq_le_le (fun m:nat => 0)
+                (fun n0 : nat =>
+                   matrix_norm
+                     (conform_mx V (Jordan_form A) ^+ n0.+1 *m V))
+              (fun n0 : nat =>
+                   ((matrix_norm
+                     (conform_mx V (Jordan_form A) ^+ n0.+1)) *
+                   (matrix_norm V))%Re)).
+        - intros. split.
+          * by apply matrix_norm_ge_0.
+          * apply matrix_norm_prod.
+        - apply is_lim_seq_const.
+        - assert ( 0%Re = (0 * matrix_norm V)%Re).
+          { nra. } rewrite H5.
+          apply is_lim_seq_mult'.
+          * apply (is_lim_seq_le_le (fun m:nat => 0)
+                    (fun n0 : nat =>
+                       matrix_norm
+                         (conform_mx V (Jordan_form A) ^+ n0.+1))
+                    (fun n0 : nat =>
+                       mat_norm
+                         (conform_mx V (Jordan_form A) ^+ n0.+1))).
+            ++ intros. split.
+               - apply matrix_norm_ge_0.
+               - apply mat_2_norm_F_norm_compat.
+            ++ apply is_lim_seq_const.
+            ++
           (** asserting J^m = diag[J^m_p1, J^m_p2, .. , J^m_ps] **)
            apply (is_lim_seq_ext 
                   (fun m:nat => mat_norm  (conform_mx V
@@ -1912,7 +1869,7 @@ apply (is_lim_seq_ext
            - apply mat_norm_eq.
              assert ((conform_mx V (Jordan_form A)) ^+ n0.+1 = 
                       conform_mx V ((Jordan_form A) ^+ n0.+1)).
-             { apply conform_mx_mat_power. apply total_eigen_val.  } rewrite H5.
+             { apply conform_mx_mat_power. apply total_eigen_val.  } rewrite H6.
              unfold Jordan_form. by rewrite exp_diag_block_S.
            
            (** now that we have powers for each Jordan block,
@@ -1972,8 +1929,7 @@ apply (is_lim_seq_ext
                + apply entry_sum_lim_zero.
                  by rewrite total_eigen_val.
              }
-        }
-        { apply is_lim_seq_const. } 
+        ++ apply is_lim_seq_const.  
 Qed.
 
 

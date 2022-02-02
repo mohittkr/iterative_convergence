@@ -24,7 +24,7 @@ Import Order.TTheory GRing.Theory Num.Def Num.Theory.
 Open Scope classical_set_scope.
 
 From mathcomp Require Import complex.
-Require Import complex_mat_vec_prop iter_necessity.
+Require Import complex_mat_vec_prop iter_necessity matrix_norm.
 Import ComplexField.
 
 
@@ -107,16 +107,6 @@ Hypothesis lim_max: forall (n:nat) (A: 'M[R]_n.+1) (X: 'cV[R]_n.+1),
       is_lim_seq (fun m: nat => (vec_norm_C (mulmx (RtoC_mat (A^+m.+1)) vc) / (vec_norm_C vc))%Re) 0%Re) ->
         is_lim_seq (fun m:nat => matrix_norm (RtoC_mat (A^+m.+1))) 0%Re.
 
-
-(** ||Ax|| <= ||A|| ||x|| **)
-Hypothesis matrix_norm_compat: 
-  forall (n:nat) (x: 'cV[complex R]_n.+1) (A: 'M[complex R]_n.+1),
-    vec_norm_C x <> 0 -> vec_norm_C (mulmx A x) <= ((matrix_norm A) * vec_norm_C x)%Re.
-
-(** ||xA|| <= ||x|| ||A|| **)
-Hypothesis matrix_norm_compat_row: 
-  forall (n:nat) (x: 'rV[complex R]_n.+1) (A: 'M[complex R]_n.+1),
-    vec_norm_rowv x <> 0 -> vec_norm_rowv (mulmx x A) <= ((matrix_norm A) * vec_norm_rowv x)%Re.
 
 Lemma sum_geom_gt_0: forall (x:R) (n:nat), (0<x)%Re ->
     (sum_n (fun n:nat => x^n) n >0)%Re.
@@ -529,7 +519,7 @@ assert ((forall x0: 'cV[R]_n.+1,
                   (RtoC_mat ((oppmx (mulmx (invmx A1) A2))^+n0.+1 ))
                   (RtoC_vec (addmx (X_m 0 x0 b A1 A2) (oppmx X)))).
         { apply mat_vec_unfold. } rewrite H9.
-        apply /RleP. apply matrix_norm_compat.
+        apply /RleP. apply matrix_norm.matrix_norm_compat.
         assert (vec_norm_C  (RtoC_vec (addmx (X_m 0 x0 b A1 A2) (oppmx X))) =
                   vec_norm (addmx (X_m 0 x0 b A1 A2) (oppmx X))).
         { apply vec_norm_R_C. }
@@ -602,7 +592,7 @@ assert (is_lim_seq (fun m:nat => matrix_norm
     intros.
     split. 
     + apply vec_norm_rowv_ge_0. 
-    + apply /RleP. apply matrix_norm_compat_row.
+    + apply /RleP. apply matrix_norm.matrix_norm_compat_row.
       apply non_zero_vec_norm_row. apply H3. 
     apply is_lim_seq_const.
     assert (0%Re = (0* vec_norm_rowv v)%Re).

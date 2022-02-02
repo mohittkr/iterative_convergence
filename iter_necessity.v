@@ -32,7 +32,7 @@ Import Order.TTheory GRing.Theory Num.Def Num.Theory.
 Open Scope classical_set_scope.
 
 From mathcomp Require Import complex.
-Require Import complex_mat_vec_prop.
+Require Import complex_mat_vec_prop matrix_norm.
 Import ComplexField.
 
 Lemma V_exists:
@@ -43,9 +43,7 @@ Proof.
 by apply Jordan.
 Qed.
 
-(** Define the Frobenius matrix norm **)
-Definition mat_norm (n:nat) (A: 'M[complex R]_n.+1) : R:=
-  sqrt (\sum_i (\sum_j (Rsqr (C_mod (A i j))))).
+
 
 (** If A= B , C*A = C*B **)
 Lemma matrix_eq1: 
@@ -1750,20 +1748,6 @@ induction n.
 Qed.
 
 
-Hypothesis matrix_norm_ge_0 :
-  forall (n:nat) (A: 'M[complex R]_n.+1),
-  (0 <= matrix_norm A)%Re.
-
-
-Hypothesis matrix_norm_prod:
-  forall (n:nat) (A B: 'M[complex R]_n.+1),
-  (matrix_norm (A *m B) <= matrix_norm A * matrix_norm B)%Re.
-
-(** 2 norm of a matrix <= Frobenius norm of the matrix **)
-Hypothesis mat_2_norm_F_norm_compat:
-  forall (n:nat) (A: 'M[complex R]_n.+1),
-  (0 <= matrix_norm A <= mat_norm A)%Re.
-
 Lemma mat_norm_converges: 
   forall (n:nat) (A: 'M[complex R]_n.+1),
   (forall i:'I_n.+1, @eigenvalue (complex_fieldType _) n.+1 A (lambda A i)) ->
@@ -1822,8 +1806,8 @@ apply (is_lim_seq_ext
                (conform_mx V (Jordan_form A)
                             ^+ m.+1 *m V)))%Re)).
   * intros. split.
-    - apply matrix_norm_ge_0.
-    - apply matrix_norm_prod.
+    - apply matrix_norm.matrix_norm_ge_0.
+    - apply matrix_norm.matrix_norm_prod.
   * apply is_lim_seq_const.
   * assert ( 0%Re = ((matrix_norm  (invmx V)) * 0)%Re).
     { nra. } rewrite H4.
@@ -1838,8 +1822,8 @@ apply (is_lim_seq_ext
                      (conform_mx V (Jordan_form A) ^+ n0.+1)) *
                    (matrix_norm V))%Re)).
         - intros. split.
-          * by apply matrix_norm_ge_0.
-          * apply matrix_norm_prod.
+          * by apply matrix_norm.matrix_norm_ge_0.
+          * apply matrix_norm.matrix_norm_prod.
         - apply is_lim_seq_const.
         - assert ( 0%Re = (0 * matrix_norm V)%Re).
           { nra. } rewrite H5.
@@ -1852,8 +1836,8 @@ apply (is_lim_seq_ext
                        mat_norm
                          (conform_mx V (Jordan_form A) ^+ n0.+1))).
             ++ intros. split.
-               - apply matrix_norm_ge_0.
-               - apply mat_2_norm_F_norm_compat.
+               - apply matrix_norm.matrix_norm_ge_0.
+               - apply matrix_norm.mat_2_norm_F_norm_compat.
             ++ apply is_lim_seq_const.
             ++
           (** asserting J^m = diag[J^m_p1, J^m_p2, .. , J^m_ps] **)

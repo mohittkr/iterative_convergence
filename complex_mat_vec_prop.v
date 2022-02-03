@@ -207,15 +207,6 @@ by rewrite /C_mod /= !expr2 mul1r mul0r Rplus_0_r sqrt_1.
 Qed.
 
 
-Lemma C_mod_minus_x: forall (x: complex R),
-  C_mod (-x) = C_mod x.
-Proof.
-intros. rewrite /C_mod //=. 
-assert (x = (Re x +i* Im x)%C).
-{ by rewrite -C_destruct. } rewrite H //=.
-rewrite !expr2. by rewrite !mulrNN.
-Qed.
-
 Lemma C_mod_pow: forall (x: complex R) (n:nat), 
   C_mod (x^+ n) = (C_mod x)^+n.
 Proof.
@@ -227,6 +218,15 @@ Qed.
 Lemma C_destruct: forall (x: complex R), x = (Re x +i* Im x)%C.
 Proof.
 by move => [a b]. 
+Qed.
+
+Lemma C_mod_minus_x: forall (x: complex R),
+  C_mod (-x) = C_mod x.
+Proof.
+intros. rewrite /C_mod //=. 
+assert (x = (Re x +i* Im x)%C).
+{ by rewrite -C_destruct. } rewrite H //=.
+rewrite !expr2. by rewrite !mulrNN.
 Qed.
 
 Lemma complex_not_0_sym: forall (x : complex R),

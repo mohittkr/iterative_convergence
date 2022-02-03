@@ -263,7 +263,6 @@ assert ((\big[+%R/0]_j (A x j * X j y) -
 { apply /eqP. by rewrite subr_eq0. } by rewrite H addr0.
 Qed.
 
-
 (** State the iterative convergence theorem **)
 Theorem iter_convergence: 
   forall (n:nat) (A: 'M[R]_n.+1) (b: 'cV[R]_n.+1) (X: 'cV[R]_n.+1)

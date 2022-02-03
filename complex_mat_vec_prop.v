@@ -207,6 +207,15 @@ by rewrite /C_mod /= !expr2 mul1r mul0r Rplus_0_r sqrt_1.
 Qed.
 
 
+Lemma C_mod_minus_x: forall (x: complex R),
+  C_mod (-x) = C_mod x.
+Proof.
+intros. rewrite /C_mod //=. 
+assert (x = (Re x +i* Im x)%C).
+{ by rewrite -C_destruct. } rewrite H //=.
+rewrite !expr2. by rewrite !mulrNN.
+Qed.
+
 Lemma C_mod_pow: forall (x: complex R) (n:nat), 
   C_mod (x^+ n) = (C_mod x)^+n.
 Proof.
@@ -1051,9 +1060,3 @@ Proof.
 by move => x [a b]; rewrite /RtoC //= mul0r subr0.
 Qed.
 
-
-(** Define 2 -norm of a matrix **)
-Definition matrix_norm (n:nat) (A: 'M[complex R]_n.+1) :=
-    Lub_Rbar (fun x=> 
-      exists v: 'cV[complex R]_n.+1, vec_norm_C v <> 0 /\
-                x = (vec_norm_C  (mulmx A v))/ (vec_norm_C v)).

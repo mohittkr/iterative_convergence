@@ -1562,6 +1562,143 @@ destruct H.
   } by rewrite H3.
 Qed.
 
+Definition A1_inverse := \matrix_(i<3, j<3)
+  if (i==j :> nat) then (1/2)%Re else
+      (if ((i-j)%N==1%N :>nat) then (1/4)%Re else
+            (if ((i-j)%N==2%N :>nat) then (1/8)%Re else 0)).
+
+Definition inv_A1_h (h:R):=
+  \matrix_(i<3, j<3) ((h^2) * (A1_inverse i j))%Re.
+
+
+
+(** stating the explicit inverse of A1 **)
+Hypothesis invmx_A1_G: forall (h:R),
+  (0<h)%Re -> invmx (A1 (Ah 2%N h)) = inv_A1_h (h:R).
+
+(** A1 * A1^-1 = I **)
+Lemma invmx_A1_mul_A1_1:forall (h:R), 
+  (0<h)%Re -> (A1 (Ah 2%N h)) *m invmx (A1 (Ah 2%N h)) = 1%:M.
+Proof.
+intros. apply mulmx1C. rewrite invmx_A1_G.
++ apply matrixP. unfold eqrel. intros. rewrite !mxE.
+  rewrite !big_ord_recr //= big_ord0 add0r !mxE.
+  assert (widen_ord (leqnSn 2)
+           (widen_ord (leqnSn 1) ord_max) = 0).
+  { by apply /eqP. } rewrite H0. clear H0.
+  assert (widen_ord (leqnSn 2) ord_max = 1).
+  { by apply /eqP. } rewrite H0. clear H0.
+  assert (@ord_max 2 = 2).
+  { by apply /eqP. } rewrite H0. clear H0.
+  assert ((x = 0%N :> nat)   \/ (x = 1%N :> nat)  \/ (x = 2%N :>nat)).
+  { assert ((x < 3)%N). { by apply ltn_ord. }
+    rewrite leq_eqVlt in H0.
+    assert ((x == 2%N :> nat) \/ (x < 2)%N). { by apply /orP. }
+    destruct H1.
+    + right. right. by apply /eqP.
+    + rewrite leq_eqVlt in H1. 
+      assert ((x == 1%N :> nat) \/ (x < 1)%N). { by apply /orP. }
+      destruct H2.
+      - right. left. by apply /eqP.
+      - apply ltnSE in H2. rewrite leqn0 in H2. left. by apply /eqP.
+  }
+  assert ((y = 0%N :> nat)   \/ (y = 1%N :> nat)  \/ (y = 2%N :>nat)).
+  { assert ((y < 3)%N). { by apply ltn_ord. }
+    rewrite leq_eqVlt in H1.
+    assert ((y == 2%N :> nat) \/ (y < 2)%N). { by apply /orP. }
+    destruct H2.
+    + right. right. by apply /eqP.
+    + rewrite leq_eqVlt in H2. 
+      assert ((y == 1%N :> nat) \/ (y < 1)%N). { by apply /orP. }
+      destruct H3.
+      - right. left. by apply /eqP.
+      - apply ltnSE in H3. rewrite leqn0 in H3. left. by apply /eqP.
+  }
+  destruct H0.
+  - rewrite H0 //=. destruct H1.
+    * rewrite H1 //=. rewrite !Rmult_0_r. rewrite mulr0 mul0r !addr0.
+      rewrite Rmult_1_r.
+      assert ((x == y :>nat)%:R = 1%Re). 
+      { by rewrite H0 H1. } rewrite H2.
+      assert ((h * h * (1 / 2))%Re * (1 / (h * h) * 2)%Re = 
+              ( (h*h) * (/ (h*h)))%Re). 
+      { rewrite -RmultE. nra. }
+       rewrite H3. rewrite Rinv_r.
+       + by [].
+       + nra. 
+    * destruct H1. 
+      ++ rewrite H1 //=. rewrite !Rmult_0_r. rewrite mulr0 mul0r !addr0.
+         rewrite add0r mul0r.
+         assert ((x == y :>nat)%:R = 0%Re). 
+         { by rewrite H0 H1. } by rewrite H2.
+      ++ rewrite H1 //=. rewrite !Rmult_0_r. rewrite mulr0 mul0r !addr0.
+         rewrite add0r mul0r.
+         assert ((x == y :>nat)%:R = 0%Re). 
+         { by rewrite H0 H1. } by rewrite H2.
+  - destruct H0.
+    * rewrite H0 //=. destruct H1.
+      ++ rewrite H1 //=. rewrite !Rmult_0_r. rewrite mulr0 !addr0.
+         assert ((x == y :>nat)%:R = 0%Re). 
+         { by rewrite H0 H1. } rewrite H2. rewrite Rmult_1_r.
+         assert ((h * h * (1 / 4))%Re * (1 / (h * h) * 2)%Re +
+                    (h* h * (1 / 2))%Re * (1 / (h * h) * -1)%Re = 
+                   ((h*h) * (1 / (h * h)) * ( (1/4 * 2)  + 1/2 -1)%Re)%Re).
+         { rewrite -RplusE -!RmultE. nra. } rewrite H3.
+         nra.
+      ++ destruct H1.
+         - rewrite H1 //=. rewrite !Rmult_0_r. rewrite mul0r !addr0.
+           rewrite mulr0 add0r.
+           assert ((x == y :>nat)%:R = 1%Re). 
+           { by rewrite H0 H1. } rewrite H2. rewrite Rmult_1_r.
+           assert ((h * h * (1 / 2))%Re * (1 / (h * h) * 2)%Re = 
+              ( (h*h) * (/ (h*h)))%Re). 
+           { rewrite -RmultE. nra. }
+           rewrite H3. rewrite Rinv_r.
+           + by [].
+           + nra.
+         - rewrite H1 //=. rewrite !Rmult_0_r. rewrite !mulr0 !addr0.
+           assert ((x == y :>nat)%:R = 0%Re). 
+           { by rewrite H0 H1. } rewrite H2. rewrite Rmult_1_r.
+           by rewrite mul0r addr0.
+     * rewrite H0 //=. destruct H1.
+       ++ rewrite H1 //=. rewrite !Rmult_0_r. rewrite mulr0 !addr0.
+          assert ((x == y :>nat)%:R = 0%Re). 
+          { by rewrite H0 H1. } rewrite H2. rewrite Rmult_1_r.
+          assert ((h * h * (1 / 8))%Re * (1 / (h * h) * 2)%Re +
+                    (h * h * (1 / 4))%Re * (1 / (h * h) * -1)%Re = 
+                   ((h*h) * (1 / (h * h)) * ( (1/8 * 2)  + (1/4 * -1))%Re)%Re).
+          { rewrite -RplusE -!RmultE. nra. } rewrite H3. nra.
+      ++ destruct H1.
+         + rewrite H1 //=. rewrite !mulr0 add0r.
+           assert ((x == y :>nat)%:R = 0%Re). 
+           { by rewrite H0 H1. } rewrite H2. rewrite Rmult_1_r.
+           assert ((h * h * (1 / 4))%Re * (1 / (h * h) * 2)%Re +
+                    (h * h * (1 / 2))%Re * (1 / (h * h) * -1)%Re =
+                   ((h*h) * (1 / (h * h)) * ( (1/4 * 2)  + (1/2 * -1))%Re)%Re).
+           { rewrite -RplusE -!RmultE. nra. } rewrite H3. nra.
+         + rewrite H1 //=. rewrite !mulr0 !add0r.
+           assert ((x == y :>nat)%:R = 1%Re). 
+           { by rewrite H0 H1. } rewrite H2.
+           rewrite Rmult_1_r.
+           assert ((h * h * (1 / 2))%Re * (1 / (h * h) * 2)%Re = 
+              ( (h*h) * (/ (h*h)))%Re). 
+           { rewrite -RmultE. nra. }
+           rewrite H3. rewrite Rinv_r.
+           - by [].
+           - nra.
++ by [].
+Qed.
+
+
+(** A1 is invertible **)
+Lemma A1_invertible: forall (h:R), 
+  (0<h)%Re -> (A1 (Ah 2%N h)) \in unitmx.
+Proof.
+intros. rewrite unitmxE. rewrite unitrE. rewrite -det_inv.
+rewrite -det_mulmx. rewrite invmx_A1_mul_A1_1. by rewrite det1.
+by []. 
+Qed.
+  
 
 Theorem Gauss_seidel_Ah_converges:
   forall (b: 'cV[R]_3) (X: 'cV[R]_3) (h:R),
@@ -1570,7 +1707,6 @@ Theorem Gauss_seidel_Ah_converges:
    mulmx A X = b ->
    (forall x0: 'cV[R]_3, 
       exists i:'I_3, x0 i 0 <> X i 0) ->
-   (A1 A) \in unitmx ->
    is_positive_definite A ->
    (forall (S: 'M[complex R]_3) (i: 'I_3), lambda (oppmx S) i = -lambda S i) ->
    (let S_mat:= RtoC_mat (oppmx (mulmx ((invmx (A1 A))) (A2 A))) in
@@ -1584,21 +1720,21 @@ apply Gauss_Seidel_converges.
 + by [].
 + intros. rewrite /A0. rewrite !mxE.
   assert (i == i :>nat). { by []. }
-  rewrite H6. apply /RltP.
+  rewrite H5. apply /RltP.
   apply Rmult_lt_0_compat.
   - assert ((1 / h ^ 2)%Re = (/ (h^2))%Re). { nra. }
-    rewrite H7. apply Rinv_0_lt_compat. apply Rmult_lt_0_compat; nra.
+    rewrite H6. apply Rinv_0_lt_compat. apply Rmult_lt_0_compat; nra.
   - apply Rlt_0_2.
 + intros. rewrite /A0. 
   by apply Ah_is_symmetric.
-+ by [].
++ by apply A1_invertible.
 + assert (is_positive_definite (Ah 2%N h)).
-  { by apply Ah_pd. } rewrite /is_positive_definite in H6.
-  intros. specialize (H6 x H7).
+  { by apply Ah_pd. } rewrite /is_positive_definite in H5.
+  intros. specialize (H5 x H6).
   rewrite /scal_of_mat0. apply /eqP. rewrite eq_complex.
   apply /nandP. left.
   rewrite //=.  apply /eqP. apply Rlt_dichotomy_converse .
-  right. rewrite /A0. apply Rlt_gt. apply /RltP. rewrite -mulmxA. apply H6.
+  right. rewrite /A0. apply Rlt_gt. apply /RltP. rewrite -mulmxA. apply H5.
 + by apply Ah_pd.
 + by [].
 + by [].

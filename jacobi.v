@@ -32,10 +32,18 @@ Require Import iter_necessity iter_convergence.
 Import ComplexField. 
 
 (** define a tridiagonal system **)
+(*
 Definition A (n:nat):= \matrix_(i<n.+1, j<n.+1)
    if (i==j :> nat) then -2 else
       (if ((i-j)%N==0%N :>nat) then 1 else
             (if ((j-i)%N==0%N :>nat) then 1 else 0)).
+*)
+
+Definition A (n:nat):= \matrix_(i<n.+1, j<n.+1)
+   if (i==j :> nat) then -2 else
+      (if ((i-j)%N==1%N :>nat) then (1)%Re else
+            (if ((j-i)%N==1%N :>nat) then (1)%Re else 0)).
+
 
 Definition Ah (n:nat)(h:R) := \matrix_(i<n.+1,j<n.+1)
     ((1/(h^2)) * ((A n) i j))%Re.
@@ -259,31 +267,33 @@ rewrite !S_mat_simp.
   assert (0%N == @inord n 1 :> nat = false).
   { assert (@inord n 1 = 1%N :> nat). { by rewrite inordK. }
     by rewrite H4.
-  } rewrite H4 subn0 eq_sym H4.
+  } rewrite H4.
+  assert ((@inord n 1 - 0)%N == 1%N).
+  { by rewrite inordK. } rewrite H5. 
   rewrite -RoppE -!RmultE. 
   assert (((h ^+2) * 2^-1 * (1 / (h * (h * 1)) * 1))%Re = (1 / 2)%Re ).
   { assert ((1 / (h * (h * 1)) * 1)%Re = (/ (h^2))%Re).
     { rewrite !Rmult_1_r. 
-      assert ((h * h)%Re = (h^2)%Re). { nra. } rewrite H5. nra.
-    } rewrite H5. rewrite -div1r. rewrite -RdivE.
+      assert ((h * h)%Re = (h^2)%Re). { nra. } rewrite H6. nra.
+    } rewrite H6. rewrite -div1r. rewrite -RdivE.
     + assert (((h ^+2) * (1 / 2) * / h ^ 2)%Re = 
                 ((1 / 2) * ((h ^+2) *  / h ^ 2))%Re).
-      { nra. } rewrite H6. rewrite !RmultE. 
+      { nra. } rewrite H7. rewrite !RmultE. 
       assert ((h ^+2 * / h ^ 2) = 1%Re).
       { assert ((h ^2 * / h ^ 2)%Re = 1%Re).
         { apply Rinv_r. 
           assert ((0< (h ^ 2))%Re -> (h ^ 2)%Re <> 0%Re). { nra. }
-          apply H7. apply Rmult_lt_0_compat;nra. 
-        } rewrite -H7. rewrite [RHS]RmultE.
+          apply H8. apply Rmult_lt_0_compat;nra. 
+        } rewrite -H8. rewrite [RHS]RmultE.
         apply  Rmult_eq_compat_r. by rewrite RpowE.
-      } rewrite H7. by rewrite mulr1.
+      } rewrite H8. by rewrite mulr1.
     + apply /eqP. assert ( (0<2)%Re -> 2%Re <> 0%Re). { nra. }
-      apply H6. nra.
+      apply H7. nra.
   } rewrite -RoppE.
   assert ((- (- h ^+ 2 * 2^-1 * (1 / (h * (h * 1)) * 1)))%Re = 
             (h ^+ 2 * 2^-1 * (1 / (h * (h * 1)) * 1))%Re).
-  { nra. } rewrite H6. 
-  rewrite H5. nra.
+  { nra. } rewrite H7. 
+  rewrite H6. nra.
 + by []. by [].
 Qed.
 

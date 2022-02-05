@@ -1037,3 +1037,576 @@ apply iter_convergence with A.
 Qed.
 
 
+
+
+(** Gauss Seidel iteration for a 3 x 3 matrix **)
+
+(** define a tridiagonal system **)
+Definition A (n:nat):= \matrix_(i<n.+1, j<n.+1)
+   if (i==j :> nat) then 2 else
+      (if ((i-j)%N==1%N :>nat) then (-1)%Re else
+            (if ((j-i)%N==1%N :>nat) then (-1)%Re else 0)).
+
+
+(** Positive definiteness of a 3 x 3 matrix **)
+Definition Ah (n:nat)(h:R) := \matrix_(i<n.+1,j<n.+1)
+    ((1/(h^2)) * ((A n) i j))%Re.
+
+Lemma Ah_pd:
+  forall (h:R), (0<h)%Re -> 
+  is_positive_definite (Ah 2%N h).
+Proof.
+intros. rewrite /is_positive_definite.
+intros. rewrite !mxE.
+rewrite !big_ord_recr //= big_ord0 //= add0r.
+rewrite !Re_add. rewrite !mxE.
+rewrite !big_ord_recr //= !big_ord0 //= !add0r.
+rewrite !mxE //=. rewrite !Rmult_1_r.
+rewrite !mulrDr !Re_add. rewrite !Rmult_0_r //=.
+assert ( (((x
+         (widen_ord (leqnSn 2)
+            (widen_ord (leqnSn 1) ord_max)) 0)^*)%C *
+         (((1 / (h * h) * 2)%Re +i* 0)%C *
+          x
+            (widen_ord (leqnSn 2)
+               (widen_ord (leqnSn 1) ord_max)) 0)) = 
+         (x
+            (widen_ord (leqnSn 2)
+               (widen_ord (leqnSn 1) ord_max)) 0 * 
+          ((x
+         (widen_ord (leqnSn 2)
+            (widen_ord (leqnSn 1) ord_max)) 0)^*)%C) *
+          ((1 / (h * h) * 2)%Re +i* 0)%C).
+{ rewrite mulrC. rewrite -[LHS]mulrA. by rewrite mulrC. }
+rewrite H1. clear H1.
+rewrite conj_mag. rewrite Re_prod //=.
+assert ((((x ord_max 0)^*)%C *
+            (((1 / (h * h) * 2)%Re +i* 0)%C * x ord_max 0)) = 
+        (x ord_max 0 * ((x ord_max 0)^*)%C) * 
+          ((1 / (h * h) * 2)%Re +i* 0)%C).
+{ rewrite mulrC. rewrite -[LHS]mulrA. by rewrite mulrC. }
+rewrite H1. clear H1.
+rewrite conj_mag. rewrite Re_prod //=.
+assert ((((x (widen_ord (leqnSn 2) ord_max) 0)^*)%C *
+          (((1 / (h * h) * 2)%Re +i* 0)%C *
+           x (widen_ord (leqnSn 2) ord_max) 0)) = 
+         (x (widen_ord (leqnSn 2) ord_max) 0 * 
+              ((x (widen_ord (leqnSn 2) ord_max) 0)^*)%C) *
+         ((1 / (h * h) * 2)%Re +i* 0)%C).
+{ rewrite mulrC. rewrite -[LHS]mulrA. by rewrite mulrC. }
+rewrite H1. clear H1.
+rewrite conj_mag. rewrite Re_prod //=.
+assert ((((x ord_max 0)^*)%C *
+            (((1 / (h * h) * -1)%Re +i* 0)%C *
+             x (widen_ord (leqnSn 2) ord_max) 0)) = 
+         ((1 / (h * h) * -1)%Re +i* 0)%C * 
+        ( x (widen_ord (leqnSn 2) ord_max) 0 * ((x ord_max 0)^*)%C)).
+{ rewrite mulrC. rewrite -[LHS]mulrA. by rewrite mulrC. }
+rewrite H1. clear H1. rewrite Re_prod //=.
+assert ((((x ord_max 0)^*)%C *
+            ((0 +i* 0)%C *
+             x
+               (widen_ord (leqnSn 2)
+                  (widen_ord (leqnSn 1) ord_max)) 0)) = 
+          (0 +i* 0)%C * 
+          (x
+               (widen_ord (leqnSn 2)
+                  (widen_ord (leqnSn 1) ord_max)) 0 * ((x ord_max 0)^*)%C)).
+{ rewrite mulrC. rewrite -[LHS]mulrA. by rewrite mulrC. }
+rewrite H1. clear H1. rewrite Re_prod //=.
+assert ((((x (widen_ord (leqnSn 2) ord_max) 0)^*)%C *
+          (((1 / (h * h) * -1)%Re +i* 0)%C * x ord_max 0)) = 
+          ((1 / (h * h) * -1)%Re +i* 0)%C * 
+          (x ord_max 0 * ((x (widen_ord (leqnSn 2) ord_max) 0)^*)%C)).
+{ rewrite mulrC. rewrite -[LHS]mulrA. by rewrite mulrC. }
+rewrite H1. clear H1. rewrite Re_prod //=.
+assert ((((x (widen_ord (leqnSn 2) ord_max) 0)^*)%C *
+        (((1 / (h * h) * -1)%Re +i* 0)%C *
+         x
+           (widen_ord (leqnSn 2)
+              (widen_ord (leqnSn 1) ord_max)) 0)) = 
+        ((1 / (h * h) * -1)%Re +i* 0)%C * 
+        (x
+           (widen_ord (leqnSn 2)
+              (widen_ord (leqnSn 1) ord_max)) 0 *
+          ((x (widen_ord (leqnSn 2) ord_max) 0)^*)%C)).
+{ rewrite mulrC. rewrite -[LHS]mulrA. by rewrite mulrC. }
+rewrite H1. clear H1. rewrite Re_prod //=.
+assert ( (((x
+             (widen_ord (leqnSn 2)
+                (widen_ord (leqnSn 1) ord_max)) 0)^*)%C *
+         ((0 +i* 0)%C * x ord_max 0)) = 
+        (0 +i* 0)%C * 
+        ( x ord_max 0 * ((x
+             (widen_ord (leqnSn 2)
+                (widen_ord (leqnSn 1) ord_max)) 0)^*)%C )).
+{ rewrite mulrC. rewrite -[LHS]mulrA. by rewrite mulrC. }
+rewrite H1. clear H1. rewrite Re_prod //=.
+assert ((((x
+       (widen_ord (leqnSn 2)
+          (widen_ord (leqnSn 1) ord_max)) 0)^*)%C *
+         (((1 / (h * h) * -1)%Re +i* 0)%C *
+          x (widen_ord (leqnSn 2) ord_max) 0)) = 
+      ((1 / (h * h) * -1)%Re +i* 0)%C * 
+      (x (widen_ord (leqnSn 2) ord_max) 0 * ((x
+       (widen_ord (leqnSn 2)
+          (widen_ord (leqnSn 1) ord_max)) 0)^*)%C)).
+{ rewrite mulrC. rewrite -[LHS]mulrA. by rewrite mulrC. }
+rewrite H1. clear H1. rewrite Re_prod //=.
+remember (x (widen_ord (leqnSn 2)
+            (widen_ord (leqnSn 1) ord_max)) 0) as a.
+remember (x (widen_ord (leqnSn 2) ord_max) 0) as b.
+remember (x ord_max 0) as c. rewrite !mul0r !add0r !addr0.
+assert ((C_mod a)² * (1 / (h * h) * 2)%Re = 
+          ((1 / (h * h))%Re * (2 * (C_mod a)² ))%Re).
+{ rewrite -RmultE. nra. } rewrite H1. clear H1.
+assert ((1 / (h * h) * -1)%Re * (Re (b * (a^*)%C)) = 
+          ((1 / (h * h))%Re * (- (Re (b * (a^*)%C))))).
+{ rewrite -!RmultE. rewrite -RoppE. nra. }
+rewrite H1. clear H1.
+assert (((1 / (h * h) * -1)%Re * Re (a * (b^*)%C) = 
+           ((1 / (h * h))%Re * (- (Re (a * (b^*)%C)))))).
+{ rewrite -!RmultE. rewrite -RoppE. nra. }
+rewrite H1. clear H1.
+assert ((C_mod b)² * (1 / (h * h) * 2)%Re  = 
+           ((1 / (h * h))%Re * (2 * (C_mod b)² ))%Re).
+{ rewrite -RmultE. nra. } rewrite H1. clear H1.
+
+assert ((1 / (h * h) * -1)%Re * Re (c * (b^*)%C) = 
+           ((1 / (h * h))%Re * (- (Re (c * (b^*)%C))))). 
+{ rewrite -!RmultE. rewrite -RoppE. nra. }
+rewrite H1. clear H1. 
+assert ((1 / (h * h) * -1)%Re * Re (b * (c^*)%C) = 
+           ((1 / (h * h))%Re * (- (Re (b * (c^*)%C))))).
+{ rewrite -!RmultE. rewrite -RoppE. nra. }
+rewrite H1. clear H1.
+assert (((C_mod c)² * (1 / (h * h) * 2)%Re) = 
+         ((1 / (h * h))%Re * (2 * (C_mod c)² ))%Re).
+{ rewrite -RmultE. nra. } rewrite H1. clear H1.
+assert ((1 / (h * h) * (2 * (C_mod a)²))%Re +
+        (1 / (h * h))%Re * - Re (b * (a^*)%C) +
+        ((1 / (h * h))%Re * - Re (a * (b^*)%C) +
+         (1 / (h * h) * (2 * (C_mod b)²))%Re +
+         (1 / (h * h))%Re * - Re (c * (b^*)%C)) +
+        ((1 / (h * h))%Re * - Re (b * (c^*)%C) +
+         (1 / (h * h) * (2 * (C_mod c)²))%Re) = 
+        (1 / (h*h))%Re * 
+          (2* (C_mod a)² - Re (b * (a^*)%C)  -
+            Re (a * (b^*)%C) + 2* (C_mod b)² - Re (c * (b^*)%C) -
+             Re (b * (c^*)%C) + 2 * (C_mod c)² )).
+{ rewrite !mulrDr. by rewrite !addrA. }
+rewrite H1. clear H1.
+apply /RltP. apply Rmult_lt_0_compat.
++ assert ((1 / (h * h))%Re = (/ (h*h))%Re). { nra. }
+  rewrite H1. apply Rinv_0_lt_compat.  by apply Rmult_lt_0_compat.
++ rewrite /C_mod. rewrite !Rsqr_sqrt.
+  - assert ( b = (Re b +i* Im b)%C). { by rewrite -C_destruct //=. }
+    assert ( a = (Re a +i* Im a)%C). { by rewrite -C_destruct //=. }
+    assert ( c = (Re c +i* Im c)%C). { by rewrite -C_destruct //=. }
+    rewrite H1 H2 H3 //=. rewrite !mulrDr.
+    rewrite -!RminusE -!RplusE -!RmultE -!RoppE.
+    assert (exists k, x k 0 !=0).
+    { by apply /cV0Pn. } destruct H4 as [k H4].
+    assert ((2 * Re a ^+ 2 + 2 * Im a ^+ 2 -
+             (Re b * Re a - Im b * - Im a) -
+             (Re a * Re b - Im a * - Im b) +
+             (2 * Re b ^+ 2 + 2 * Im b ^+ 2) -
+             (Re c * Re b - Im c * - Im b) -
+             (Re b * Re c - Im b * - Im c) +
+             (2 * Re c ^+ 2 + 2 * Im c ^+ 2))%Re = 
+             ( 2 * Re a ^+ 2 + 2 * Im a ^+ 2 - 2* Re a * Re b -
+              2 * Im a * Im b + 2 * Re b ^+ 2 + 2 * Im b ^+ 2 -
+              2 * Re b * Re c - 2* Im b * Im c + 
+              2 * Re c ^+ 2 + 2 * Im c ^+ 2)%Re).
+    { nra. } rewrite H5. clear H5.
+    assert ((2 * Re a ^+ 2 + 2 * Im a ^+ 2 -
+             2 * Re a * Re b - 2 * Im a * Im b +
+             2 * Re b ^+ 2 + 2 * Im b ^+ 2 -
+             2 * Re b * Re c - 2 * Im b * Im c +
+             2 * Re c ^+ 2 + 2 * Im c ^+ 2)%Re = 
+            ( Re a ^+ 2 + Re c ^+ 2 + Im a ^+ 2 + Im c ^+ 2 + 
+             (Re a ^+ 2 - (2 * Re a * Re b) + Re b ^+ 2) +
+             (Im a ^+ 2 - (2 * Im a * Im b)  + Im b ^+ 2) +
+             (Re b ^+ 2 - (2 * Re b * Re c) + Re c ^+ 2) +
+             (Im b ^+ 2 - (2 * Im b * Im c) + Im c ^+ 2))%Re).
+    { nra. } rewrite H5. clear H5.
+    assert ((2 * Re a * Re b)%Re  = (Re a * Re b *+ 2)). 
+    { rewrite -[RHS]mulr_natr //=. rewrite [RHS]mulrC.
+      rewrite !RmultE. by rewrite mulrA. 
+    } rewrite H5.  clear H5.
+    assert ((2 * Im a * Im b)%Re  = (Im a * Im b *+ 2)). 
+    { rewrite -[RHS]mulr_natr //=. rewrite [RHS]mulrC.
+      rewrite !RmultE. by rewrite mulrA.
+    } rewrite H5.  clear H5.
+    assert ((2 * Re b * Re c)%Re  = (Re b * Re c *+ 2)). 
+    { rewrite -[RHS]mulr_natr //=. rewrite [RHS]mulrC.
+      rewrite !RmultE. by rewrite mulrA. 
+    } rewrite H5.  clear H5.
+    assert ((2 * Im b * Im c)%Re  = (Im b * Im c *+ 2)). 
+    { rewrite -[RHS]mulr_natr //=. rewrite [RHS]mulrC.
+      rewrite !RmultE. by rewrite mulrA.
+    } rewrite H5.  clear H5. rewrite !RplusE.
+    rewrite -!sqrrB. rewrite -!RplusE -!RoppE.
+    assert ((k = ord_max) \/
+             (k = (widen_ord (leqnSn 2)
+                  (widen_ord (leqnSn 1) ord_max))) \/
+             (k = (widen_ord (leqnSn 2) ord_max))).
+    { assert ((k <3)%N). { by []. }
+      rewrite leq_eqVlt in H5.
+      assert ((k==2%N :> nat) \/ (k < 2)%N). { by apply /orP. }
+      destruct H6.
+      + left. apply /eqP. by [].
+      + rewrite leq_eqVlt in H6.
+        assert ((k==1%N :> nat) \/ (k < 1)%N). { by apply /orP. }
+        destruct H7.
+        - right. right.
+          apply /eqP. by [].
+        - apply ltnSE in H7.
+          rewrite leqn0 in H7. right. left. by apply /eqP.
+    }
+    destruct H5.
+    * rewrite H5 in H4. rewrite -Heqc in H4.
+      assert ((Re a ^+ 2 + Re c ^+ 2 + Im a ^+ 2 +
+               Im c ^+ 2 + (Re a + - Re b)%Re ^+ 2 +
+               (Im a + - Im b)%Re ^+ 2 +
+               (Re b + - Re c)%Re ^+ 2 +
+               (Im b + - Im c)%Re ^+ 2)%Re = 
+            ((Re c ^+ 2 + Im c ^+ 2) + 
+            (Re a ^+ 2 + Im a ^+ 2 +
+                (Re a + - Re b)%Re ^+ 2 +
+               (Im a + - Im b)%Re ^+ 2 +
+               (Re b + - Re c)%Re ^+ 2 +
+               (Im b + - Im c)%Re ^+ 2))%Re).
+      { nra. } rewrite H6.
+      apply Rplus_lt_le_0_compat.
+      + rewrite H3 in H4. apply complex_not_0 in H4.
+        rewrite !expr2. rewrite -!RmultE. 
+        destruct H4.
+        - apply Rplus_lt_le_0_compat.
+          * assert (Rsqr (Re c) = (Re c * Re c)%Re).
+            { by rewrite /Rsqr. } rewrite -H7. apply Rsqr_pos_lt.
+            by apply /eqP.
+          * assert (Rsqr (Im c) = (Im c * Im c)%Re).
+            { by rewrite /Rsqr. } rewrite -H7. nra.
+        - apply Rplus_le_lt_0_compat.
+          * assert (Rsqr (Re c) = (Re c * Re c)%Re).
+            { by rewrite /Rsqr. } rewrite -H7. nra.
+          * assert (Rsqr (Im c) = (Im c * Im c)%Re).
+            { by rewrite /Rsqr. } rewrite -H7. apply Rsqr_pos_lt.
+            by apply /eqP.
+      + repeat apply Rplus_le_le_0_compat.
+        - assert ((Re a ^+ 2)%Re = Rsqr (Re a)).
+          { unfold Rsqr. by rewrite expr2 RmultE. }
+          rewrite H7. apply Rle_0_sqr .
+        - assert ((Im a ^+ 2)%Re = Rsqr (Im a)).
+          { unfold Rsqr. by rewrite expr2 RmultE. }
+          rewrite H7. apply Rle_0_sqr .
+        - assert (((Re a + - Re b)%Re ^+ 2)%Re = Rsqr ((Re a + - Re b)%Re)).
+          { unfold Rsqr. by rewrite expr2 RmultE. }
+          rewrite H7. apply Rle_0_sqr .
+        - assert (((Im a + - Im b)%Re ^+ 2)%Re = Rsqr ((Im a + - Im b)%Re)).
+          { unfold Rsqr. by rewrite expr2 RmultE. }
+          rewrite H7. apply Rle_0_sqr .
+        - assert (((Re b + - Re c)%Re ^+ 2)%Re = Rsqr ((Re b + - Re c)%Re)).
+          { unfold Rsqr. by rewrite expr2 RmultE. }
+          rewrite H7. apply Rle_0_sqr .
+        - assert (((Im b + - Im c)%Re ^+ 2)%Re = Rsqr ((Im b + - Im c)%Re)).
+          { unfold Rsqr. by rewrite expr2 RmultE. }
+          rewrite H7. apply Rle_0_sqr .
+    * destruct H5.
+      ++ rewrite H5 in H4. rewrite -Heqa in H4.
+         assert ((Re a ^+ 2 + Re c ^+ 2 + Im a ^+ 2 +
+               Im c ^+ 2 + (Re a + - Re b)%Re ^+ 2 +
+               (Im a + - Im b)%Re ^+ 2 +
+               (Re b + - Re c)%Re ^+ 2 +
+               (Im b + - Im c)%Re ^+ 2)%Re = 
+            ((Re a ^+ 2 + Im a ^+ 2) + 
+            (Re c ^+ 2 + Im c ^+ 2 +
+                (Re a + - Re b)%Re ^+ 2 +
+               (Im a + - Im b)%Re ^+ 2 +
+               (Re b + - Re c)%Re ^+ 2 +
+               (Im b + - Im c)%Re ^+ 2))%Re).
+        { nra. } rewrite H6.
+        apply Rplus_lt_le_0_compat.
+        + rewrite H2 in H4. apply complex_not_0 in H4.
+          rewrite !expr2. rewrite -!RmultE. 
+          destruct H4.
+          - apply Rplus_lt_le_0_compat.
+            * assert (Rsqr (Re a) = (Re a * Re a)%Re).
+              { by rewrite /Rsqr. } rewrite -H7. apply Rsqr_pos_lt.
+              by apply /eqP.
+            * assert (Rsqr (Im a) = (Im a * Im a)%Re).
+              { by rewrite /Rsqr. } rewrite -H7. nra.
+          - apply Rplus_le_lt_0_compat.
+            * assert (Rsqr (Re a) = (Re a * Re a)%Re).
+              { by rewrite /Rsqr. } rewrite -H7. nra.
+            * assert (Rsqr (Im a) = (Im a * Im a)%Re).
+              { by rewrite /Rsqr. } rewrite -H7. apply Rsqr_pos_lt.
+              by apply /eqP.
+        + repeat apply Rplus_le_le_0_compat.
+          - assert ((Re c ^+ 2)%Re = Rsqr (Re c)).
+            { unfold Rsqr. by rewrite expr2 RmultE. }
+            rewrite H7. apply Rle_0_sqr .
+          - assert ((Im c ^+ 2)%Re = Rsqr (Im c)).
+            { unfold Rsqr. by rewrite expr2 RmultE. }
+            rewrite H7. apply Rle_0_sqr .
+          - assert (((Re a + - Re b)%Re ^+ 2)%Re = Rsqr ((Re a + - Re b)%Re)).
+            { unfold Rsqr. by rewrite expr2 RmultE. }
+            rewrite H7. apply Rle_0_sqr .
+          - assert (((Im a + - Im b)%Re ^+ 2)%Re = Rsqr ((Im a + - Im b)%Re)).
+            { unfold Rsqr. by rewrite expr2 RmultE. }
+            rewrite H7. apply Rle_0_sqr .
+          - assert (((Re b + - Re c)%Re ^+ 2)%Re = Rsqr ((Re b + - Re c)%Re)).
+            { unfold Rsqr. by rewrite expr2 RmultE. }
+            rewrite H7. apply Rle_0_sqr .
+          - assert (((Im b + - Im c)%Re ^+ 2)%Re = Rsqr ((Im b + - Im c)%Re)).
+            { unfold Rsqr. by rewrite expr2 RmultE. }
+            rewrite H7. apply Rle_0_sqr .
+        ++ rewrite H5 in H4. rewrite -Heqb in H4.
+           rewrite H1 in H4. apply complex_not_0 in H4.
+           destruct H4.
+           + assert (Re a = Re b \/ (Re a <> Re b)).  { nra. }
+             destruct H6.
+             - rewrite H6. 
+               assert ((Re b ^+ 2 + Re c ^+ 2 + Im a ^+ 2 +
+                         Im c ^+ 2 + (Re b + - Re b)%Re ^+ 2 +
+                         (Im a + - Im b)%Re ^+ 2 +
+                         (Re b + - Re c)%Re ^+ 2 +
+                         (Im b + - Im c)%Re ^+ 2)%Re = 
+                       (Re b ^+ 2 +
+                         ( Re c ^+ 2 + Im a ^+ 2 +
+                         Im c ^+ 2 + (Re b + - Re b)%Re ^+ 2 +
+                         (Im a + - Im b)%Re ^+ 2 +
+                         (Re b + - Re c)%Re ^+ 2 +
+                         (Im b + - Im c)%Re ^+ 2) )%Re).
+               { nra. } rewrite H7. clear H7.
+               apply Rplus_lt_le_0_compat.
+               * rewrite expr2 -RmultE. assert (Rsqr (Re b) = (Re b * Re b)%Re).
+                  { by rewrite /Rsqr. } rewrite -H7. apply Rsqr_pos_lt.
+                  by apply /eqP.
+               * repeat apply Rplus_le_le_0_compat.
+                  - assert ((Re c ^+ 2)%Re = Rsqr (Re c)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert ((Im a ^+ 2)%Re = Rsqr (Im a)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert ((Im c ^+ 2)%Re = Rsqr (Im c)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert (((Re b + - Re b)%Re ^+ 2)%Re = Rsqr ((Re b + - Re b)%Re)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert (((Im a + - Im b)%Re ^+ 2)%Re = Rsqr ((Im a + - Im b)%Re)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert (((Re b + - Re c)%Re ^+ 2)%Re = Rsqr ((Re b + - Re c)%Re)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert (((Im b + - Im c)%Re ^+ 2)%Re = Rsqr ((Im b + - Im c)%Re)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+            - assert ((Re a ^+ 2 + Re c ^+ 2 + Im a ^+ 2 +
+                       Im c ^+ 2 + (Re a + - Re b)%Re ^+ 2 +
+                       (Im a + - Im b)%Re ^+ 2 +
+                       (Re b + - Re c)%Re ^+ 2 +
+                       (Im b + - Im c)%Re ^+ 2)%Re =
+                      ((Re a + - Re b)%Re ^+ 2 + 
+                      (Re a ^+ 2 + Re c ^+ 2 + Im a ^+ 2 +
+                       Im c ^+ 2 + 
+                       (Im a + - Im b)%Re ^+ 2 +
+                       (Re b + - Re c)%Re ^+ 2 +
+                       (Im b + - Im c)%Re ^+ 2))%Re).
+              { nra. } rewrite H7. clear H7.
+              apply Rplus_lt_le_0_compat.
+               * rewrite expr2 -RmultE. 
+                 assert (Rsqr (Re a + - Re b) = ((Re a + - Re b) * (Re a + - Re b))%Re).
+                 { by rewrite /Rsqr. } rewrite -H7. apply Rsqr_pos_lt.
+                 by apply Rminus_eq_contra.
+               * repeat apply Rplus_le_le_0_compat.
+                  - assert ((Re a ^+ 2)%Re = Rsqr (Re a)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert ((Re c ^+ 2)%Re = Rsqr (Re c)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert ((Im a ^+ 2)%Re = Rsqr (Im a)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert ((Im c ^+ 2)%Re = Rsqr (Im c)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert (((Im a + - Im b)%Re ^+ 2)%Re = Rsqr ((Im a + - Im b)%Re)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert (((Re b + - Re c)%Re ^+ 2)%Re = Rsqr ((Re b + - Re c)%Re)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert (((Im b + - Im c)%Re ^+ 2)%Re = Rsqr ((Im b + - Im c)%Re)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+             + assert (Im a = Im b \/ (Im a <> Im b)).  { nra. }
+             destruct H6.
+             - rewrite H6. 
+               assert ((Re a ^+ 2 + Re c ^+ 2 + Im b ^+ 2 +
+                         Im c ^+ 2 + (Re a + - Re b)%Re ^+ 2 +
+                         (Im b + - Im b)%Re ^+ 2 +
+                         (Re b + - Re c)%Re ^+ 2 +
+                         (Im b + - Im c)%Re ^+ 2)%Re = 
+                       (Im b ^+ 2 +
+                         ( Re c ^+ 2 + Re a ^+ 2 +
+                         Im c ^+ 2 + (Re a + - Re b)%Re ^+ 2 +
+                         (Im b + - Im b)%Re ^+ 2 +
+                         (Re b + - Re c)%Re ^+ 2 +
+                         (Im b + - Im c)%Re ^+ 2) )%Re).
+               { nra. } rewrite H7. clear H7.
+               apply Rplus_lt_le_0_compat.
+               * rewrite expr2 -RmultE. assert (Rsqr (Im b) = (Im b * Im b)%Re).
+                  { by rewrite /Rsqr. } rewrite -H7. apply Rsqr_pos_lt.
+                  by apply /eqP.
+               * repeat apply Rplus_le_le_0_compat.
+                  - assert ((Re c ^+ 2)%Re = Rsqr (Re c)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert ((Re a ^+ 2)%Re = Rsqr (Re a)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert ((Im c ^+ 2)%Re = Rsqr (Im c)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert (((Re a + - Re b)%Re ^+ 2)%Re = Rsqr ((Re a + - Re b)%Re)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert (((Im b + - Im b)%Re ^+ 2)%Re = Rsqr ((Im b + - Im b)%Re)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert (((Re b + - Re c)%Re ^+ 2)%Re = Rsqr ((Re b + - Re c)%Re)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert (((Im b + - Im c)%Re ^+ 2)%Re = Rsqr ((Im b + - Im c)%Re)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+            - assert ((Re a ^+ 2 + Re c ^+ 2 + Im a ^+ 2 +
+                       Im c ^+ 2 + (Re a + - Re b)%Re ^+ 2 +
+                       (Im a + - Im b)%Re ^+ 2 +
+                       (Re b + - Re c)%Re ^+ 2 +
+                       (Im b + - Im c)%Re ^+ 2)%Re =
+                      ((Im a + - Im b)%Re ^+ 2 + 
+                      (Re a ^+ 2 + Re c ^+ 2 + Im a ^+ 2 +
+                       Im c ^+ 2 + 
+                       (Re a + - Re b)%Re ^+ 2 +
+                       (Re b + - Re c)%Re ^+ 2 +
+                       (Im b + - Im c)%Re ^+ 2))%Re).
+              { nra. } rewrite H7. clear H7.
+              apply Rplus_lt_le_0_compat.
+               * rewrite expr2 -RmultE. 
+                 assert (Rsqr (Im a + - Im b) = ((Im a + - Im b) * (Im a + - Im b))%Re).
+                 { by rewrite /Rsqr. } rewrite -H7. apply Rsqr_pos_lt.
+                 by apply Rminus_eq_contra.
+               * repeat apply Rplus_le_le_0_compat.
+                  - assert ((Re a ^+ 2)%Re = Rsqr (Re a)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert ((Re c ^+ 2)%Re = Rsqr (Re c)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert ((Im a ^+ 2)%Re = Rsqr (Im a)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert ((Im c ^+ 2)%Re = Rsqr (Im c)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert (((Re a + - Re b)%Re ^+ 2)%Re = Rsqr ((Re a + - Re b)%Re)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert (((Re b + - Re c)%Re ^+ 2)%Re = Rsqr ((Re b + - Re c)%Re)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+                  - assert (((Im b + - Im c)%Re ^+ 2)%Re = Rsqr ((Im b + - Im c)%Re)).
+                    { unfold Rsqr. by rewrite expr2 RmultE. }
+                    rewrite H7. apply Rle_0_sqr .
+  - rewrite !expr2 -!RmultE. nra.
+  - rewrite !expr2 -!RmultE. nra.
+  - rewrite !expr2 -!RmultE. nra.
+Qed.
+
+
+Lemma Ah_is_symmetric (h:R):
+  forall (i j:'I_3), (Ah 2%N h) i j = (Ah 2%N h) j i.
+Proof.
+intros. rewrite /Ah !mxE.
+assert ((i<=j)%coq_nat \/ (i > j)%coq_nat). { lia. }
+destruct H.
++ assert ((i <= j)%N). { by apply /ssrnat.leP. }
+  rewrite leq_eqVlt in H0.
+  assert ((i == j :>nat) \/ (i < j)%N). { by apply /orP. }
+  destruct H1.
+  - rewrite H1. by rewrite eq_sym H1.
+  - assert (i == j :> nat = false). { by apply ltn_eqF. } rewrite H2.
+    assert (j == i :> nat = false). { rewrite eq_sym. by apply ltn_eqF. }
+    rewrite H3.
+    assert ((i - j)%N == 1%N = false).
+    { assert ((i-j)%N = 0%N).
+      { apply /eqP. apply ltnW in H1. rewrite -subn_eq0 in H1.
+        by rewrite H1.
+      } by rewrite H4.
+    } by rewrite H4.
++ assert ((j < i)%N). { by apply /ssrnat.leP. }
+  assert (j == i :>nat = false). { by apply ltn_eqF. } rewrite H1.
+  assert (i == j :> nat = false). { rewrite eq_sym. by apply ltn_eqF. } rewrite H2.
+  assert ((j - i)%N == 1%N = false). 
+  { assert ((j-i)%N = 0%N).
+    { apply /eqP. apply ltnW in H0. rewrite -subn_eq0 in H0.
+      by rewrite H0.
+    } by rewrite H3.
+  } by rewrite H3.
+Qed.
+
+
+Theorem Gauss_seidel_Ah_converges:
+  forall (b: 'cV[R]_3) (X: 'cV[R]_3) (h:R),
+  (0 < h)%Re -> 
+  let A := (Ah 2%N h) in 
+   mulmx A X = b ->
+   (forall x0: 'cV[R]_3, 
+      exists i:'I_3, x0 i 0 <> X i 0) ->
+   (A1 A) \in unitmx ->
+   is_positive_definite A ->
+   (forall (S: 'M[complex R]_3) (i: 'I_3), lambda (oppmx S) i = -lambda S i) ->
+   (let S_mat:= RtoC_mat (oppmx (mulmx ((invmx (A1 A))) (A2 A))) in
+    (forall i:'I_3, @eigenvalue (complex_fieldType _) 3 S_mat (lambda S_mat i))) ->
+    (forall x0: 'cV[R]_3,
+        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1 A) (A2 A)) (oppmx X))) 0%Re).
+Proof.
+intros.
+apply Gauss_Seidel_converges.
++ by [].
++ by [].
++ intros. rewrite /A0. rewrite !mxE.
+  assert (i == i :>nat). { by []. }
+  rewrite H6. apply /RltP.
+  apply Rmult_lt_0_compat.
+  - assert ((1 / h ^ 2)%Re = (/ (h^2))%Re). { nra. }
+    rewrite H7. apply Rinv_0_lt_compat. apply Rmult_lt_0_compat; nra.
+  - apply Rlt_0_2.
++ intros. rewrite /A0. 
+  by apply Ah_is_symmetric.
++ by [].
++ assert (is_positive_definite (Ah 2%N h)).
+  { by apply Ah_pd. } rewrite /is_positive_definite in H6.
+  intros. specialize (H6 x H7).
+  rewrite /scal_of_mat0. apply /eqP. rewrite eq_complex.
+  apply /nandP. left.
+  rewrite //=.  apply /eqP. apply Rlt_dichotomy_converse .
+  right. rewrite /A0. apply Rlt_gt. apply /RltP. rewrite -mulmxA. apply H6.
++ by apply Ah_pd.
++ by [].
++ by [].
+Qed.
+
+
+
+
+
+
+

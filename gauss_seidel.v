@@ -428,10 +428,9 @@ Theorem Reich_sufficiency: forall (n:nat) (A: 'M[R]_n.+1),
   A= addmx (A1 A) (A2 A) -> 
   A1 A \in unitmx -> 
   is_positive_definite A ->
-  forall i:'I_n.+1, 
     (let S:= (mulmx (RtoC_mat (invmx (A1 A))) (RtoC_mat (A2 A))) in 
       (forall i:'I_n.+1, @eigenvalue (complex_fieldType _) n.+1 S (lambda S i)) -> 
-      C_mod (lambda S i) < 1).
+      (forall i: 'I_n.+1, C_mod (lambda S i) < 1)).
 Proof.
 intros.
 
@@ -442,11 +441,6 @@ remember (lambda S i) as li.
 assert ( exists v: 'cV_n.+1, (mulmx S v = (lambda S i) *: v) /\ (v !=0)).
 { specialize (H5 i).  by apply right_eigen_vector_exists. }
 destruct H6 as [vi H6].
-(*remember (lambda S j) as lj.
-assert ( exists v: 'cV_n.+1, (mulmx S v = (lambda S j) *: v) /\ (v !=0)).
-{ specialize (H5 j).  by apply right_eigen_vector_exists.  }
-destruct H7 as [vj H7].
-*)
 remember (RtoC_mat (A1 A)) as A1_C.
 
 (** equation (2) **)
@@ -1019,17 +1013,16 @@ apply iter_convergence with A.
           A= addmx (A1 A) (A2 A) -> 
           A1 A \in unitmx -> 
           is_positive_definite A ->
-          forall i:'I_n.+1, 
             (let S:= (mulmx (RtoC_mat (invmx (A1 A))) (RtoC_mat (A2 A))) in 
               (forall i:'I_n.+1, @eigenvalue (complex_fieldType _) n.+1 S (lambda S i)) -> 
-              C_mod (lambda S i) < 1)).
+              (forall i: 'I_n.+1, C_mod (lambda S i) < 1))).
   { apply Reich_sufficiency. } 
   specialize (H8 n A H1 H2 H4).
   assert (A = addmx (A1 A) (A2 A)). { by apply A_A1_A2_split. }
   assert (A1 A \in unitmx ). { by [].  } 
   specialize (H8 H9 H10).
   specialize (H8 H5).
-  specialize (H8 i). simpl in H8.  rewrite RtoC_mat_prod in H8.
+  simpl in H8.  rewrite RtoC_mat_prod in H8.
   rewrite RtoC_mat_oppmx. rewrite H6. rewrite C_mod_minus_x.
   apply H8. intros.
   rewrite eigenvalue_oppmx. rewrite -H6.

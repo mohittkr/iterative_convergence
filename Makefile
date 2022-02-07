@@ -44,7 +44,7 @@ HASNATDYNLINK     := $(COQMF_HASNATDYNLINK)
 OCAMLWARN         := $(COQMF_WARN)
 
 Makefile.conf: 
-	coq_Makefile complex_mat_vec_prop.v iter_necessity.v iter_convergence.v Reich.v jacobi.v -o Makefile
+	coq_Makefile complex_mat_vec_prop.v matrix_norm.v iter_necessity.v iter_convergence.v gauss_seidel.v jacobi.v -o Makefile
 
 # This file can be created by the user to hook into double colon rules or
 # add any other Makefile code he may need

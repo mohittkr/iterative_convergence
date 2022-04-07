@@ -238,6 +238,8 @@ Qed.
 (** Define a coercion from real to complex **)
 Definition RtoC (x:R):= (x +i* 0)%C.
 
+
+
 (** Compatibilty between C_mod and normc in the mathcomp/complex
   libary **)
 Lemma C_modE y : C_mod y = normc y.
@@ -907,7 +909,43 @@ apply /andP. split.
 + apply /eqP. by rewrite mulrNN.
 + apply /eqP. by rewrite mulrN mulNr opprD. 
 Qed.
-  
+
+
+Lemma conj_mag_re: 
+  forall x:complex R, Re (x* conjc x)%C = Rsqr (C_mod x).
+Proof.
+intros.
+assert ( (x* conjc x)%C = RtoC (Rsqr (C_mod x))).
+{ by rewrite conj_mag. } by rewrite H.
+Qed.
+
+Lemma C_mod_sqr: forall (x y : complex R),
+  Rsqr (C_mod (x * y)) = (Rsqr (C_mod x)) * (Rsqr (C_mod y)).
+Proof.
+intros. rewrite -!conj_mag_re. rewrite Cconj_prod.
+assert ((x * y * ((x^*)%C * (y^*)%C))%C = 
+        ((x * (x^*)%C) * (y * (y^*)%C))%C).
+{ rewrite mulrC.
+  assert ((x * y)%C = (y * x)%C). { by rewrite mulrC. } 
+  rewrite H. 
+  assert (((x^*)%C * (y^*)%C * (y * x))%C = 
+            ((x^*)%C *( (y^*)%C * (y * x)))%C).
+  { by rewrite -mulrA. } rewrite H0.
+  assert (((y^*)%C * (y * x))%C = ( x * (y * (y^*)%C))%C).
+  { rewrite mulrA. rewrite mulrC.
+    assert (((y^*)%C * y)%C = (y * (y^*)%C)%C).
+    { by rewrite mulrC. } by rewrite H1.
+  } rewrite H1. rewrite mulrA.
+  rewrite mulrC.
+  assert (((x^*)%C * x)%C = (x * (x^*)%C)%C).
+  { by rewrite mulrC. } rewrite H2. by rewrite mulrC.
+} rewrite H. rewrite Re_complex_prod.
+assert (Im (x * (x^*)%C) * Im (y * (y^*)%C) = 0).
+{ rewrite !conj_mag //=. by rewrite mulr0. } rewrite H0.
+by rewrite subr0.
+Qed.
+
+
 (** conj (scale l x) = scale (conj l) x^* **)
 Lemma conj_scal_mat_mul: 
   forall (m n : nat) (l:complex R) (x: 'M[complex R]_(m,n)),
@@ -1003,6 +1041,118 @@ induction p.
 + rewrite !big_ord_recl. 
   rewrite <-IHp. apply Cconj_add.
 Qed.
+
+
+Lemma conj_of_conj_C: forall (x: complex R), 
+  x = conjc (conjc x).
+Proof.
+intros.
+assert (x = (Re x +i* Im x)%C).
+{ by rewrite -C_destruct. } rewrite H.
+rewrite /conjc //=. apply /eqP. rewrite eq_complex //=.
+apply /andP. split.
++ by [].
++ by rewrite opprK.
+Qed.
+
+Lemma double_r: forall (x:R),
+  (2 * x)%Re = (x + x)%Re.
+Proof.
+intros. nra.
+Qed.
+
+Lemma Re_conjc_add: forall (x: complex R),
+  Re x + Re (conjc x) = 2 * (Re x).
+Proof.
+intros. 
+assert (x = (Re x +i* Im x)%C).
+{ by rewrite -C_destruct. } rewrite H //=. 
+rewrite -RmultE -RplusE. 
+by rewrite double_r.
+Qed.
+
+
+Lemma Cconjc_mod: forall (a: complex R),
+  C_mod a = C_mod (conjc a).
+Proof.
+intros. 
+assert (a = (Re a +i* Im a)%C).
+{ by rewrite -C_destruct. } rewrite H.
+rewrite /C_mod //=. by rewrite sqrrN.
+Qed.
+
+Lemma Re_C_le_C_mod: forall (x : complex R),
+  Re x <= C_mod x.
+Proof.
+intros. apply /RleP. rewrite /C_mod.
+assert ((Re x < 0)%Re \/ (0 <= Re x)%Re). { nra. }
+destruct H.
++ apply Rle_trans with 0%Re.
+  - by apply Rlt_le.
+  - apply sqrt_pos.
++ apply Rsqr_incr_0.
+  - rewrite Rsqr_sqrt.
+    * unfold Rsqr. rewrite !expr2 -!RmultE. nra.
+    * apply Rplus_le_le_0_compat;rewrite -RpowE;nra.
+    * nra.
+    * apply sqrt_pos.
+Qed.
+
+
+Lemma C_mod_add_leq : forall (a b: complex R),
+  C_mod (a + b) <= C_mod a + C_mod b.
+Proof.
+intros. apply /RleP. rewrite -!RplusE. apply Rsqr_incr_0.
++ rewrite -conj_mag_re. rewrite Cconj_add.
+  rewrite !mulrDr !mulrDl. rewrite !Re_add.
+  rewrite -!RplusE. rewrite !conj_mag_re. 
+  rewrite Rsqr_plus.
+  assert (((C_mod a)² + Re (b * (a^*)%C)%Ri +
+              (Re (a * (b^*)%C)%Ri + (C_mod b)²))%Re = 
+          (((C_mod a)² + (C_mod b)²) +
+            ( Re (b * (a^*)%C)%Ri + Re (a * (b^*)%C)%Ri))%Re).
+  { nra. } rewrite H.
+  apply Rplus_le_compat.
+  - nra.
+  - assert ((a * (b^*)%C) = conjc (b * conjc a)).
+    { rewrite Cconj_prod. rewrite -conj_of_conj_C. by rewrite mulrC. }
+    rewrite H0. apply /RleP. rewrite RplusE. rewrite Re_conjc_add.
+    apply /RleP. rewrite -RmultE.
+    assert (C_mod a = C_mod (conjc a)).
+    { by rewrite Cconjc_mod. } rewrite H1.
+    assert ((2 * C_mod (conjc a) * C_mod b)%Re = (2 * (C_mod b * C_mod (conjc a)))%Re).
+    { nra. } rewrite H2. apply /RleP. rewrite !RmultE. rewrite -C_mod_prod.
+    apply /RleP. rewrite -!RmultE. apply Rmult_le_compat_l.
+    * nra.
+    * remember ((b * (a^*)%C)%Ri) as c.
+      apply /RleP. apply Re_C_le_C_mod.
+  - apply C_mod_ge_0.
+  - apply Rplus_le_le_0_compat; apply C_mod_ge_0.
+Qed.
+
+
+Lemma C_mod_sum_rel: forall (n:nat) (u : 'I_n.+1 -> (complex R)),
+  (C_mod (\big[+%R/0]_j (u j))) <= \big[+%R/0]_j ((C_mod (u j))).
+Proof.
+intros. induction n.
++ simpl. rewrite !big_ord_recl //= !big_ord0.
+  by rewrite !addr0.
++ simpl. rewrite big_ord_recr //=.
+  assert ( \big[+%R/0]_(j < n.+2) (C_mod (u j)) = 
+            \big[+%R/0]_(j < n.+1) (C_mod (u (widen_ord (leqnSn n.+1) j))) +
+              (C_mod (u ord_max))).
+  { by rewrite big_ord_recr //=. } rewrite H.
+  apply /RleP.
+  apply Rle_trans with 
+    (C_mod (\big[+%R/0]_(i < n.+1) u (widen_ord (leqnSn n.+1) i)) +   
+      C_mod (u ord_max)).
+  - apply /RleP. apply C_mod_add_leq.
+  - rewrite -!RplusE. apply Rplus_le_compat.
+    * apply /RleP. apply IHn.
+    * nra.
+Qed.
+
+
 
 (** (A B)^* = B^* A^* **)
 Lemma conj_matrix_mul : 

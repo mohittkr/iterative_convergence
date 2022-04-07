@@ -503,13 +503,153 @@ move => leE12. apply /RleP. apply big_ind2.
 + apply leE12.
 Qed.
 
-Lemma conj_mag_re: 
-  forall x:complex R, Re (x* conjc x)%C = Rsqr (C_mod x).
+
+Lemma sum_prod_le: forall (n:nat) (u v : 'I_n.+1 -> R),
+  (forall j:'I_n.+1, 0 <= u j) ->
+  (forall j: 'I_n.+1, 0 <= v j) ->
+  \big[+%R/0]_j (u j * v j) <=
+  (\big[+%R/0]_j u j * \big[+%R/0]_j v j).
 Proof.
-intros.
-assert ( (x* conjc x)%C = RtoC (Rsqr (C_mod x))).
-{ by rewrite conj_mag. } by rewrite H.
+intros. induction n.
++ simpl. by rewrite !big_ord_recr //= !big_ord0 !add0r.
++ simpl. rewrite big_ord_recr //=.
+  assert (\big[+%R/0]_(j < n.+2) u j = 
+            \big[+%R/0]_(j < n.+1) (u (widen_ord (leqnSn n.+1) j)) + 
+            u ord_max).
+  { by rewrite big_ord_recr //=. } rewrite H1.
+  assert (\big[+%R/0]_(j < n.+2) v j = 
+            \big[+%R/0]_(j < n.+1) (v (widen_ord (leqnSn n.+1) j)) + 
+            v ord_max).
+  { by rewrite big_ord_recr //=. } rewrite H2.
+  clear H1 H2. rewrite !mulrDr !mulrDl.
+  apply /RleP. rewrite -!RplusE -!RmultE.
+  assert ((\big[+%R/0]_(j < n.+1) u (widen_ord (leqnSn n.+1) j) *
+             \big[+%R/0]_(j < n.+1) v (widen_ord (leqnSn n.+1) j) +
+             u ord_max *
+             \big[+%R/0]_(j < n.+1) v (widen_ord (leqnSn n.+1) j) +
+             (\big[+%R/0]_(j < n.+1) u (widen_ord (leqnSn n.+1) j) *
+              v ord_max + u ord_max * v ord_max))%Re = 
+          (\big[+%R/0]_(j < n.+1) u (widen_ord (leqnSn n.+1) j) *
+             \big[+%R/0]_(j < n.+1) v (widen_ord (leqnSn n.+1) j) +
+            ((u ord_max * v ord_max) + 
+             (u ord_max *
+             \big[+%R/0]_(j < n.+1) v (widen_ord (leqnSn n.+1) j) +
+             (\big[+%R/0]_(j < n.+1) u (widen_ord (leqnSn n.+1) j) *
+              v ord_max ))))%Re).
+  { nra. } rewrite H1. clear H1. apply Rplus_le_compat.
+  - apply /RleP. rewrite RmultE. apply IHn.
+    * intros. apply H.
+    * intros. apply H0.
+  - assert ((u ord_max * v ord_max)%Re = (u ord_max * v ord_max + 0)%Re).
+    { nra. } rewrite H1.
+    assert ((u ord_max * v ord_max + 0 +
+               (u ord_max *
+                \big[+%R/0]_(j < n.+1) v (widen_ord (leqnSn n.+1) j) +
+                \big[+%R/0]_(j < n.+1) u (widen_ord (leqnSn n.+1) j) *
+                v ord_max))%Re = 
+            ((u ord_max * v ord_max) + 
+             (u ord_max *
+             \big[+%R/0]_(j < n.+1) v (widen_ord (leqnSn n.+1) j) +
+             (\big[+%R/0]_(j < n.+1) u (widen_ord (leqnSn n.+1) j) *
+              v ord_max )))%Re).
+    { nra. } rewrite H2. clear H2.
+    apply Rplus_le_compat.
+    * nra.
+    * apply Rplus_le_le_0_compat.
+      ++ apply Rmult_le_compat_0.
+         - by apply /RleP.
+         - apply /RleP. apply sum_n_ge_0. intros. by apply H0.
+      ++ apply Rmult_le_compat_0.
+         - apply /RleP. apply sum_n_ge_0. intros. by apply H.
+         - by apply /RleP.
 Qed.
+ 
+
+Lemma big_sum_add: forall (n:nat) (u v: 'I_n.+1 ->R),
+  \big[+%R/0]_j (u j) + \big[+%R/0]_j (v j) = 
+    \big[+%R/0]_j (u j + v j).
+Proof.
+intros. induction n.
++ simpl. rewrite !big_ord_recr //= !big_ord0. by rewrite !add0r.
++ simpl. rewrite big_ord_recr //=.
+  assert (\big[+%R/0]_(j < n.+2) v j = 
+          \big[+%R/0]_(i < n.+1) v (widen_ord (leqnSn n.+1) i) + 
+            v ord_max).
+  { by rewrite big_ord_recr //=. } rewrite H. clear H.
+  assert (\big[+%R/0]_(j < n.+2) (u j + v j) = 
+          \big[+%R/0]_(i < n.+1) (u (widen_ord (leqnSn n.+1) i) + 
+                                  v (widen_ord (leqnSn n.+1) i)) +
+          (u ord_max + v ord_max)).
+  { by rewrite big_ord_recr //=. } rewrite H. clear H.
+  rewrite -IHn. rewrite -!RplusE. 
+  assert ((\big[+%R/0]_(i < n.+1) u (widen_ord (leqnSn n.+1) i) +
+             u ord_max +
+             (\big[+%R/0]_(i < n.+1) v (widen_ord (leqnSn n.+1) i) +
+              v ord_max))%Re = 
+           (\big[+%R/0]_(i < n.+1) u (widen_ord (leqnSn n.+1) i) + 
+            \big[+%R/0]_(i < n.+1) v (widen_ord (leqnSn n.+1) i) + 
+            (u ord_max + v ord_max))%Re).
+  { nra. } rewrite H. by [].
+Qed.
+ 
+
+Lemma big_sqr_le: forall (n:nat) (u v : 'I_n.+1 -> R),
+  (forall j:'I_n.+1, 0 <= u j) ->
+  (forall j: 'I_n.+1, 0 <= v j) ->
+  Rsqr (\big[+%R/0]_j ((u j * v j))) <= 
+  \big[+%R/0]_j (Rsqr (u j)) * 
+  \big[+%R/0]_j (Rsqr (v j)).
+Proof.
+intros. apply /RleP. induction n.
++ simpl. rewrite !big_ord_recr //= !big_ord0. rewrite !add0r.
+  rewrite Rsqr_mult. apply /RleP. rewrite -RmultE. apply /RleP. nra.
++ simpl. rewrite big_ord_recr //=.
+  assert (\big[+%R/0]_(j < n.+2) (u j)² = 
+            \big[+%R/0]_(j < n.+1) (u (widen_ord (leqnSn n.+1) j))² + 
+              Rsqr (u ord_max)).
+  { by rewrite big_ord_recr //=. } rewrite H1.
+  assert (\big[+%R/0]_(j < n.+2) (v j)² = 
+            \big[+%R/0]_(j < n.+1) (v (widen_ord (leqnSn n.+1) j))² + 
+              Rsqr (v ord_max)).
+  { by rewrite big_ord_recr //=. } rewrite H2.
+  clear H1 H2. rewrite !mulrDr !mulrDl. apply /RleP.
+  rewrite -!RplusE -!RmultE. rewrite Rsqr_plus. 
+  rewrite Rplus_assoc.
+  assert ((\big[+%R/0]_(j < n.+1) (u (widen_ord (leqnSn n.+1) j))² *
+             \big[+%R/0]_(j < n.+1) (v (widen_ord (leqnSn n.+1) j))² +
+             (u ord_max)² *
+             \big[+%R/0]_(j < n.+1) (v (widen_ord (leqnSn n.+1) j))² +
+             (\big[+%R/0]_(j < n.+1) (u (widen_ord (leqnSn n.+1) j))² *
+              (v ord_max)² + (u ord_max)² * (v ord_max)²))%Re = 
+           (\big[+%R/0]_(j < n.+1) (u (widen_ord (leqnSn n.+1) j))² *
+             \big[+%R/0]_(j < n.+1) (v (widen_ord (leqnSn n.+1) j))² +
+            (((u ord_max)² * (v ord_max)²) + 
+               ((u ord_max)² *
+                  \big[+%R/0]_(j < n.+1) (v (widen_ord (leqnSn n.+1) j))² +
+                (\big[+%R/0]_(j < n.+1) (u (widen_ord (leqnSn n.+1) j))² *
+                  (v ord_max)²))))%Re).
+  { nra. } rewrite H1. clear H1.
+  apply /RleP. apply Rplus_le_compat.
+  - by apply IHn.
+  - rewrite Rsqr_mult.
+    apply Rplus_le_compat_l.
+    rewrite !big_distrr //= !big_distrl //=. 
+    apply /RleP. rewrite !RplusE. rewrite big_sum_add.
+    apply big_sum_ge_ex_abstract. intros.
+    rewrite -!RmultE. rewrite -!RplusE.
+    assert ((2 *
+               (u (widen_ord (leqnSn n.+1) i) *
+                v (widen_ord (leqnSn n.+1) i)) *
+               (u ord_max * v ord_max))%Re = 
+              (2 * (u ord_max *  v (widen_ord (leqnSn n.+1) i)) * 
+                   (u (widen_ord (leqnSn n.+1) i) * v ord_max))%Re).
+    { nra. } rewrite H2.
+    apply Rge_le. apply Rminus_ge. apply Rle_ge.
+    rewrite -!Rsqr_mult. rewrite -Rsqr_minus. 
+    apply Rle_0_sqr.
+Qed.
+
+
 
 (** 2 norm of a matrix <= Frobenius norm of the matrix **)
 Lemma mat_2_norm_F_norm_compat:
@@ -559,85 +699,31 @@ split.
           ++ apply /RleP. apply sum_n_ge_0. intros.
              apply sum_n_ge_0. intros. apply /RleP. apply Rsqr_ge_0.
              apply C_mod_ge_0.
-        * assert (\big[+%R/0]_l (C_mod ((A *m v) l 0))² = 
-                  \big[+%R/0]_l (Re (((A *m v) l 0) * conjc ((A *m v) l 0)))).
-          { apply eq_big. by []. intros. by rewrite conj_mag_re. } rewrite H6.
-          rewrite big_distrl //=. apply /RleP. 
-          apply big_sum_ge_ex_abstract. intros.
-
-
-
-
-
-
-
- rewrite big_distrl //=. apply /RleP.
-          apply big_sum_ge_ex_abstract. intros.
-          rewrite big_distrr //=. rewrite -conj_mag_re. rewrite mxE.
-          rewrite Cconj_sum. rewrite big_distrr //=. rewrite -eq_big_Re_C.
-          apply /RleP. apply big_sum_ge_ex_abstract. intros. 
-          rewrite big_distrr //=. rewrite big_distrl //=. rewrite -eq_big_Re_C.
-          apply /RleP. apply big_sum_ge_ex_abstract. intros.
-
-
-
-
-
-
-          rewrite mxE. rewrite -conj_mag_re.
-          rewrite big_distrl //=. rewrite -eq_big_Re_C.
-          rewrite big_distrl //=. apply /RleP. apply big_sum_ge_ex_abstract. 
-          intros. rewrite !big_distrr //=. rewrite Cconj_sum. rewrite big_distrr //=.
-          rewrite -eq_big_Re_C. apply /RleP.
-          apply big_sum_ge_ex_abstract. intros. rewrite Cconj_prod //=.
-          rewrite -!conj_mag_re.
-          rewrite !Re_complex_prod //=. rewrite !mulrDr !mulrDl. rewrite -!RminusE -!RmultE -!RoppE.
-          rewrite !Im_complex_prod //=.  rewrite -!RplusE -!RmultE .
-          rewrite Rmult_distr_left.
-
-
-
-
-
-
-
-
-unfold Rsqr.
-          apply Rmult_le_compat.
-          ++ apply C_mod_ge_0.
-          ++ apply C_mod_ge_0.
-          ++ apply Rle_trans with 
-                (\big[+%R/0]_j C_mod (A i j * v j 0)%Ri).
-             -- admit.
-             -- apply /RleP. apply big_sum_ge_ex_abstract.
-                intros. apply /RleP. rewrite C_mod_prod. rewrite RmultE.
-                rewrite mulrC. 
-
-
-
-
-
-
- apply /RleP. rewrite RmultE. rewrite -C_mod_prod.
-          apply /RleP. fold Rsqr.
-          
-
-
-
-
-
-
-
- admit.
-        * apply /RleP. apply sum_n_ge_0. intros. apply /RleP.
-          apply Rsqr_ge_0. apply C_mod_ge_0.
-    + nra.
+        * rewrite big_distrr //=. apply /RleP.
+          apply big_sum_ge_ex_abstract. intros. rewrite mxE.
+          apply Rle_trans with 
+            (Rsqr (\big[+%R/0]_j ((C_mod ((A i j * v j 0)%Ri))))).
+          ++ apply Rsqr_incr_1.
+             - apply /RleP. apply C_mod_sum_rel.
+             - apply C_mod_ge_0.
+             - apply /RleP. apply big_ge_0_ex_abstract. intros. 
+               apply /RleP. apply C_mod_ge_0.
+             - assert (\big[+%R/0]_j C_mod (A i j * v j 0)%Ri = 
+                        \big[+%R/0]_j ((C_mod (A i j)) * (C_mod (v j 0)))).
+               { apply eq_big. by []. intros. by rewrite C_mod_prod. }
+               rewrite H7. apply /RleP. rewrite RmultE.  rewrite mulrC.
+               rewrite -!RmultE.
+               apply (@big_sqr_le _ (fun j => C_mod (A i j)) (fun j => C_mod (v j 0))).
+               * intros. apply /RleP. apply C_mod_ge_0.
+               * intros. apply /RleP. apply C_mod_ge_0.
+       - apply /RleP. apply big_ge_0_ex_abstract. intros. 
+         apply /RleP. apply Rsqr_ge_0. apply C_mod_ge_0.
+     + nra.
   - apply /eqP. apply non_zero_vec_norm.
-    unfold vec_not_zero. 
-    assert (exists i, v i 0 != 0).
-    { by apply /cV0Pn. } destruct H5 as [i H5]. exists i.
-    by apply /eqP.
-Admitted.
+    unfold vec_not_zero.
+    assert (exists i, v i 0 != 0). { by apply /cV0Pn. }
+    destruct H5 as [i H5]. exists i. by apply /eqP.
+Qed.
 
 
 

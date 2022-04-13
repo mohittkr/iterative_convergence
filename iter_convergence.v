@@ -88,24 +88,36 @@ intros. apply matrixP. unfold eqrel. intros. rewrite !mxE. apply addNr.
 Qed.
 
 
-
 Fixpoint X_m (m n:nat) (x0 b: 'cV[R]_n.+1) (A1 A2: 'M[R]_n.+1) : 'cV[R]_n.+1:=
   match m with
   | O => x0
-  | S p => addmx (mulmx (oppmx (mulmx (invmx A1) A2)) (X_m p x0 b A1 A2)) 
-            (mulmx (invmx A1) b)
+  | S p => ((- ((A1^-1) *m A2)) *m (X_m p x0 b A1 A2)) + 
+            ((A1^-1) *m b)
   end.
 
 
 
 (** If all ||S v|| / ||v|| = 0 , then it's maximum will also be 0**)
-Hypothesis lim_max: forall (n:nat) (A: 'M[R]_n.+1) (X: 'cV[R]_n.+1),
+Lemma lim_max: forall (n:nat) (A: 'M[R]_n.+1) (X: 'cV[R]_n.+1),
    (forall x0: 'cV[R]_n.+1, 
     let v:= (addmx x0 (oppmx X)) in
-    vec_norm v <> 0%Re /\ 
+    v != 0 -> 
     let vc:= RtoC_vec v in 
       is_lim_seq (fun m: nat => (vec_norm_C (mulmx (RtoC_mat (A^+m.+1)) vc) / (vec_norm_C vc))%Re) 0%Re) ->
         is_lim_seq (fun m:nat => matrix_norm (RtoC_mat (A^+m.+1))) 0%Re.
+Proof.
+intros. rewrite /matrix_norm.
+
+
+
+
+ 
+Admitted.
+
+
+
+
+
 
 
 Lemma sum_geom_gt_0: forall (x:R) (n:nat), (0<x)%Re ->
@@ -262,6 +274,385 @@ assert ((\big[+%R/0]_j (A x j * X j y) -
               \big[+%R/0]_j (A x j * X j y)) = 0).
 { apply /eqP. by rewrite subr_eq0. } by rewrite H addr0.
 Qed.
+
+ 
+
+(** State the iterative convergence theorem **)
+Theorem iter_convergence: 
+  forall (n:nat) (A: 'M[R]_n.+1) (b: 'cV[R]_n.+1) (X: 'cV[R]_n.+1)
+  (A1 A2 : 'M[R]_n.+1), 
+  A \in unitmx ->
+   mulmx A X = b ->
+   A1 \in unitmx ->
+   A = addmx A1 A2 ->
+   (let S_mat:= RtoC_mat (oppmx (mulmx ((invmx A1)) A2)) in
+    (forall i:'I_n.+1, @eigenvalue (complex_fieldType _) n.+1 S_mat (lambda S_mat i))) ->
+   (let S_mat:= RtoC_mat (oppmx (mulmx ((invmx A1)) A2)) in 
+     (forall (i: 'I_n.+1), (C_mod (lambda S_mat i) < 1)%Re)) <->
+    (forall x0: 'cV[R]_n.+1,
+        (x0 - X) != 0-> (** Try getting rid of this hypothesis **)
+        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b A1 A2) (oppmx X))) 0%Re).
+Proof.
+intros.
+assert (forall x0: 'cV[R]_n.+1,
+         is_lim_seq (fun m:nat => vec_norm (addmx (X_m 0 x0 b A1 A2) (oppmx X))) 
+              (vec_norm (addmx (X_m 0 x0 b A1 A2) (oppmx X)))).
+{ intros. apply is_lim_seq_const. }
+
+(*
+assert (forall x0: 'cV[R]_n.+1, 
+          vec_norm (addmx (X_m 0 x0 b A1 A2) (oppmx X)) <> 0).
+{ intros. apply vec_norm_not_zero. specialize (H4 x0). destruct H2 as [i H2].
+  exists i.
+  rewrite !mxE.
+  rewrite -RminusE. apply Rminus_eq_contra. apply H2.
+}
+
+*)
+assert (forall (x0: 'cV[R]_n.+1) (m:nat), 
+          addmx (mulmx A1 (X_m m.+1 x0 b A1 A2)) (mulmx A2 (X_m m x0 b A1 A2)) =b).
+{ intros. simpl.
+  rewrite Mopp_mult_r. rewrite -mulmxA. rewrite mulmxDr.
+  rewrite !mulmxA.
+  assert (A1 *m invmx A1 = 1%:M). { by apply inverse_A. }
+  rewrite H5. rewrite !mul1mx. rewrite -Mopp_mult_l.
+  apply (@Mopp_add_compat n A2 (X_m m x0 b A1 A2) b).
+}
+
+assert (forall (x0 : 'cV[R]_n.+1) (m : nat),
+          vec_norm 
+            (mulmx ((oppmx (mulmx (invmx A1) A2))^+m.+1)
+               (addmx (X_m 0 x0 b A1 A2) (oppmx X))) =
+          vec_norm (addmx (X_m m.+1 x0 b A1 A2) (oppmx X))).
+{ intros. apply vec_norm_eq. symmetry.
+  induction m.
+  + rewrite expr1. rewrite -[LHS]mul1mx Mopp_mult_r.
+    assert (mulmx (invmx A1) A1 = 1%:M). { by apply inverse_A. }
+    rewrite -H6 -!mulmxA. 
+    assert ( (A1 *m addmx (X_m 1 x0 b A1 A2) (oppmx X)) = 
+              (oppmx A2 *m addmx (X_m 0 x0 b A1 A2) (oppmx X))).
+    { rewrite !mulmxDr. 
+      assert (A1 *m (oppmx (invmx A1 *m A2) *m x0) = 
+                  oppmx A2 *m X_m 0 x0 b A1 A2).
+      { rewrite mulmxA. rewrite Mopp_mult_l. rewrite mulmxA.
+        rewrite -Mopp_mult_r. 
+        assert (A1 *m invmx A1 = 1%:M). { by apply inverse_A. }
+        rewrite H7 //=. clear H7. rewrite -mulmxA.
+        by rewrite -!Mopp_mult_l mul1mx. 
+      } rewrite H7.
+      rewrite mulmxA. 
+      assert (A1 *m invmx A1 = 1%:M). { by apply inverse_A. }
+      rewrite H8. rewrite mul1mx. 
+      rewrite -H0. 
+      assert (A *m X + A1 *m oppmx X = oppmx A2 *m oppmx X).
+      { rewrite -!Mopp_mult_r. rewrite Mopp_mult_l -mulmxDl.
+        rewrite -Mopp_mult_l. rewrite Mopp_opp.
+        rewrite H2. rewrite addrC addrA. rewrite addrC.
+        assert ((oppmx A1 + A1) = 0).
+        { apply matrixP. unfold eqrel. intros. rewrite !mxE. apply addNr. }
+        rewrite H9. by rewrite addr0.
+      } rewrite -addrA. by rewrite H9.
+    } by rewrite H7.
+  + rewrite exprS. specialize (H5 x0 (m.+1)).
+    rewrite -mulmxA -IHm.
+    assert (mulmx (oppmx (mulmx (invmx A1) A2)) (addmx (X_m m.+1 x0 b A1 A2) (oppmx X))=
+            addmx (mulmx (oppmx (mulmx (invmx A1) A2)) (X_m m.+1 x0 b A1 A2))
+                  (mulmx (oppmx (mulmx (invmx A1) A2)) (oppmx X))).
+    { apply mulmxDr. } rewrite H6.
+    assert ((mulmx (oppmx (mulmx (invmx A1) A2)) (oppmx X))=
+              mulmx (mulmx (invmx A1) A2) X).
+    { assert (mulmx (oppmx (mulmx (invmx A1) A2)) (oppmx X)=
+                oppmx (mulmx (oppmx (mulmx (invmx A1) A2)) X)).
+      { symmetry. apply Mopp_mult_r. } rewrite H7.
+      assert (mulmx (oppmx (mulmx (invmx A1) A2)) X =
+                oppmx (mulmx (mulmx (invmx A1) A2) X)).
+      { symmetry. apply Mopp_mult_l. } rewrite H8.
+      apply Mopp_opp.
+    } rewrite H7.
+    assert ((mulmx (mulmx (invmx A1) A2) X) =
+                addmx (mulmx (invmx A1) b) (oppmx X)).
+    { assert (addmx (mulmx (invmx A1) b) (oppmx X) = addmx 
+                (oppmx X) (mulmx (invmx A1) b)). { apply addmxC. }
+      rewrite H8. 
+      assert (mulmx A X = b). { apply H0. } rewrite <-H9. clear H9. 
+      assert (mulmx A X = mulmx (addmx A1 A2) X).
+      { by rewrite -H2. } rewrite H9. 
+      assert (mulmx (addmx A1 A2) X = addmx (mulmx A1 X) (mulmx A2 X)).
+      { apply mulmxDl. } rewrite H10.
+      assert (mulmx (invmx A1)
+                (addmx (mulmx A1 X) (mulmx A2 X)) =
+               addmx (mulmx (invmx A1) (mulmx A1 X))
+                  (mulmx (invmx A1) (mulmx A2 X))).
+      { apply mulmxDr. } rewrite H11.
+      assert ((mulmx (invmx A1) (mulmx A1 X)) = 
+                mulmx (mulmx (invmx A1) A1) X). { apply mulmxA. }
+      rewrite H12.
+      assert (mulmx (invmx A1) A1 = 1%:M). { by apply inverse_A. }
+      rewrite H13. 
+      assert (mulmx 1%:M X = X). { apply mul1mx. } rewrite H14.
+      assert (mulmx (mulmx (invmx A1) A2) X = addmx 0 
+                (mulmx (mulmx (invmx A1) A2) X)).
+      { symmetry. 
+        assert (addmx 0 (mulmx (mulmx (invmx A1) A2) X)=
+                   addmx (mulmx (mulmx (invmx A1) A2) X) 0).
+        { apply addmxC. } rewrite H15. apply Mplus_0_r.
+      } rewrite H15.
+      assert (0= addmx (oppmx X) X).
+      { assert (addmx (oppmx X) X = addmx X (oppmx X)). 
+        { apply addmxC. } rewrite H16. symmetry. apply Mplus_opp_r.
+      } rewrite H16.
+      symmetry. 
+      assert ((mulmx (invmx A1) (mulmx A2 X)) = 
+                (mulmx (mulmx (invmx A1) A2) X)).
+      { apply mulmxA. } rewrite H17. apply addmxA.
+    }
+    rewrite H8.
+    assert (addmx (mulmx (oppmx (mulmx (invmx A1) A2)) (X_m m.+1 x0 b A1 A2))
+              (addmx (mulmx (invmx A1) b) (oppmx X))=
+            addmx (addmx (mulmx (oppmx (mulmx (invmx A1) A2)) (X_m m.+1 x0 b A1 A2))
+                        (mulmx (invmx A1) b)) (oppmx X)).
+    { apply addmxA. } rewrite H9.
+    assert (X_m m.+2 x0 b A1 A2 = 
+              (addmx (mulmx (oppmx (mulmx (invmx A1) A2)) (X_m m.+1 x0 b A1 A2))
+                  (mulmx (invmx A1) b))).
+    { assert (oppmx (mulmx (invmx A1) A2) = mulmx (invmx A1) (oppmx A2)).
+      { apply Mopp_mult_r. } rewrite H10.
+      assert (mulmx (mulmx (invmx A1) (oppmx A2)) (X_m m.+1 x0 b A1 A2)=
+                  mulmx (invmx A1) (mulmx (oppmx A2) (X_m m.+1 x0 b A1 A2))).
+      { symmetry. apply mulmxA. } rewrite H11.
+      assert (mulmx (invmx A1) (addmx (mulmx (oppmx A2) (X_m m.+1 x0 b A1 A2)) b)=
+                addmx (mulmx (invmx A1) (mulmx (oppmx A2) (X_m m.+1 x0 b A1 A2)))
+                  (mulmx (invmx A1) b)).
+      { apply mulmxDr. } rewrite <-H12.
+      assert (X_m m.+2 x0 b A1 A2 = mulmx 1%:M (X_m m.+2 x0 b A1 A2)). 
+      { symmetry. apply mul1mx. }
+      rewrite H13. 
+      assert (mulmx (invmx A1) A1 = 1%:M). {  by apply inverse_A. } rewrite -H14.
+      assert (mulmx (mulmx (invmx A1) A1) (X_m m.+2 x0 b A1 A2) = 
+                mulmx (invmx A1) (mulmx A1 (X_m m.+2 x0 b A1 A2))).
+      { symmetry. apply mulmxA. } rewrite H15.
+      assert (mulmx A1 (X_m m.+2 x0 b A1 A2) = (addmx (mulmx (oppmx A2) (X_m m.+1 x0 b A1 A2)) b)).
+      { assert (addmx (mulmx (oppmx A2) (X_m m.+1 x0 b A1 A2)) b = addmx b (mulmx (oppmx A2) (X_m m.+1 x0 b A1 A2))).
+       { apply addmxC. } rewrite H16.
+       assert (mulmx (oppmx A2) (X_m m.+1 x0 b A1 A2) = oppmx (mulmx A2 (X_m m.+1 x0 b A1 A2))).
+       { symmetry. apply Mopp_mult_l. } rewrite H17.
+       assert (mulmx A1 (X_m m.+2 x0 b A1 A2) = addmx (mulmx A1 (X_m m.+2 x0 b A1 A2)) 0).
+       { symmetry. apply Mplus_0_r. } rewrite H18.
+       assert (addmx (mulmx A2 (X_m m.+1 x0 b A1 A2)) (oppmx (mulmx A2 (X_m m.+1 x0 b A1 A2))) = 0).
+       { apply Mplus_opp_r. } rewrite <-H19.
+       assert (addmx (mulmx A1 (X_m m.+2 x0 b A1 A2))
+                  (addmx (mulmx A2 (X_m m.+1 x0 b A1 A2)) (oppmx (mulmx A2 (X_m m.+1 x0 b A1 A2))))=
+                addmx (addmx (mulmx A1 (X_m m.+2 x0 b A1 A2)) (mulmx A2 (X_m m.+1 x0 b A1 A2)))
+                    (oppmx (mulmx A2 (X_m m.+1 x0 b A1 A2)))).
+       { apply addmxA. } rewrite H20.
+       by rewrite H5. 
+     } by rewrite H16. 
+    } by rewrite H10. 
+}
+
+(** Splitting things here **)
+assert ((forall x0: 'cV[R]_n.+1,
+          (x0 - X) !=0 ->
+          is_lim_seq (fun m : nat => vec_norm  (addmx (X_m m.+1 x0 b A1 A2) (oppmx X))) 0%Re) <->
+        is_lim_seq (fun m:nat =>  (matrix_norm  
+              (RtoC_mat ((oppmx (mulmx (invmx A1) A2))^+m.+1) ))) 0%Re).
+{ split.
+  + intros.
+    apply lim_max with X.
+    intros. (* split.
+    - rewrite /v. 
+      assert (x0 = X_m 0 x0 b A1 A2). { by []. } rewrite H8.
+      apply H4. *)
+     assert (0%Re = (0/ (vec_norm_C  (RtoC_vec  (addmx (X_m 0 x0 b A1 A2) (oppmx X)))))%Re). { nra. } rewrite H9.
+       apply is_lim_seq_div'.
+      * apply (is_lim_seq_ext  (fun m : nat => vec_norm_C  (RtoC_vec  (addmx (X_m m.+1 x0 b A1 A2) (oppmx X))))
+                    (fun n0 : nat =>
+                       vec_norm_C 
+                         (mulmx (RtoC_mat  ((oppmx (mulmx (invmx A1) A2))^+n0.+1))
+                            (RtoC_vec  (addmx (X_m 0 x0 b A1 A2) (oppmx X))))) 0%Re).
+       intros. symmetry. 
+       assert (x0 - X != 0). { by rewrite /v in H8. }
+       specialize (H7 x0 H10). 
+       assert ( vec_norm_C (RtoC_vec (addmx (X_m n0.+1 x0 b A1 A2) (oppmx X))) = 
+                  vec_norm (addmx (X_m n0.+1 x0 b A1 A2) (oppmx X))).
+       { by apply vec_norm_R_C. } rewrite H11.
+       assert (vec_norm_C 
+                  (mulmx
+                     (RtoC_mat ((oppmx (mulmx (invmx A1) A2))^+n0.+1 ))
+                     (RtoC_vec  (addmx (X_m 0 x0 b A1 A2) (oppmx X)))) =
+                vec_norm 
+                   (mulmx ((oppmx (mulmx (invmx A1) A2))^+n0.+1)
+                      (addmx (X_m 0 x0 b A1 A2) (oppmx X)))).
+       { assert (mulmx
+                   (RtoC_mat ((oppmx (mulmx (invmx A1) A2))^+n0.+1 ) )
+                   (RtoC_vec (addmx (X_m 0 x0 b A1 A2) (oppmx X))) = RtoC_vec 
+                  (mulmx ((oppmx (mulmx (invmx A1) A2))^+n0.+1)
+                    (addmx (X_m 0 x0 b A1 A2) (oppmx X))) ).
+         { symmetry. apply mat_vec_unfold. } rewrite H12. apply vec_norm_R_C. 
+       } rewrite H12.
+       apply H6. 
+       
+       apply (is_lim_seq_ext (fun m : nat => vec_norm (addmx (X_m m.+1 x0 b A1 A2) (oppmx X)))
+                (fun m : nat =>
+                    vec_norm_C (RtoC_vec  (addmx (X_m m.+1 x0 b A1 A2) (oppmx X)))) 0%Re).
+       intros. symmetry. apply vec_norm_R_C. 
+       apply H7. by rewrite /v in H8. apply is_lim_seq_const.
+       { assert (vec_norm_C  (RtoC_vec (addmx (X_m 0 x0 b A1 A2) (oppmx X)))  =
+                    vec_norm (addmx (X_m 0 x0 b A1 A2) (oppmx X))).
+          { apply vec_norm_R_C. } rewrite H10.
+          apply vec_norm_not_zero. rewrite //=. 
+          assert ((exists i: 'I_n.+1, addmx x0 (oppmx X) i 0 != 0) ->
+                    exists i: 'I_n.+1, addmx x0 (oppmx X) i 0 <> 0 ).
+          { intros. destruct H11 as [i H11]. exists i. by apply /eqP. }
+          apply H11. apply /cV0Pn. apply H8.
+       }
+  + intros.
+    apply (is_lim_seq_ext (fun m:nat => vec_norm (mulmx ((oppmx 
+                (mulmx (invmx A1) A2))^+m.+1) (addmx (X_m 0 x0 b A1 A2) (oppmx X))))
+              (fun m : nat => vec_norm (addmx (X_m m.+1 x0 b A1 A2) (oppmx X)))).
+    - apply H6. 
+    - apply (is_lim_seq_ext (fun m : nat =>
+               vec_norm_C
+                 (RtoC_vec (mulmx ((oppmx (mulmx (invmx A1) A2))^+m.+1 )
+                    (addmx (X_m 0 x0 b A1 A2) (oppmx X))))) (fun m : nat =>
+               vec_norm 
+                 (mulmx ((oppmx (mulmx (invmx A1) A2))^+m.+1 )
+                    (addmx (X_m 0 x0 b A1 A2) (oppmx X)))) 0%Re).
+      intros.
+      apply vec_norm_R_C.  
+      apply (is_lim_seq_le_le (fun m:nat => 0%Re) (fun m : nat =>
+                 vec_norm_C
+                   (RtoC_vec
+                      (mulmx ((oppmx (mulmx (invmx A1) A2))^+m.+1)
+                         (addmx (X_m 0 x0 b A1 A2) (oppmx X)))))  (fun m : nat =>
+                (matrix_norm 
+                  (RtoC_mat 
+                     ((oppmx (mulmx (invmx A1) A2))^+m.+1 ))) * 
+                  (vec_norm_C (RtoC_vec (addmx (X_m 0 x0 b A1 A2) (oppmx X)))))%Re 0%Re).
+      * intros. split.
+        apply vec_norm_C_ge_0.  
+        assert ( RtoC_vec 
+                 (mulmx ((oppmx (mulmx (invmx A1) A2))^+n0.+1)
+                    (addmx (X_m 0 x0 b A1 A2) (oppmx X))) = mulmx
+                  (RtoC_mat ((oppmx (mulmx (invmx A1) A2))^+n0.+1 ))
+                  (RtoC_vec (addmx (X_m 0 x0 b A1 A2) (oppmx X)))).
+        { apply mat_vec_unfold. } rewrite H9.
+        apply /RleP. apply matrix_norm.matrix_norm_compat.
+        assert (vec_norm_C  (RtoC_vec (addmx (X_m 0 x0 b A1 A2) (oppmx X))) =
+                  vec_norm (addmx (X_m 0 x0 b A1 A2) (oppmx X))).
+        { apply vec_norm_R_C. }
+        rewrite H10.
+        apply vec_norm_not_zero. rewrite //=. 
+        assert ((exists i: 'I_n.+1, addmx x0 (oppmx X) i 0 != 0) ->
+                  exists i: 'I_n.+1, addmx x0 (oppmx X) i 0 <> 0 ).
+        { intros. destruct H11 as [i H11]. exists i. by apply /eqP. }
+        apply H11. apply /cV0Pn. apply H8.
+      * apply is_lim_seq_const.
+        assert ( 0%Re = (0* vec_norm_C (RtoC_vec (addmx (X_m 0 x0 b A1 A2) (oppmx X))))%Re).
+        { nra. } rewrite H9.
+        apply is_lim_seq_mult'.
+        { apply H7. }
+        apply is_lim_seq_const.
+}
+
+assert (is_lim_seq (fun m:nat => matrix_norm
+          (RtoC_mat ((oppmx (mulmx (invmx A1) A2))^+m.+1 ))) 0%Re <->
+        (let S_mat :=
+           RtoC_mat (oppmx (invmx A1 *m A2)) in
+         forall i : 'I_n.+1,
+         (C_mod (lambda S_mat i) < 1)%Re)).
+{ split. 
+  
+  + intros.
+    assert (Rabs (C_mod (lambda S_mat i))= C_mod (lambda S_mat i)).
+    { apply Rabs_right. apply Rle_ge. apply C_mod_ge_0. } rewrite <-H9.
+    apply /RltP. apply (@is_lim_seq_geom_nec (C_mod (lambda S_mat i))).
+    specialize (H3 i).  apply eigen_vector_exists in H3.
+    destruct H3 as [v H3]. 
+    apply (is_lim_seq_ext  (fun n0 : nat => ((C_mod (lambda S_mat i) ^ n0.+1)* 
+              ((vec_norm_rowv  v) / (vec_norm_rowv v)))%Re)
+              (fun n0 : nat => (C_mod (lambda S_mat i) ^ n0.+1)%Re)).
+    intros.
+    assert ((vec_norm_rowv v / vec_norm_rowv v)%Re = 1).
+    {  apply Rinv_r. apply non_zero_vec_norm_row. apply H3. } rewrite H10. 
+    rewrite RmultE. by rewrite mulr1.
+    apply (is_lim_seq_ext (fun n0 : nat =>
+             ((C_mod (lambda S_mat i) ^ n0.+1 *
+              vec_norm_rowv v) / vec_norm_rowv v)%Re)).
+    intros. nra.
+    assert (0%Re = (0/ vec_norm_rowv v)%Re). { nra. } rewrite H10.
+    apply is_lim_seq_div'.
+
+    apply (is_lim_seq_ext (fun m:nat => vec_norm_rowv 
+                  (scal_vec_rowC ((lambda S_mat i)^m.+1) v)) (fun n0 : nat =>
+                  (C_mod (lambda S_mat i) ^ n0.+1 * vec_norm_rowv v)%Re)). 
+    intros.
+    assert (((C_mod (lambda S_mat i))^n0.+1)%Re = C_mod ((lambda S_mat i)^n0.+1)).
+    { by rewrite RpowE C_mod_pow. } 
+    rewrite H11. apply ei_vec_ei_compat_row. 
+    apply (is_lim_seq_ext (fun m:nat => vec_norm_rowv (mulmx 
+              v (RtoC_mat ((oppmx (mulmx (invmx A1) A2))^+m.+1))))
+              (fun m : nat =>
+                 vec_norm_rowv
+                   (scal_vec_rowC ((lambda S_mat i)^+m.+1) v))).
+    intros.
+    assert (mulmx v
+               (RtoC_mat
+                  ((oppmx (mulmx (invmx A1) A2))^+n0.+1 ))
+                = scal_vec_rowC ((lambda S_mat i)^+n0.+1) v).
+    { unfold S_mat. apply eigen_power. fold S_mat.
+      rewrite -scal_vec_mathcomp_compat. apply H3. 
+    }
+    rewrite H11. reflexivity.
+    apply (is_lim_seq_le_le (fun m:nat => 0%Re) (fun m : nat =>
+             vec_norm_rowv 
+               (mulmx v
+                  (RtoC_mat
+                     ((oppmx (mulmx (invmx A1) A2))^m.+1)))) (fun m:nat => ((matrix_norm
+                (RtoC_mat
+                   ((oppmx (mulmx (invmx A1) A2))^m.+1 ))) *
+                vec_norm_rowv v)%Re)).
+    intros.
+    split. 
+    + apply vec_norm_rowv_ge_0. 
+    + apply /RleP. apply matrix_norm.matrix_norm_compat_row.
+      apply non_zero_vec_norm_row. apply H3. 
+    apply is_lim_seq_const.
+    assert (0%Re = (0* vec_norm_rowv v)%Re).
+    { nra. } rewrite H11.
+    apply is_lim_seq_mult'.
+    apply H8. apply is_lim_seq_const. 
+    apply is_lim_seq_const. apply non_zero_vec_norm_row. apply H3.
+
+  + intros.
+    
+    apply (is_lim_seq_ext (fun m : nat =>
+                   matrix_norm
+                     ((RtoC_mat (oppmx (mulmx (invmx A1) A2)))^+m.+1 ))
+
+                (fun m : nat =>
+                   matrix_norm
+                     (RtoC_mat
+                        ((oppmx (mulmx (invmx A1) A2))^+m.+1)))).
+    intros.
+    assert (RtoC_mat
+                ((oppmx (mulmx (invmx A1) A2))^+n0.+1) =
+                  (RtoC_mat (oppmx (mulmx (invmx A1) A2)))^+n0.+1).
+    { apply mat_power_R_C_compat. } by rewrite H9. 
+    by apply mat_norm_converges.
+}
+
+apply iff_trans with (is_lim_seq
+       (fun m : nat =>
+        matrix_norm
+          (RtoC_mat ((oppmx (mulmx (invmx A1) A2))^m.+1))) 0%Re).
++ symmetry. apply H8.
++ symmetry. apply H7.
+Qed.
+
+
+(*
+
 
 (** State the iterative convergence theorem **)
 Theorem iter_convergence: 
@@ -625,3 +1016,5 @@ apply iff_trans with (is_lim_seq
 + symmetry. apply H9.
 + symmetry. apply H8.
 Qed.
+
+*)

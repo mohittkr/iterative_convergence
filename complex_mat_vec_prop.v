@@ -1210,3 +1210,49 @@ Proof.
 by move => x [a b]; rewrite /RtoC //= mul0r subr0.
 Qed.
 
+
+Lemma Rsqr_le_add: forall (x y:R),
+  (0 <= y)%Re ->
+  (Rsqr x <= Rsqr x + y)%Re.
+Proof.
+intros.
+assert (Rsqr x = (Rsqr x + 0)%Re). { nra. } rewrite H0.
+assert ( (x² + 0 + y)%Re = (Rsqr x + y)%Re). { nra. } rewrite H1.
+apply Rplus_le_compat; nra.
+Qed.
+
+Lemma big_sum_1_const: forall (n:nat),
+  \big[+%R/0]_(l < n.+1) 1 = n.+1%:R :> R.
+Proof.
+intros. induction n.
++ by rewrite big_ord_recl //= big_ord0 addr0.
++ rewrite big_ord_recr //=. rewrite IHn. rewrite -addn2. 
+  rewrite natrD. rewrite -addn1. rewrite natrD. rewrite -addrA.
+  by rewrite -natrD.
+Qed.
+
+Lemma n_plus_1_gt_0: forall n:nat,
+  (0 < n.+1%:R)%Re.
+Proof.
+intros. induction n.
++ apply Rlt_0_1.
++ assert (n.+2%:R = n.+1%:R + 1%:R :> R).
+  { rewrite -addn2. 
+    rewrite natrD. rewrite -addn1. rewrite natrD.
+    assert (n.+1%:R = n%:R + 1%R :> R).
+    { by rewrite -addn1 natrD. } rewrite H. 
+    by rewrite -addrA.
+  } rewrite H. rewrite -RplusE. 
+  apply Rplus_lt_0_compat.
+  - by [].
+  - apply Rlt_0_1.
+Qed.
+
+Lemma sqrt_n_neq_0: forall n:nat,
+  sqrt n.+1%:R != 0.
+Proof.
+intros. apply /eqP.
+apply Rgt_not_eq. apply Rlt_gt.
+apply sqrt_lt_R0. apply n_plus_1_gt_0.
+Qed.
+

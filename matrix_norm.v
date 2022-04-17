@@ -462,69 +462,6 @@ assert (\big[+%R/0]_l (C_mod ((x *m A)^T l 0))² =
 } by rewrite H. 
 Qed.
 
-
-Lemma matrix_norm_transpose:
-  forall (n:nat) (A: 'M[complex R]_n.+1),
-  matrix_norm (A^T) = matrix_norm A.
-Proof.
-intros. rewrite /matrix_norm. 
-rewrite /Lub_Rbar. destruct ex_lub_Rbar.
-simpl. destruct ex_lub_Rbar. simpl.
-destruct i. unfold is_ub_Rbar in H. 
-destruct i0. unfold is_ub_Rbar in H1.
-Admitted.
-
-
-(** ||xA|| <= ||x|| ||A|| **)
-Lemma matrix_norm_compat_row_aux: 
-  forall (n:nat) (x: 'rV[complex R]_n.+1) (A: 'M[complex R]_n.+1),
-    x != 0 ->
-    Rbar_le (vec_norm_rowv (x *m A) / vec_norm_rowv x)%Re (matrix_norm A).
-Proof.
-intros. rewrite -matrix_norm_transpose. rewrite /matrix_norm. 
-rewrite /Lub_Rbar. destruct ex_lub_Rbar.
-simpl. rewrite /is_lub_Rbar in i.
-destruct i. unfold is_ub_Rbar in H0. 
-unfold Rbar_le in H0. apply H0.
-exists x^T. split.
-+ apply /cV0Pn. 
-  assert ( exists i, x 0 i != 0).
-  { by apply /rV0Pn. } destruct H2 as [i H2].
-  exists i. by rewrite mxE. 
-  (* rewrite -vec_norm_col_row_compat. *)
-+ rewrite -RdivE.
-  - rewrite !vec_norm_col_row_compat. by rewrite vec_norm_C_conv. 
-  - apply /eqP. rewrite -vec_norm_col_row_compat. 
-    by apply non_zero_vec_norm_row.
-Qed.
-
-
-
-Lemma matrix_norm_compat_row: 
-  forall (n:nat) (x: 'rV[complex R]_n.+1) (A: 'M[complex R]_n.+1),
-   x != 0 ->
-    vec_norm_rowv (mulmx x A) <= ((matrix_norm A) * vec_norm_rowv x)%Re.
-Proof.
-intros. 
-assert (is_finite (matrix_norm A)). { apply matrix_norm_is_finite. }
-assert (Rbar_le (vec_norm_rowv (x *m A) / vec_norm_rowv x)%Re (matrix_norm A)).
-{ by apply matrix_norm_compat_row_aux. } unfold Rbar_le in H1.
-apply is_finite_correct in H0.
-destruct H0. rewrite H0 in H1. rewrite H0. apply /RleP.
-assert (vec_norm_rowv (x *m A) = (vec_norm_rowv (x *m A) * (/vec_norm_rowv x * vec_norm_rowv x))%Re).
-{ assert ((/ vec_norm_rowv x * vec_norm_rowv x)%Re = 1%Re).
-  { apply Rinv_l. by apply non_zero_vec_norm_row. } rewrite H2. nra.
-} rewrite H2.
-assert ((vec_norm_rowv (x *m A) *
-            (/ vec_norm_rowv x * vec_norm_rowv x))%Re = 
-         ((vec_norm_rowv (x *m A) * / vec_norm_rowv x) * (vec_norm_rowv x))%Re).
-{ nra. } rewrite H3. apply Rmult_le_compat_r.
-+ apply vec_norm_rowv_ge_0.
-+ apply H1.
-Qed.
-
-
-
 Lemma Rbar_le_mult_compat: forall (x y:R) (z r: Rbar),
   (0 <= x)%Re -> (0 <= y)%Re ->
   Rbar_le x z -> Rbar_le y r ->

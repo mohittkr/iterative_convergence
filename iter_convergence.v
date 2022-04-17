@@ -187,6 +187,29 @@ Qed.
 
 
 (** Av = \lambda v --> A^m v = \lambda^m v **)
+Lemma eigen_power: forall (n m:nat) (i: 'I_n.+1) (A: 'M[R]_n.+1) (v: 'cV_n.+1), 
+  let Ap:= RtoC_mat A in 
+  mulmx Ap v = scal_vec_C (lambda Ap i) v ->
+  RtoC_mat (A^+m) *m v = scal_vec_C (lambda Ap i ^+ m) v.
+Proof.
+intros. 
+induction m.
++ by rewrite //= !expr0 -scal_vec_1 RtoC_Mone mul1mx.
++ simpl. 
+  assert (RtoC_mat (mulmx (A^+m) A) = 
+            mulmx (RtoC_mat (A^+m)) (RtoC_mat A)).
+  { by rewrite -RtoC_mat_prod. }
+  rewrite exprSr exprS H0. 
+  assert (scal_vec_C (lambda Ap i)
+            (scal_vec_C (lambda Ap i ^+ m) v) = 
+          scal_vec_C (lambda Ap i * lambda Ap i ^+ m) v).
+  { apply scal_of_scal_vec. } rewrite -H1.
+  rewrite -IHm. rewrite scale_vec_mat_conv_C.
+  rewrite -mulmxA. by rewrite H.
+Qed.
+
+
+(*
 Lemma eigen_power: forall (n m:nat) (i: 'I_n.+1) (A: 'M[R]_n.+1) (v: 'rV_n.+1), 
   let Ap:= RtoC_mat A in 
   mulmx v Ap = scal_vec_rowC (lambda Ap i) v ->
@@ -207,7 +230,7 @@ induction m.
   rewrite -IHm. rewrite scale_vec_mat_conv.
   rewrite mulmxA. by rewrite H.
 Qed.
-
+*)
 
 Lemma mat_power_R_C_compat: forall (m n: nat) (A: 'M[R]_n.+1),
   let Ap:= RtoC_mat A in RtoC_mat (A^+m) = Ap^+m.
@@ -312,10 +335,11 @@ assert (forall x0: 'cV[R]_n.+1,
 assert (forall (x0: 'cV[R]_n.+1) (m:nat), 
           addmx (mulmx A1 (X_m m.+1 x0 b A1 A2)) (mulmx A2 (X_m m x0 b A1 A2)) =b).
 { intros. simpl.
+  rewrite -Mopp_mult_l.
   rewrite Mopp_mult_r. rewrite -mulmxA. rewrite mulmxDr.
   rewrite !mulmxA.
   assert (A1 *m invmx A1 = 1%:M). { by apply inverse_A. }
-  rewrite H5. rewrite !mul1mx. rewrite -Mopp_mult_l.
+  rewrite H5. rewrite !mul1mx. rewrite -Mopp_mult_r.
   apply (@Mopp_add_compat n A2 (X_m m x0 b A1 A2) b).
 }
 
@@ -537,16 +561,12 @@ assert ((forall x0: 'cV[R]_n.+1,
                   (RtoC_mat ((oppmx (mulmx (invmx A1) A2))^+n0.+1 ))
                   (RtoC_vec (addmx (X_m 0 x0 b A1 A2) (oppmx X)))).
         { apply mat_vec_unfold. } rewrite H9.
-        apply /RleP. apply matrix_norm.matrix_norm_compat.
-        assert (vec_norm_C  (RtoC_vec (addmx (X_m 0 x0 b A1 A2) (oppmx X))) =
-                  vec_norm (addmx (X_m 0 x0 b A1 A2) (oppmx X))).
-        { apply vec_norm_R_C. }
-        rewrite H10.
-        apply vec_norm_not_zero. rewrite //=. 
-        assert ((exists i: 'I_n.+1, addmx x0 (oppmx X) i 0 != 0) ->
-                  exists i: 'I_n.+1, addmx x0 (oppmx X) i 0 <> 0 ).
-        { intros. destruct H11 as [i H11]. exists i. by apply /eqP. }
-        apply H11. apply /cV0Pn. apply H8.
+        apply /RleP. apply matrix_norm_compat.
+        rewrite //=. 
+        assert ((exists i: 'I_n.+1, addmx x0 (oppmx X) i 0 != 0)).
+        {by  apply /cV0Pn. }
+        apply /cV0Pn. destruct H10 as [k H10]. exists k. rewrite mxE.
+        rewrite eq_complex. apply /nandP. left. by rewrite //=.
       * apply is_lim_seq_const.
         assert ( 0%Re = (0* vec_norm_C (RtoC_vec (addmx (X_m 0 x0 b A1 A2) (oppmx X))))%Re).
         { nra. } rewrite H9.
@@ -567,62 +587,69 @@ assert (is_lim_seq (fun m:nat => matrix_norm
     assert (Rabs (C_mod (lambda S_mat i))= C_mod (lambda S_mat i)).
     { apply Rabs_right. apply Rle_ge. apply C_mod_ge_0. } rewrite <-H9.
     apply /RltP. apply (@is_lim_seq_geom_nec (C_mod (lambda S_mat i))).
-    specialize (H3 i).  apply eigen_vector_exists in H3.
+    specialize (H3 i).  apply right_eigen_vector_exists in H3.
     destruct H3 as [v H3]. 
     apply (is_lim_seq_ext  (fun n0 : nat => ((C_mod (lambda S_mat i) ^ n0.+1)* 
-              ((vec_norm_rowv  v) / (vec_norm_rowv v)))%Re)
+              ((vec_norm_C  v) / (vec_norm_C v)))%Re)
               (fun n0 : nat => (C_mod (lambda S_mat i) ^ n0.+1)%Re)).
     intros.
-    assert ((vec_norm_rowv v / vec_norm_rowv v)%Re = 1).
-    {  apply Rinv_r. apply non_zero_vec_norm_row. apply H3. } rewrite H10. 
+    assert ((vec_norm_C v / vec_norm_C v)%Re = 1).
+    {  apply Rinv_r. apply non_zero_vec_norm. destruct H3.
+       unfold vec_not_zero.
+       assert (exists i, v i 0 != 0).
+       { by apply /cV0Pn. } destruct H11 as [j H11]. exists j. by apply /eqP.
+    } rewrite H10. 
     rewrite RmultE. by rewrite mulr1.
     apply (is_lim_seq_ext (fun n0 : nat =>
              ((C_mod (lambda S_mat i) ^ n0.+1 *
-              vec_norm_rowv v) / vec_norm_rowv v)%Re)).
+              vec_norm_C v) / vec_norm_C v)%Re)).
     intros. nra.
-    assert (0%Re = (0/ vec_norm_rowv v)%Re). { nra. } rewrite H10.
+    assert (0%Re = (0/ vec_norm_C v)%Re). { nra. } rewrite H10.
     apply is_lim_seq_div'.
 
-    apply (is_lim_seq_ext (fun m:nat => vec_norm_rowv 
-                  (scal_vec_rowC ((lambda S_mat i)^m.+1) v)) (fun n0 : nat =>
-                  (C_mod (lambda S_mat i) ^ n0.+1 * vec_norm_rowv v)%Re)). 
+    apply (is_lim_seq_ext (fun m:nat => vec_norm_C
+                  (scal_vec_C ((lambda S_mat i)^m.+1) v)) (fun n0 : nat =>
+                  (C_mod (lambda S_mat i) ^ n0.+1 * vec_norm_C v)%Re)). 
     intros.
     assert (((C_mod (lambda S_mat i))^n0.+1)%Re = C_mod ((lambda S_mat i)^n0.+1)).
     { by rewrite RpowE C_mod_pow. } 
-    rewrite H11. apply ei_vec_ei_compat_row. 
-    apply (is_lim_seq_ext (fun m:nat => vec_norm_rowv (mulmx 
-              v (RtoC_mat ((oppmx (mulmx (invmx A1) A2))^+m.+1))))
+    rewrite H11. apply ei_vec_ei_compat. 
+    apply (is_lim_seq_ext (fun m:nat => vec_norm_C (mulmx 
+              (RtoC_mat ((oppmx (mulmx (invmx A1) A2))^+m.+1)) v))
               (fun m : nat =>
-                 vec_norm_rowv
-                   (scal_vec_rowC ((lambda S_mat i)^+m.+1) v))).
+                 vec_norm_C
+                   (scal_vec_C ((lambda S_mat i)^+m.+1) v))).
     intros.
-    assert (mulmx v
+    assert (mulmx
                (RtoC_mat
-                  ((oppmx (mulmx (invmx A1) A2))^+n0.+1 ))
-                = scal_vec_rowC ((lambda S_mat i)^+n0.+1) v).
+                  ((oppmx (mulmx (invmx A1) A2))^+n0.+1 )) v
+                = scal_vec_C ((lambda S_mat i)^+n0.+1) v).
     { unfold S_mat. apply eigen_power. fold S_mat.
-      rewrite -scal_vec_mathcomp_compat. apply H3. 
+      rewrite -scal_vec_mathcomp_compat_col. apply H3. 
     }
     rewrite H11. reflexivity.
     apply (is_lim_seq_le_le (fun m:nat => 0%Re) (fun m : nat =>
-             vec_norm_rowv 
-               (mulmx v
+             vec_norm_C 
+               (mulmx 
                   (RtoC_mat
-                     ((oppmx (mulmx (invmx A1) A2))^m.+1)))) (fun m:nat => ((matrix_norm
+                     ((oppmx (mulmx (invmx A1) A2))^m.+1)) v)) (fun m:nat => ((matrix_norm
                 (RtoC_mat
                    ((oppmx (mulmx (invmx A1) A2))^m.+1 ))) *
-                vec_norm_rowv v)%Re)).
+                vec_norm_C v)%Re)).
     intros.
     split. 
-    + apply vec_norm_rowv_ge_0. 
-    + apply /RleP. apply matrix_norm.matrix_norm_compat_row.
-      apply non_zero_vec_norm_row. apply H3. 
+    + apply vec_norm_C_ge_0. 
+    + apply /RleP. apply matrix_norm_compat.
+      by apply H3. 
     apply is_lim_seq_const.
-    assert (0%Re = (0* vec_norm_rowv v)%Re).
+    assert (0%Re = (0* vec_norm_C v)%Re).
     { nra. } rewrite H11.
     apply is_lim_seq_mult'.
     apply H8. apply is_lim_seq_const. 
-    apply is_lim_seq_const. apply non_zero_vec_norm_row. apply H3.
+    apply is_lim_seq_const. apply non_zero_vec_norm. destruct H3.
+    unfold vec_not_zero.
+    assert (exists i, v i 0 != 0).
+    { by apply /cV0Pn. } destruct H12 as [j H12]. exists j . by apply /eqP. by [].
 
   + intros.
     

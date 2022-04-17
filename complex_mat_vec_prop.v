@@ -750,6 +750,23 @@ have H2: (l * (x * v 0 y))%C = ((l* x) * (v 0 y))%C.
 assert ((x* l)%C = (l* x)%C). { apply mulrC. } by rewrite H.
 Qed.
 
+Lemma scale_vec_mat_conv_C:
+  forall (n:nat) (l:complex R) (v: 'cV[complex R]_n.+1) (A: 'M[complex R]_n.+1),
+  scal_vec_C l (A *m v) =  A *m (scal_vec_C l v).
+Proof.
+intros. apply matrixP. unfold eqrel. intros.
+rewrite !mxE. 
+assert (y = 0). { by apply ord1. } rewrite H.
+rewrite /scal_vec_C //=. 
+assert (\big[+%R/0]_(j < n.+1) (A x j *(\col_i (l * v i 0)) j 0)= 
+      \big[+%R/0]_(j < n.+1) ((l * v j 0) * A x j)).
+{ apply eq_big. by []. intros. rewrite !mxE. by rewrite mulrC -mulrA. }
+rewrite H0. rewrite big_distrr //=. apply eq_big.
+by []. intros. rewrite -mulrA. 
+assert ((A x i * v i 0) = (v i 0 * A x i)).
+{ by rewrite mulrC. } by rewrite H2.
+Qed.
+
 
 Lemma scale_vec_mat_conv:
   forall (n:nat) (l:complex R) (v: 'rV[complex R]_n.+1) (A: 'M[complex R]_n.+1),
@@ -1255,4 +1272,104 @@ intros. apply /eqP.
 apply Rgt_not_eq. apply Rlt_gt.
 apply sqrt_lt_R0. apply n_plus_1_gt_0.
 Qed.
+
+(*** existence of right eigen vector **)
+Lemma matrix_vec_transpose (n:nat) (A: 'M[complex R]_n.+1) (v: 'rV[complex R]_n.+1):
+  A^T *m v^T = (v *m A)^T.
+Proof.
+apply matrixP. unfold eqrel. intros.
+rewrite !mxE. apply eq_big. by [].
+intros. rewrite !mxE. by rewrite mulrC.
+Qed.
+
+Lemma scal_vec_transpose (n:nat) (l : complex R) (v: 'rV[complex R]_n.+1):
+  l *: v^T = (l *: v)^T.
+Proof.
+apply matrixP. unfold eqrel. intros. by rewrite !mxE.
+Qed.
+
+
+Lemma char_poly_A_A_tr:
+  forall (n:nat) (A: 'M[complex R]_n.+1),
+  char_poly A = char_poly A^T.
+Proof.
+intros. rewrite /char_poly /char_poly_mx.
+rewrite -det_tr.
+rewrite /determinant //=. apply eq_big.
++ by [].
++ intros. 
+  assert (\big[ *%R/1]_(i0 < succn n) ('X%:M - map_mx polyC A)^T
+                              i0
+                              (perm.PermDef.fun_of_perm
+                                 i i0) = 
+          \big[ *%R/1]_(i0 < succn n) ('X%:M - map_mx polyC A^T)
+                              i0
+                              (perm.PermDef.fun_of_perm
+                                 i i0)).
+  { apply eq_big. by []. intros. 
+    rewrite !mxE. 
+    by rewrite eq_sym.
+  } by rewrite H0.
+Qed. 
+
+
+Lemma eigen_val_mat_transpose:
+  forall (n:nat) (l: complex R) (A: 'M[complex R]_n.+1),
+  @eigenvalue (complex_fieldType _) n.+1 A l = 
+  @eigenvalue (complex_fieldType _) n.+1 A^T l.
+Proof.
+intros. rewrite !eigenvalue_root_char.
+assert ((char_poly A) = (char_poly A^T)).
+{ apply char_poly_A_A_tr. } by rewrite H.
+Qed.
+
+Lemma A_tr_tr: forall (n:nat) (A: 'M[complex R]_n.+1),
+  A = (A^T)^T.
+Proof.
+intros. apply matrixP. unfold eqrel. intros.
+by rewrite !mxE.
+Qed.
+
+
+Lemma A_v_tr:
+  forall (n:nat) (A: 'M[complex R]_n.+1) (v: 'rV[complex R]_n.+1),
+  A *m v^T = (v *m A^T)^T.
+Proof.
+intros. apply matrixP. unfold eqrel. intros. rewrite !mxE.
+apply eq_big. by [].
+intros. rewrite !mxE. by rewrite mulrC.
+Qed.
+
+Lemma v_l_tr:
+  forall (n:nat) (l: complex R) (v: 'rV[complex R]_n.+1),
+  l *: v^T = (l *: v)^T.
+Proof.
+intros. apply matrixP. unfold eqrel. intros.
+by rewrite !mxE.
+Qed.
+
+
+Lemma right_eigen_vector_exists:
+  forall (n:nat) (i: 'I_n.+1) (A: 'M[complex R]_n.+1) (l : complex R),
+  @eigenvalue (complex_fieldType _) n.+1 A l ->  
+   exists v: 'cV_n.+1, (mulmx A v = l *: v) /\ (v !=0).
+Proof.
+intros.
+assert ( @eigenvalue (complex_fieldType _) n.+1 A^T l).
+{ by rewrite -eigen_val_mat_transpose. }
+assert (exists v : 'rV_(succn n),
+           v *m A^T = l *: v /\ v != 0).
+{ assert (exists2 v : 'rV_n.+1, v *m A^T = l *: v & v != 0).
+  { by apply /eigenvalueP. } destruct H1. exists x. by split.
+} destruct H1 as [v H1].
+exists v^T. destruct H1.
+split.
++ rewrite [in LHS]A_v_tr. rewrite v_l_tr. by rewrite H1.
++ apply /cV0Pn.
+  assert (exists i, v 0 i != 0).
+  { by apply /rV0Pn. } destruct H3 as [k H3].
+  exists k. by rewrite mxE.
+Qed.
+
+
 

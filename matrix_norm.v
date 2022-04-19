@@ -507,13 +507,100 @@ intros. destruct z.
   - by unfold Rbar_le in H1.
 Qed.
 
+Lemma big_0_implies_all_0: forall (n:nat) (x : 'I_n.+1 -> complex R),
+  \big[+%R/0]_l (C_mod (x l))² = 0%Re ->
+  (forall l: 'I_n.+1, x l = 0).
+Proof.
+intros.
+induction n.
++ simpl in H. rewrite big_ord_recl //= big_ord0 addr0 in H.
+  apply Rsqr_eq_0 in H. apply C_mod_eq_0 in H. 
+  assert (l = ord0). { by apply ord1. } by rewrite H0.
++ rewrite big_ord_recr //= in H. rewrite -RplusE in H.
+  apply Rplus_eq_R0 in H. destruct H.
+  - specialize (IHn _ H). 
+    apply Rsqr_eq_0 in H0. apply C_mod_eq_0 in H0. 
+    assert ((l < n.+2)%N). { by []. }
+    assert ((l < n.+1)%N \/ l = ord_max).
+    { rewrite leq_eqVlt in H1.
+      assert ((l.+1 == n.+2) \/ (l.+1 < n.+2)%N).
+      { by apply /orP. } destruct H2.
+      + right. by apply /eqP. 
+      + by left. 
+    } destruct H2.
+    * specialize (IHn (@inord n l)). simpl in IHn. 
+      assert (l = (widen_ord (leqnSn n.+1) (inord l)) :> nat). 
+      { rewrite /widen_ord //=. by rewrite inordK. }
+      assert (inord l = l). { by rewrite inord_val. }
+      rewrite -H4. rewrite H3. by rewrite inord_val.
+    * by rewrite H2.
+  - apply /RleP. apply sum_n_ge_0. intros. apply /RleP. apply Rle_0_sqr.
+  - apply Rle_0_sqr.
+Qed.
+  
+Lemma sqrt_not_0: forall (x:R), sqrt x <> 0 -> x <> 0.
+Proof.
+intros.
+assert (x = 0 \/ x <> 0).
+{ nra. } destruct H0.
++ rewrite H0 in H. rewrite sqrt_0 in H. by contradict H.
++ apply H0.
+Qed. 
+
+Lemma Rsqr_not_0: forall (x:R), Rsqr x <> 0 -> x <> 0.
+Proof.
+intros.
+assert (x = 0 \/ x <> 0).
+{ nra. } destruct H0.
++ rewrite H0 in H. rewrite Rsqr_0 in H. by contradict H.
++ apply H0.
+Qed.
+
+Lemma sum_not_zero: 
+  forall (x y:R), (x + y)%Re <> 0 -> x <> 0%Re \/ y <> 0%Re.
+Proof.
+intros.
+assert (x = 0%Re \/ x <> 0%Re).
+{ nra. } destruct H0.
++ rewrite H0 in H. right. 
+  assert ((0 + y)%Re = y). { nra. } by rewrite H1 in H. 
++ by left.
+Qed.
+
+Lemma big_0_implies_not_0: forall (n:nat) (x : 'I_n.+1 -> complex R),
+  \big[+%R/0]_l (C_mod (x l))² <> 0%Re ->
+  (exists l: 'I_n.+1, x l <> 0).
+Proof.
+intros. induction n.
++ simpl in H. rewrite big_ord_recl //= big_ord0 addr0 in H.
+  exists (ord0). rewrite C_mod_gt_0. apply C_mod_gt_not_zero.
+  by apply Rsqr_not_0.
++ rewrite big_ord_recr //= in H. rewrite -RplusE in H.
+  apply sum_not_zero in H.
+  destruct H.
+  - specialize (IHn _ H). destruct IHn as [i IHn].
+    exists (widen_ord (leqnSn n.+1) i). by apply IHn.
+  - exists ord_max. apply Rsqr_not_0 in H. apply C_mod_gt_not_zero in H.
+    by apply C_mod_gt_0.
+Qed.
 
 
 Lemma vec_is_zero_or_not: 
   forall (n:nat) (x : 'cV[complex R]_n.+1), x = 0 \/ x != 0.
 Proof.
-intros. destruct x. simpl.
-Admitted.
+intros.
+assert (vec_norm_C x = 0%Re \/ vec_norm_C x <> 0%Re).
+{ nra. } destruct H.
++ left. apply matrixP. unfold eqrel. intros.
+  rewrite /vec_norm_C in H. apply sqrt_eq_0 in H.
+  - rewrite [RHS]mxE. move: x0. apply big_0_implies_all_0.
+    assert (y = 0). { by apply ord1. } by rewrite H0.
+  - apply /RleP. apply sum_n_ge_0. intros. apply /RleP. apply Rle_0_sqr.
++ right. rewrite /vec_norm_C in H. apply /cV0Pn.
+  apply sqrt_not_0 in H. apply big_0_implies_not_0 in H.
+  destruct H as [l H]. exists l. by apply /eqP.
+Qed.
+  
 
 Lemma matrix_norm_prod_aux:
   forall (n:nat) (A B: 'M[complex R]_n.+1),

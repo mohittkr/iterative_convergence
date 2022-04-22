@@ -216,12 +216,42 @@ rewrite -RplusE.
 apply Rsqr_incr_0_var.
 + rewrite Rsqr_sqrt.
   - rewrite Rsqr_plus. rewrite !Rsqr_sqrt.
-    * admit.
+    * apply Rle_trans with 
+       (\big[+%R/0]_l (Rsqr (C_mod (v1 l 0)) + Rsqr (C_mod (v2 l 0)) + 2 * C_mod (v1 l 0) * C_mod (v2 l 0))).
+      ++ apply /RleP. apply big_sum_ge_ex_abstract.
+         intros. rewrite mxE. 
+         apply Rle_trans with (Rsqr (C_mod (v1 i 0) + C_mod (v2 i 0))).
+         -- apply Rsqr_incr_1.
+            * apply /RleP. apply C_mod_add_leq.
+            * apply C_mod_ge_0.
+            * apply Rplus_le_le_0_compat; apply C_mod_ge_0.
+         -- rewrite Rsqr_plus. rewrite -!RplusE -!RmultE. apply Rle_refl.
+      ++ rewrite -!big_sum_add. rewrite -!RplusE.
+         apply Rplus_le_compat_l. 
+         assert (\big[+%R/0]_j
+                    (2 * C_mod (v1 j 0) * C_mod (v2 j 0))%Ri = 
+                  2 * \big[+%R/0]_j (C_mod (v1 j 0) * C_mod (v2 j 0))%Ri).
+         { rewrite [RHS]big_distrr //=. apply eq_big. by []. intros. by rewrite mulrA. }
+         rewrite H. clear H. 
+         rewrite Rmult_assoc. apply Rmult_le_compat_l.
+         - nra.
+         - rewrite -sqrt_mult.
+           * apply Rsqr_incr_0_var.
+             - rewrite Rsqr_sqrt.
+               ++ apply /RleP. apply big_sqr_le.
+                  -- intros. apply /RleP. apply C_mod_ge_0.
+                  -- intros. apply /RleP. apply C_mod_ge_0.
+               ++ apply Rmult_le_compat_0.
+                  -- apply /RleP. apply sum_n_ge_0. intros. apply /RleP. apply Rle_0_sqr.
+                  -- apply /RleP. apply sum_n_ge_0. intros. apply /RleP. apply Rle_0_sqr.
+             - apply sqrt_pos.
+           * apply /RleP. apply sum_n_ge_0. intros. apply /RleP. apply Rle_0_sqr.
+           * apply /RleP. apply sum_n_ge_0. intros. apply /RleP. apply Rle_0_sqr.
     * apply /RleP. apply sum_n_ge_0. intros. apply /RleP. apply Rle_0_sqr.
     * apply /RleP. apply sum_n_ge_0. intros. apply /RleP. apply Rle_0_sqr.
   - apply /RleP. apply sum_n_ge_0. intros. apply /RleP. apply Rle_0_sqr.
 + apply Rplus_le_le_0_compat; apply sqrt_pos.
-Admitted.
+Qed.
   
 Lemma vec_norm_add_le_sum:
   forall (m n:nat) (x: 'I_m.+1 -> 'cV[complex R]_n.+1),
@@ -950,4 +980,3 @@ apply iff_trans with (is_lim_seq
 + symmetry. apply H8.
 + symmetry. apply H7.
 Qed.
-

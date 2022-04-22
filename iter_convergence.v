@@ -96,125 +96,113 @@ Fixpoint X_m (m n:nat) (x0 b: 'cV[R]_n.+1) (A1 A2: 'M[R]_n.+1) : 'cV[R]_n.+1:=
   end.
 
 
+Definition one_vec_r (n:nat) : 'cV[R]_n.+1:=
+  \col_(j < n.+1) 1%Re.
+
+
+Definition e_i {n:nat} (i: 'I_n.+1): 'cV[complex R]_n.+1 :=
+  \col_(j < n.+1) (if (i==j :> nat) then (1 +i* 0)%C else (0 +i* 0)%C).
+
+
+Lemma base_sum_eq_zero: 
+forall (n:nat) (x: 'I_n.+1 -> 'cV[complex R]_n.+1) (P : pred 'I_n.+1) (x0: 'I_n.+1),
+  (forall i, P i -> x i x0 0 = 0) ->  
+(\big[+%R/0]_(i < n.+1 | P i) x i) x0 0 = 0 .
+Proof.
+intros. apply big_rec.
++ by rewrite mxE.
++ intros. rewrite mxE. rewrite H1. specialize (H i H0). rewrite H. by rewrite addr0. 
+Qed.
+
+Lemma base_exp: forall (n:nat) (x: 'cV[complex R]_n.+1),
+  x = \big[+%R/0]_(i < n.+1) (x i 0 *: e_i i).
+Proof.
+intros.
+apply matrixP. unfold eqrel. intros.
+rewrite (bigD1 x0) //=.
+rewrite !mxE //=.
+assert (x0 == x0 :> nat = true). { apply eq_refl. }
+rewrite H. rewrite mulr1.
+assert ((\big[+%R/0]_(i < n.+1 | i != x0) (x i 0 *: e_i i)) x0 0 = 0).
+{ apply base_sum_eq_zero. intros. rewrite !mxE //=.
+  assert (i == x0 :> nat = false). { apply /eqP. by apply /eqP. }
+  by rewrite H1 mulr0.
+} assert (y = 0). { by rewrite ord1. } rewrite H1 H0.
+by rewrite addr0.
+Qed.
+
+
+
+Lemma lim_max_aux: forall (n:nat) (A: 'M[R]_n.+1),
+   (forall x: 'cV[R]_n.+1, 
+    let vc:= RtoC_vec x in 
+      is_lim_seq (fun m: nat => vec_norm_C (mulmx (RtoC_mat (A^+m.+1)) vc)) 0%Re) ->
+        is_lim_seq (fun m:nat => matrix_norm (RtoC_mat (A^+m.+1))) 0%Re.
+Proof.
+intros.
+apply (is_lim_seq_le_le (fun _ => 0) (fun m : nat => matrix_norm (RtoC_mat (A ^+ m.+1)))
+          (fun m:nat => \big[+%R/0]_(i < n.+1) vec_norm_C (RtoC_mat (A ^+ m.+1) *m (e_i i)))).
++ intros.
+  split.
+  - apply matrix_norm_ge_0.
+  - unfold matrix_norm. unfold Lub_Rbar. destruct ex_lub_Rbar. simpl.
+    unfold is_lub_Rbar in i. destruct i. destruct x.
+    * specialize (H1 (\big[+%R/0]_(i < n.+1) vec_norm_C
+                          (RtoC_mat (A ^+ n0.+1) *m  (e_i i)))).
+      rewrite /Rbar_le //= in H1. apply H1.
+      unfold is_ub_Rbar. intros.
+      destruct H2 as [v H2]. destruct H2. rewrite H3.
+      unfold Rbar_le. rewrite -RdivE.
+      ++ apply Rle_trans with 
+          (\big[+%R/0]_(j < n.+1) (vec_norm_C (RtoC_mat (A ^+ n0.+1) *m (v j 0 *: e_i j))) / (vec_norm_C v)).
+         -- rewrite -RdivE.
+            + apply Rmult_le_compat_r.
+              - apply Rlt_le, Rinv_0_lt_compat. apply vec_norm_gt_0.
+                 unfold vec_not_zero. 
+                 assert (exists i, v i 0 != 0).
+                 { by apply /cV0Pn. } destruct H4 as [i H4]. exists i. by apply /eqP.
+              - assert (v = \big[+%R/0]_(i < n.+1) (v i 0 *: e_i i)).
+                { apply base_exp. }
+                assert (RtoC_mat (A ^+ n0.+1) *m v = 
+                        RtoC_mat (A ^+ n0.+1) *m (\big[+%R/0]_(i < n.+1) (v i 0 *: e_i i))).
+                { by rewrite [in LHS]H4. } rewrite H5. admit.
+            + apply /eqP. apply non_zero_vec_norm. 
+              unfold vec_not_zero. 
+              assert (exists i, v i 0 != 0).
+              { by apply /cV0Pn. } destruct H4 as [i H4]. exists i. by apply /eqP.
+         -- admit.
+      ++ apply /eqP. apply non_zero_vec_norm. 
+         unfold vec_not_zero. 
+         assert (exists i, v i 0 != 0).
+         { by apply /cV0Pn. } destruct H4 as [i H4]. exists i. by apply /eqP.
+    * simpl. apply /RleP. apply sum_n_ge_0. intros. apply /RleP. apply vec_norm_C_ge_0.
+    * simpl. apply /RleP. apply sum_n_ge_0. intros. apply /RleP. apply vec_norm_C_ge_0.
++ apply is_lim_seq_const.
++ admit.
+Admitted.
+
+ 
+
 
 (** If all ||S v|| / ||v|| = 0 , then it's maximum will also be 0**)
 Lemma lim_max: forall (n:nat) (A: 'M[R]_n.+1) (X: 'cV[R]_n.+1),
    (forall x0: 'cV[R]_n.+1, 
     let v:= (addmx x0 (oppmx X)) in
     let vc:= RtoC_vec v in 
-      is_lim_seq (fun m: nat => (vec_norm_C (mulmx (RtoC_mat (A^+m.+1)) vc) / (vec_norm_C vc))%Re) 0%Re) ->
+      is_lim_seq (fun m: nat => vec_norm_C (mulmx (RtoC_mat (A^+m.+1)) vc)) 0%Re) ->
         is_lim_seq (fun m:nat => matrix_norm (RtoC_mat (A^+m.+1))) 0%Re.
 Proof.
-intros. rewrite /matrix_norm.
-
-
-
-
- 
-Admitted.
-
-
-
-
-(*
-
-Definition one_vec_r (n:nat) : 'cV[R]_n.+1:=
-  \col_(j < n.+1) (if (j == 0%N :> nat) then 1%Re else 0%Re).
-
-
-Lemma one_vec_r_not_0: forall (n:nat),
-  one_vec_r n != 0.
-Proof.
-intros. apply /cV0Pn. exists 0.
-rewrite mxE //=. apply /eqP. 
-assert ((0<1)%Re -> 1%Re <> 0%Re). { nra. } apply H.
-nra.
-Qed. 
-
-
-
-Lemma lim_max: forall (n:nat) (A: 'M[R]_n.+1) (X: 'cV[R]_n.+1),
-   (forall x0: 'cV[R]_n.+1, 
-    let v:= (addmx x0 (oppmx X)) in
-    v != 0 -> 
-    let vc:= RtoC_vec v in 
-      is_lim_seq (fun m: nat => (vec_norm_C (mulmx (RtoC_mat (A^+m.+1)) vc) / (vec_norm_C vc))%Re) 0%Re) ->
-        is_lim_seq (fun m:nat => matrix_norm (RtoC_mat (A^+m.+1))) 0%Re.
-Proof.
-intros. rewrite /matrix_norm.
-specialize (H (X + (one_vec_r n))).
-assert (addmx (X + one_vec_r n) (oppmx X) = one_vec_r n).
+intros.
+apply lim_max_aux.
+intros. specialize (H (X + x)).
+assert (addmx (X + x) (oppmx X) =x).
 { apply matrixP. unfold eqrel. intros. rewrite !mxE.
-  rewrite addrC. rewrite addrA. rewrite addrC.
-  assert ((- X x y + X x y)  = 0%Re).
+  rewrite addrC. rewrite addrA. rewrite addrC. 
+  assert ((- X x0 y + X x0 y)  = 0%Re).
   { rewrite addrC. rewrite -RminusE. nra. } rewrite H0. 
   by rewrite addr0.
-} 
-assert ( addmx (X + one_vec_r n) (oppmx X) != 0).
-{ rewrite H0. apply one_vec_r_not_0. } specialize (H H1).
-rewrite H0 in H.
-rewrite -is_lim_seq_spec. rewrite /is_lim_seq'. intros.
-rewrite <-is_lim_seq_spec in H. rewrite /is_lim_seq' in H. 
-specialize (H eps). unfold eventually in H. unfold eventually.
-destruct H as [N H]. exists N.
-intros. specialize (H n0 H2).
-rewrite Rminus_0_r in H. rewrite Rminus_0_r.
-rewrite /Lub_Rbar. destruct ex_lub_Rbar.
-simpl. rewrite /is_lub_Rbar in i.
-destruct i. unfold is_ub_Rbar in H3.
-specialize (H3  (vec_norm_C
-          (RtoC_mat (A ^+ n0.+1) *m 
-           RtoC_vec
-             (addmx (X + one_vec_r n) (oppmx X))) /
-        vec_norm_C
-          (RtoC_vec
-             (addmx (X + one_vec_r n) (oppmx X))))).
-
-assert ( (exists v : 'cV_n.+1,
-        vec_norm_C v <> 0 /\
-        vec_norm_C
-          (RtoC_mat (A ^+ n0.+1) *m RtoC_vec
-                                    (addmx
-                                    (X + one_vec_r n)
-                                    (oppmx X))) /
-        vec_norm_C
-          (RtoC_vec (addmx (X + one_vec_r n) (oppmx X))) =
-        vec_norm_C (RtoC_mat (A ^+ n0.+1) *m v) /
-        vec_norm_C v) ).
-{ exists (RtoC_vec (one_vec_r n)).
-  split.
-  + admit.
-  + by rewrite H0.
-} specialize (H3 H5).
-specialize (H4 eps).
-assert (Rbar_le x eps).
-{ apply H4.
-  unfold is_ub_Rbar.
-  intros.
-  unfold Rbar_le.
-  apply Rlt_le.
-  destruct H6. destruct H6.
-  rewrite H7.
-  
-
-
-
-
-
-
-
-
-specialize (H4 (eps -1)%Re). 
-apply Rle_lt_trans with (eps -1)%Re.
-+ assert (Rbar_le (Rabs x) eps -> (Rabs x <= eps)%Re).
-  { by unfold Rbar_le. } apply H5. 
-
- 
-Admitted.
-
-*)
-
-
+} rewrite H0 in H. apply H.
+Qed.
 
 
 
@@ -585,7 +573,20 @@ assert ((forall x0: 'cV[R]_n.+1,
         is_lim_seq (fun m:nat =>  (matrix_norm  
               (RtoC_mat ((oppmx (mulmx (invmx A1) A2))^+m.+1) ))) 0%Re).
 { split.
-  + intros. admit.
+  + intros.
+    apply lim_max with X. intros.
+    specialize (H7 x0).
+    apply (is_lim_seq_ext  
+            (fun m : nat => vec_norm (addmx (X_m m.+1 x0 b A1 A2) (oppmx X)))
+            (fun m : nat => vec_norm_C
+                (RtoC_mat (oppmx (invmx A1 *m A2) ^+ m.+1) *m vc))).
+    - intros. specialize (H6 x0 n0).
+      rewrite -H6. rewrite -mat_vec_unfold. rewrite vec_norm_R_C.
+      simpl. by rewrite /v.
+    - apply H7.
+
+
+
     (*apply lim_max with X.
     intros. (* split.
     - rewrite /v. 
@@ -831,7 +832,7 @@ apply iff_trans with (is_lim_seq
           (RtoC_mat ((oppmx (mulmx (invmx A1) A2))^m.+1))) 0%Re).
 + symmetry. apply H8.
 + symmetry. apply H7.
-Admitted.
+Qed.
 
 
 

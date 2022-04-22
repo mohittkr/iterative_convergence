@@ -258,20 +258,6 @@ intros. apply matrixP. unfold eqrel. intros. rewrite !mxE. by rewrite addr0.
 Qed.
 
 
-(**a lemma for representation of a vector in terms of basis **) 
-
-(*
-Hypothesis vec_base_repr:
-  forall (n:nat) (x: 'cV[complex R]_n.+1) (v: seq 'cV[complex R]_n.+1) ,
-  (0 < size v <= n.+1)%N -> 
-  (forall k : seq (complex R), \sum_(i< size v) (nth 0%C k i) *: (nth 0 v i) = 0  ->
-      (forall i, (i < size v)%N ->  nth 0%C k i = 0)) -> 
-   exists s: seq (complex R),
-    size s = size v /\
-    x = \big[+%R/0]_(j < size v) ((nth 0%C s j) *: (nth 0 v j)).
- *)
-
-
 
 Lemma conjugate_transpose_const 
   (n:nat) (l:complex R) (vi: 'cV[complex R]_n.+1) (A: 'M[R]_n.+1):
@@ -900,7 +886,6 @@ Theorem Gauss_Seidel_converges:
    (let S_mat:= RtoC_mat (oppmx (mulmx ((invmx (A1 A))) (A2 A))) in
     (forall i:'I_n.+1, @eigenvalue (complex_fieldType _) n.+1 S_mat (lambda S_mat i))) ->
     (forall x0: 'cV[R]_n.+1,
-        (x0 - X) != 0->
         is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1 A) (A2 A)) (oppmx X))) 0%Re).
 Proof.
 intros.
@@ -921,130 +906,17 @@ apply iter_convergence with A.
               (forall i:'I_n.+1, @eigenvalue (complex_fieldType _) n.+1 S (lambda S i)) -> 
               (forall i: 'I_n.+1, C_mod (lambda S i) < 1))).
   { apply Reich_sufficiency. } 
-  specialize (H8 n A H1 H2).
+  specialize (H7 n A H1 H2).
   assert (A = addmx (A1 A) (A2 A)). { by apply A_A1_A2_split. }
   assert (A1 A \in unitmx ). { by [].  } 
-  specialize (H8 H9 H10).
-  specialize (H8 H4).
-  simpl in H8.  rewrite RtoC_mat_prod in H8.
+  specialize (H7 H8 H9).
+  specialize (H7 H4).
+  simpl in H7.  rewrite RtoC_mat_prod in H7.
   rewrite RtoC_mat_oppmx. rewrite H5. rewrite C_mod_minus_x.
-  apply H8. intros.
+  apply H7. intros.
   rewrite eigenvalue_oppmx. rewrite -H5.
   simpl in H6. rewrite -RtoC_mat_oppmx. apply H6.
-+ by [].
 Qed.
-
-
-(*
-Theorem Gauss_Seidel_converges:
-  forall (n:nat) (A: 'M[R]_n.+1) (b: 'cV[R]_n.+1) (X: 'cV[R]_n.+1),
-  A \in unitmx ->
-   mulmx A X = b ->
-   (forall i : 'I_(succn n), 0 < A i i) ->
-   (forall i j : 'I_(succn n), A i j = A j i) ->
-   (A1 A) \in unitmx ->
-   (forall x : 'cV_(succn n),
-      x != 0 ->
-      scal_of_mat0
-        (conjugate_transpose x *m 
-         RtoC_mat A *m x) <> 0) ->
-   is_positive_definite A ->
-   (forall (S: 'M[complex R]_n.+1) (i: 'I_n.+1), lambda (oppmx S) i = -lambda S i) ->
-   (let S_mat:= RtoC_mat (oppmx (mulmx ((invmx (A1 A))) (A2 A))) in
-    (forall i:'I_n.+1, @eigenvalue (complex_fieldType _) n.+1 S_mat (lambda S_mat i))) ->
-    (forall x0: 'cV[R]_n.+1,
-        (x0 - X) != 0->
-        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1 A) (A2 A)) (oppmx X))) 0%Re).
-Proof.
-intros.
-apply iter_convergence with A.
-+ by [].
-+ by [].
-+ by [].
-+ apply A_A1_A2_split.
-+ apply H7.
-+ intros. rewrite /S_mat. apply /RltP.
-  assert (forall (n:nat) (A: 'M[R]_n.+1),
-          (forall i:'I_n.+1,  A i i > 0) ->
-          (forall i j:'I_n.+1,   A i j = A j i) ->  
-          (forall x: 'cV[complex R]_n.+1,  x != 0 -> 
-                scal_of_mat0 (mulmx (mulmx (conjugate_transpose x) (RtoC_mat A)) x) <> 0%C)-> 
-          A= addmx (A1 A) (A2 A) -> 
-          A1 A \in unitmx -> 
-          is_positive_definite A ->
-            (let S:= (mulmx (RtoC_mat (invmx (A1 A))) (RtoC_mat (A2 A))) in 
-              (forall i:'I_n.+1, @eigenvalue (complex_fieldType _) n.+1 S (lambda S i)) -> 
-              (forall i: 'I_n.+1, C_mod (lambda S i) < 1))).
-  { apply Reich_sufficiency. } 
-  specialize (H9 n A H1 H2 H4).
-  assert (A = addmx (A1 A) (A2 A)). { by apply A_A1_A2_split. }
-  assert (A1 A \in unitmx ). { by [].  } 
-  specialize (H9 H10 H11).
-  specialize (H9 H5).
-  simpl in H9.  rewrite RtoC_mat_prod in H9.
-  rewrite RtoC_mat_oppmx. rewrite H6. rewrite C_mod_minus_x.
-  apply H9. intros.
-  rewrite eigenvalue_oppmx. rewrite -H6.
-  simpl in H7. rewrite -RtoC_mat_oppmx. apply H7.
-+ by [].
-Qed.
-*)
-
-
-(*
-Theorem Gauss_Seidel_converges:
-  forall (n:nat) (A: 'M[R]_n.+1) (b: 'cV[R]_n.+1) (X: 'cV[R]_n.+1),
-   mulmx A X = b ->
-   (forall x0: 'cV[R]_n.+1, 
-      exists i:'I_n.+1, x0 i 0 <> X i 0) ->
-   (forall i : 'I_(succn n), 0 < A i i) ->
-   (forall i j : 'I_(succn n), A i j = A j i) ->
-   (A1 A) \in unitmx ->
-   (forall x : 'cV_(succn n),
-      x != 0 ->
-      scal_of_mat0
-        (conjugate_transpose x *m 
-         RtoC_mat A *m x) <> 0) ->
-   is_positive_definite A ->
-   (forall (S: 'M[complex R]_n.+1) (i: 'I_n.+1), lambda (oppmx S) i = -lambda S i) ->
-   (let S_mat:= RtoC_mat (oppmx (mulmx ((invmx (A1 A))) (A2 A))) in
-    (forall i:'I_n.+1, @eigenvalue (complex_fieldType _) n.+1 S_mat (lambda S_mat i))) ->
-    (forall x0: 'cV[R]_n.+1,
-        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1 A) (A2 A)) (oppmx X))) 0%Re).
-Proof.
-intros.
-apply iter_convergence with A.
-+ by [].
-+ by [].
-+ apply A_A1_A2_split.
-+ apply H0.
-+ by [].
-+ intros. rewrite /S_mat. apply /RltP.
-  assert (forall (n:nat) (A: 'M[R]_n.+1),
-          (forall i:'I_n.+1,  A i i > 0) ->
-          (forall i j:'I_n.+1,   A i j = A j i) ->  
-          (forall x: 'cV[complex R]_n.+1,  x != 0 -> 
-                scal_of_mat0 (mulmx (mulmx (conjugate_transpose x) (RtoC_mat A)) x) <> 0%C)-> 
-          A= addmx (A1 A) (A2 A) -> 
-          A1 A \in unitmx -> 
-          is_positive_definite A ->
-            (let S:= (mulmx (RtoC_mat (invmx (A1 A))) (RtoC_mat (A2 A))) in 
-              (forall i:'I_n.+1, @eigenvalue (complex_fieldType _) n.+1 S (lambda S i)) -> 
-              (forall i: 'I_n.+1, C_mod (lambda S i) < 1))).
-  { apply Reich_sufficiency. } 
-  specialize (H8 n A H1 H2 H4).
-  assert (A = addmx (A1 A) (A2 A)). { by apply A_A1_A2_split. }
-  assert (A1 A \in unitmx ). { by [].  } 
-  specialize (H8 H9 H10).
-  specialize (H8 H5).
-  simpl in H8.  rewrite RtoC_mat_prod in H8.
-  rewrite RtoC_mat_oppmx. rewrite H6. rewrite C_mod_minus_x.
-  apply H8. intros.
-  rewrite eigenvalue_oppmx. rewrite -H6.
-  simpl in H7. rewrite -RtoC_mat_oppmx. apply H7.
-Qed.
-
-*)
 
 
 (** Gauss Seidel iteration for a 3 x 3 matrix **)
@@ -1929,7 +1801,6 @@ Theorem Gauss_seidel_Ah_converges:
    (let S_mat:= RtoC_mat (oppmx (mulmx ((invmx (A1 A))) (A2 A))) in
     (forall i:'I_3, @eigenvalue (complex_fieldType _) 3 S_mat (lambda S_mat i))) ->
     (forall x0: 'cV[R]_3,
-        x0 - X != 0 ->
         is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1 A) (A2 A)) (oppmx X))) 0%Re).
 Proof.
 intros.
@@ -1938,10 +1809,10 @@ apply Gauss_Seidel_converges.
 + by [].
 + intros. rewrite /A0. rewrite !mxE.
   assert (i == i :>nat). { by []. }
-  rewrite H4. apply /RltP.
+  rewrite H3. apply /RltP.
   apply Rmult_lt_0_compat.
   - assert ((1 / h ^ 2)%Re = (/ (h^2))%Re). { nra. }
-    rewrite H5. apply Rinv_0_lt_compat. apply Rmult_lt_0_compat; nra.
+    rewrite H4. apply Rinv_0_lt_compat. apply Rmult_lt_0_compat; nra.
   - apply Rlt_0_2.
 + intros. rewrite /A0. 
   by apply Ah_is_symmetric.
@@ -1949,54 +1820,4 @@ apply Gauss_Seidel_converges.
 + by apply Ah_pd.
 + by [].
 + by [].
-+ by [].
 Qed.
-
-
-(*
-Theorem Gauss_seidel_Ah_converges:
-  forall (b: 'cV[R]_3) (X: 'cV[R]_3) (h:R),
-  (0 < h)%Re -> 
-  let A := (Ah 2%N h) in 
-   mulmx A X = b ->
-   (forall x0: 'cV[R]_3, 
-      exists i:'I_3, x0 i 0 <> X i 0) ->
-   is_positive_definite A ->
-   (forall (S: 'M[complex R]_3) (i: 'I_3), lambda (oppmx S) i = -lambda S i) ->
-   (let S_mat:= RtoC_mat (oppmx (mulmx ((invmx (A1 A))) (A2 A))) in
-    (forall i:'I_3, @eigenvalue (complex_fieldType _) 3 S_mat (lambda S_mat i))) ->
-    (forall x0: 'cV[R]_3,
-        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1 A) (A2 A)) (oppmx X))) 0%Re).
-Proof.
-intros.
-apply Gauss_Seidel_converges.
-+ by [].
-+ by [].
-+ intros. rewrite /A0. rewrite !mxE.
-  assert (i == i :>nat). { by []. }
-  rewrite H5. apply /RltP.
-  apply Rmult_lt_0_compat.
-  - assert ((1 / h ^ 2)%Re = (/ (h^2))%Re). { nra. }
-    rewrite H6. apply Rinv_0_lt_compat. apply Rmult_lt_0_compat; nra.
-  - apply Rlt_0_2.
-+ intros. rewrite /A0. 
-  by apply Ah_is_symmetric.
-+ by apply A1_invertible.
-+ assert (is_positive_definite (Ah 2%N h)).
-  { by apply Ah_pd. } rewrite /is_positive_definite in H5.
-  intros. specialize (H5 x H6).
-  rewrite /scal_of_mat0. apply /eqP. rewrite eq_complex.
-  apply /nandP. left.
-  rewrite //=.  apply /eqP. apply Rlt_dichotomy_converse .
-  right. rewrite /A0. apply Rlt_gt. apply /RltP. rewrite -mulmxA. apply H5.
-+ by apply Ah_pd.
-+ by [].
-+ by [].
-Qed.
-*)
-
-
-
-
-
-

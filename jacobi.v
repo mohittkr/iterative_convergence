@@ -998,9 +998,9 @@ Proof.
 intros.
 apply matrixP. unfold eqrel. intros. rewrite !mxE.
 simpl. rewrite !big_ord_recr //= big_ord0 add0r.
-assert (Rpower (-1 / h ^ 2 * / (-1 / h ^ 2))
-                    (INR y + 1 - 1 * / 2)  = 1%Re).
-{ assert ((-1 / h ^ 2 * / (-1 / h ^ 2))%Re = 1%Re).
+assert (forall i, Rpower (-1 / h ^ 2 * / (-1 / h ^ 2))
+                    (INR i + 1 - 1 * / 2)  = 1%Re).
+{ intros. assert ((-1 / h ^ 2 * / (-1 / h ^ 2))%Re = 1%Re).
   { rewrite Rinv_r.
     + by [].
     + apply Rmult_integral_contrapositive.
@@ -1008,7 +1008,49 @@ assert (Rpower (-1 / h ^ 2 * / (-1 / h ^ 2))
       - nra.
       - apply Rinv_neq_0_compat. simpl. nra.
   } rewrite H0. apply rpower_1.
-} rewrite H0. admit.
+} rewrite H0. 
+assert ((widen_ord (leqnSn 2) (widen_ord (leqnSn 1) ord_max)) = 0).
+{ by apply /eqP. } rewrite H1.
+assert ( (widen_ord (leqnSn 2) ord_max) = 1).
+{ by apply /eqP. } rewrite H2. rewrite mulr1.
+rewrite !mxE. rewrite !H0. rewrite !mulr1.
+rewrite !big_ord_recr //= !big_ord0.
+rewrite !H1 !H2. rewrite !mxE.
+rewrite invmx_A1_J.
++ assert (1%N == 1%N :> nat = true). { by []. } rewrite H3.
+  assert (@ord_max 2 == @ord_max 2 :> nat = true). {  by []. } rewrite H4.
+  rewrite /lambda_J.
+  assert (0%N == 0%N :> nat = true). { by []. } rewrite H5. 
+  rewrite !mxE //=. 
+  rewrite !mulr0 !mul0r.
+  rewrite !addr0 !add0r.
+  assert ((1 %% 3)%N = 1%N). { by []. } rewrite H6.
+  assert ((y < 3)%N). { by apply ltn_ord. } 
+  rewrite leq_eqVlt in H7.
+  assert ((y == 2) \/ (y < 2)%N). { by apply /orP. }
+  destruct H8.
+  - assert (y = 2). { by apply /eqP. } rewrite H9 //=.
+    rewrite !Rmult_0_r. rewrite !mulr1. rewrite !mulr0n !mulr1n.
+    rewrite !subr0. rewrite !mulr0.
+    assert (((1 / (h * (h * 1)) * -2)%Re - (1 / (h * (h * 1)) * -2)%Re)%Re = 0%Re).
+    { nra. } rewrite -RminusE. rewrite H10 //=. rewrite !mulr0.
+    simpc. admit.
+  - rewrite leq_eqVlt in H8.
+    assert ((y == 1) \/ (y < 1)%N). { by apply /orP. } destruct H9.
+    * assert (y = 1). { by apply /eqP. } rewrite H10 //=. 
+      rewrite !mulr1. rewrite !mulr0n !mulr1n.
+      rewrite !subr0.
+      assert (((1 / (h * (h * 1)) * -2)%Re - (1 / (h * (h * 1)) * -2)%Re)%Re = 0%Re).
+      { nra. } rewrite -RminusE. rewrite H11 //=. rewrite !mulr0.
+      simpc. admit.
+    * rewrite ltnS in H9. rewrite leqn0 in H9.
+      assert (y = 0). { by apply /eqP. } rewrite H10 //=.
+      rewrite !mulr1. rewrite !mulr0n !mulr1n.
+      rewrite !subr0.
+      assert (((1 / (h * (h * 1)) * -2)%Re - (1 / (h * (h * 1)) * -2)%Re)%Re = 0%Re).
+      { nra. } rewrite -RminusE. rewrite H11 //=. rewrite !mulr0.
+      simpc. admit.
++ by [].
 Admitted.
  
 

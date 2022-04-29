@@ -306,6 +306,30 @@ assert (((C_mod l)² * Re (((vi i 0)^*)%C * vi i0 0)) =
 { by rewrite mulrC. } by rewrite H6.
 Qed.
 
+Lemma Mopp_mult_r_complex: 
+  forall (m n p:nat) (A: 'M[complex R]_(m.+1,n.+1)) (B: 'M[complex R]_(n.+1,p.+1)),
+   oppmx (mulmx A B) = mulmx A (oppmx B).
+Proof.
+intros. apply matrixP. unfold eqrel. intros. rewrite !mxE.
+rewrite -sumrN. apply eq_big. by []. intros. rewrite mxE.
+by rewrite -mulrN.
+Qed. 
+
+Lemma Mopp_mult_l_complex: 
+  forall (m n p:nat) (A: 'M[complex R]_(m.+1,n.+1)) (B: 'M[complex R]_(n.+1,p.+1)),
+   oppmx (mulmx A B) = mulmx (oppmx A) B.
+Proof.
+intros. apply matrixP. unfold eqrel. intros. rewrite !mxE.
+rewrite -sumrN. apply eq_big. by []. intros. rewrite mxE.
+by rewrite mulNr.
+Qed.
+
+Lemma Mopp_opp_complex : 
+  forall (m n:nat) (A: 'M[complex R]_(m.+1,n.+1)), oppmx (oppmx A) = A.
+Proof.
+intros. apply matrixP. unfold eqrel. intros. rewrite !mxE. apply opprK.
+Qed.
+
 (** Proof of the Reich theorem for the Gauss_seidel iteration **)
 Theorem Reich_sufficiency: forall (n:nat) (A: 'M[R]_n.+1),
   (forall i:'I_n.+1,  A i i > 0) ->
@@ -313,9 +337,507 @@ Theorem Reich_sufficiency: forall (n:nat) (A: 'M[R]_n.+1),
   A= addmx (A1 A) (A2 A) -> 
   A1 A \in unitmx -> 
   is_positive_definite A ->
-    (let S:= (mulmx (RtoC_mat (invmx (A1 A))) (RtoC_mat (A2 A))) in 
-      (forall i:'I_n.+1, @eigenvalue (complex_fieldType _) n.+1 S (lambda S i)) -> 
+    (let S:= oppmx (mulmx (RtoC_mat (invmx (A1 A))) (RtoC_mat (A2 A))) in  
       (forall i: 'I_n.+1, C_mod (lambda S i) < 1)).
+Proof.
+intros.
+
+(*** Working with the ith characteristic pair  **)
+
+assert (forall i: 'I_n.+1,
+          @eigenvalue (complex_fieldType _) n.+1 S (lambda S i)).
+{ apply lambda_is_an_eigen_val. }
+
+remember (lambda S i) as li.
+assert ( exists v: 'cV_n.+1, (mulmx S v = (lambda S i) *: v) /\ (v !=0)).
+{ specialize (H4 i). by apply right_eigen_vector_exists. }
+destruct H5 as [vi H5].
+remember (RtoC_mat ((A1 A))) as A1_C.
+
+(** equation (2) **)
+
+assert (mulmx (mulmx (- conjugate_transpose vi) A1_C) (mulmx S vi)=
+           mulmx (mulmx (- conjugate_transpose vi) A1_C) (scal_vec_C li vi)).
+{ apply matrix_eq. rewrite -scal_vec_mathcomp_compat_col. rewrite Heqli. apply H5. }
+
+
+(** simpligying equation (2) **)
+assert (mulmx (mulmx (- conjugate_transpose vi) A1_C) (mulmx S vi)=
+           mulmx (mulmx (mulmx (- conjugate_transpose vi) A1_C) S) vi).
+{ apply mulmxA. } rewrite H7 in H6.
+
+assert (mulmx (mulmx (- conjugate_transpose vi) A1_C) S = 
+            mulmx (conjugate_transpose vi)  (mulmx (-A1_C) S)).
+{ symmetry. rewrite -Mopp_mult_l_complex -Mopp_mult_r_complex.
+  rewrite -![in RHS]Mopp_mult_l_complex. by rewrite mulmxA.
+} rewrite H8 in H6.
+clear H7 H8.
+
+assert (mulmx (-A1_C) S = RtoC_mat (A2 A)).
+{ unfold S. rewrite Mopp_mult_l_complex.  
+  assert (mulmx (-A1_C) ((mulmx (oppmx (RtoC_mat (invmx (A1 A)))) (RtoC_mat (A2 A))))=
+           mulmx (mulmx (-A1_C) (oppmx (RtoC_mat ((invmx (A1 A)))))) (RtoC_mat (A2 A))).
+  { apply mulmxA. } rewrite H7. clear H7.
+  rewrite HeqA1_C. rewrite -Mopp_mult_r_complex -!Mopp_mult_l_complex .
+  rewrite Mopp_opp_complex. rewrite RtoC_mat_prod.
+  assert (mulmx (A1 A) (invmx (A1 A)) = 1%:M /\ mulmx (invmx (A1 A)) (A1 A) = 1%:M).
+  { by apply inverse_A. } destruct H7. rewrite H7.
+  rewrite RtoC_mat_prod. by rewrite mul1mx.
+} rewrite H7 in H6.
+
+(* Work on the RHS of (2) *)  
+assert (mulmx (mulmx (- conjugate_transpose vi) A1_C) (scal_vec_C li vi)=
+            scal_vec_C (-li)%C (mulmx (mulmx (conjugate_transpose vi) A1_C) vi)).
+{ rewrite /conjugate_transpose /scal_vec_C /transpose_C /conjugate.
+  apply matrixP. unfold eqrel. intros. rewrite !mxE. rewrite big_scal.
+  apply eq_big. by []. intros. rewrite !mxE.
+  rewrite -mulrC -!mulrA. rewrite !big_distrr //=. rewrite big_distrl //=.
+  rewrite big_distrr //=. apply eq_big. by [].
+  intros. rewrite !mxE. rewrite !mulNr. rewrite !mulrN.
+  assert ((vi i0 0 * (((vi i1 x)^*)%C * A1_C i1 i0))%C = 
+          (((vi i1 x)^*)%C * A1_C i1 i0 * vi i0 0)%C).
+  { by rewrite mulrC. } by rewrite H10.
+} rewrite H8 in H6. clear H8.
+
+(* Working on (3) *)
+assert (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi=
+          scal_vec_C (RtoC 1- li)%C 
+          (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat ((A1 A)))) vi)).
+{ have H9: conjugate_transpose vi *m RtoC_mat A *m vi = 
+            conjugate_transpose vi *m RtoC_mat (addmx (A1 A) (A2 A)) *m vi.
+  rewrite <-H1. reflexivity. rewrite H9. clear H9.
+  rewrite RtoC_mat_add. rewrite mulmxDr mulmxDl. rewrite H6. rewrite -scal_vec_add_xy.
+  have H9: conjugate_transpose vi *m RtoC_mat ((A1 A)) *m vi = (scal_vec_C (RtoC 1)
+              (conjugate_transpose vi *m RtoC_mat ((A1 A)) *m vi)).
+  { apply matrixP. unfold eqrel. intros. rewrite !mxE. 
+    assert (y=0). { apply ord1. } rewrite H8 /RtoC. by rewrite mul1r.  
+  } rewrite H9. apply matrixP. unfold eqrel. intros.
+  rewrite !mxE. by rewrite !mul1r HeqA1_C.  
+} 
+    
+(** (1+li)<>0 **)
+assert ( (RtoC 1-li)%C <> 0%C).
+{ destruct H5. 
+  assert (forall x: 'cV[complex R]_n.+1,  x != 0 -> 
+        scal_of_mat0 (mulmx (mulmx (conjugate_transpose x) (RtoC_mat A)) x) <> 0%C).
+  { unfold is_positive_definite in H3. intros.
+    specialize (H3 x H10). rewrite /scal_of_mat0. 
+    assert ((conjugate_transpose x *m RtoC_mat A *m x) 0 0 = 
+            (Re ((conjugate_transpose x *m RtoC_mat A *m x) 0 0) +i* 
+              Im ((conjugate_transpose x *m RtoC_mat A *m x) 0 0))%C).
+    { apply C_destruct. } rewrite H11.
+    apply /eqP. rewrite eq_complex //=. apply /nandP. left.
+    apply /eqP. apply Rgt_not_eq. apply Rlt_gt. apply /RltP.
+    by rewrite -mulmxA.
+  } specialize (H10 vi H9).
+  assert ( ((RtoC 1 - li)%C * (scal_of_mat0
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)))%C <> 0%C <->
+              (RtoC 1 - li)%C <> 0%C /\ (scal_of_mat0
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)) <> 0%C).
+  { apply prod_not_zero. } destruct H11.
+  assert (scal_of_mat0 (scal_vec_C (RtoC 1 - li)%C  (mulmx
+           (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi) )=
+            ((RtoC 1 - li)%C *
+                   (scal_of_mat0
+                     (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)))%C).
+  { apply scal_conv_scal_vec. } rewrite <-H13 in H11. rewrite <-H8 in H11.
+  specialize (H11 H10). destruct H11. apply H11.
+}
+
+(** conjugate transpose, LHS and RHS: (4) to (5) **)
+assert (scal_vec_C (RtoC 1 - li)%C (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)=
+              scal_mat_C (RtoC 1 - li)%C (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)).
+{ symmetry. apply scal_mat_to_vec. } rewrite H10 in H8. clear H10.
+assert (conjugate_transpose (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)=
+            conjugate_transpose (scal_mat_C (RtoC 1 - li)%C  (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi))).
+{ by rewrite H8. } 
+(*LHS*)
+assert (conjugate_transpose (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)=
+              mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi).
+{ assert (conjugate_transpose (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)=
+                mulmx (conjugate_transpose vi) 
+                  (conjugate_transpose (mulmx (conjugate_transpose vi) (RtoC_mat A)))).
+  { apply (conj_matrix_mul (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi). }
+  rewrite H11.
+  assert (conjugate_transpose (mulmx (conjugate_transpose vi) (RtoC_mat A))=
+               mulmx (conjugate_transpose (RtoC_mat A)) (conjugate_transpose (conjugate_transpose vi))).
+  { apply conj_matrix_mul. } rewrite H12.
+  assert (conjugate_transpose (conjugate_transpose vi) = vi). { apply conj_of_conj. } rewrite H13.
+  assert (conjugate_transpose (RtoC_mat A) = RtoC_mat A). { apply conj_transpose_A.  apply H0. }
+  rewrite H14. apply mulmxA. 
+} rewrite H11 in H10.
+
+
+(*RHS*)
+assert (conjugate_transpose (scal_mat_C (RtoC 1 - li)%C (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A))) vi)) = scal_mat_C (conjc (RtoC 1 - li)%C) 
+              (conjugate_transpose (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A))) vi))).
+{ apply conj_scal_mat_mul. } rewrite H12 in H10.
+assert ((conjugate_transpose (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A))) vi))= mulmx (mulmx (conjugate_transpose vi) 
+              (transpose_C (RtoC_mat (A1 A)))) vi).
+{ assert ((conjugate_transpose (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A))) vi)) = mulmx (conjugate_transpose vi) 
+                  (conjugate_transpose (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A))))).
+  { apply conj_matrix_mul. }  rewrite H13.
+  assert ((conjugate_transpose (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A)))) = mulmx (conjugate_transpose (RtoC_mat (A1 A)))
+                (conjugate_transpose (conjugate_transpose vi))).
+  { apply conj_matrix_mul. } rewrite H14.
+  assert (conjugate_transpose (conjugate_transpose vi) = vi). 
+  { apply conj_of_conj. } rewrite H15.
+  assert ((conjugate_transpose (RtoC_mat (A1 A))) = transpose_C (RtoC_mat (A1 A))).
+  { apply conj_transpose_A1. } rewrite H16. by rewrite mulmxA.
+} rewrite H13 in H10. clear H11 H12 H13.
+assert ((conjc (RtoC 1 - li)%C = (RtoC 1 - conjc li)%C)).
+{ assert ( conjc (RtoC 1)= (RtoC 1)).
+  { rewrite /RtoC /conjc. apply /eqP. rewrite eq_complex //=.
+    apply /andP. split.
+    + by apply /eqP.
+    + apply /eqP. by rewrite oppr0.
+  } rewrite Cconj_add H11. 
+  assert (conjc (-li) = - conjc li).
+  { assert (li = (Re li +i* Im li)%C). { by rewrite -C_destruct. }
+    rewrite H12. by simpc.
+  } by rewrite H12.
+} rewrite H11 in H10.
+assert (scal_mat_C (RtoC 1 - conjc li)%C
+            (mulmx
+            (mulmx (conjugate_transpose vi)
+              (transpose_C (RtoC_mat (A1 A)))) vi) = scal_vec_C (RtoC 1 - conjc li)%C (mulmx
+            (mulmx (conjugate_transpose vi)
+              (transpose_C (RtoC_mat (A1 A)))) vi)).
+{ apply scal_mat_to_vec. } rewrite H12 in H10. clear H12.
+
+(** Working on (7) **)
+assert (transpose_C (RtoC_mat (A1 A)) = addmx (RtoC_mat (diag_A A)) (RtoC_mat (A2 A))).
+{ apply A1_tr_split_C. apply H0. }
+rewrite H12 in H10.
+assert (mulmx (conjugate_transpose vi) (addmx (RtoC_mat (diag_A A)) (RtoC_mat (A2 A))) =
+            addmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) 
+                  (mulmx (conjugate_transpose vi) (RtoC_mat (A2 A)))).
+{ by rewrite mulmxDr. }
+rewrite H13 in H10.
+assert (mulmx (addmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A)))
+                          (mulmx (conjugate_transpose vi) (RtoC_mat (A2 A)))) vi = 
+             addmx (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi)
+                   (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A2 A))) vi)).
+{ by rewrite mulmxDl. } rewrite H14 in H10.
+
+assert (scal_vec_C (RtoC 1 - conjc li)%C (addmx (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (diag_A A))) vi)  (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A2 A))) vi)) = addmx (scal_vec_C (RtoC 1 - conjc li)%C 
+                (mulmx (mulmx (conjugate_transpose vi)  (RtoC_mat (diag_A A))) vi)) 
+               (scal_vec_C (RtoC 1 - conjc li)%C (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A2 A))) vi))).
+{ apply matrixP. unfold eqrel. intros. by rewrite !mxE mulrDr.
+} rewrite H15 in H10. clear H13 H14 H15.
+rewrite H6 in H10.
+assert ((scal_vec_C (RtoC 1 - conjc li)%C (scal_vec_C (-li) (mulmx
+                 (mulmx (conjugate_transpose vi) A1_C) vi))) = scal_vec_C ((RtoC 1 - conjc li) * (-li))%C
+                (mulmx (mulmx (conjugate_transpose vi) A1_C) vi)).
+{ apply scal_of_scal_vec. } rewrite H13 in H10. clear H13.
+
+(** Working on (8) **)
+assert ( mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi=
+              scal_vec_C (RtoC 1) (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)).
+{ apply matrixP. unfold eqrel. intros. rewrite !mxE. rewrite mul1r.
+  assert (y=0). { apply ord1. } by rewrite H13.
+} 
+assert (scal_vec_C (RtoC 1)
+        (mulmx
+           (mulmx (conjugate_transpose vi)
+              (RtoC_mat A)) vi)= scal_vec_C ((RtoC 1- li)* (invc (RtoC 1- li)))%C
+        (mulmx
+           (mulmx (conjugate_transpose vi)
+              (RtoC_mat A)) vi)).
+{ assert (((RtoC 1- li)* (invc (RtoC 1- li)))%C = RtoC 1).
+  { rewrite mulrC. apply mulVc. by apply /eqP. (* 1+ lj <> 0 *) } 
+  by rewrite H14. 
+} rewrite H14 in H13. clear H14.
+assert ( scal_vec_C ((RtoC 1 - li) * invc (RtoC 1 - li))%C (mulmx (mulmx (conjugate_transpose vi)
+              (RtoC_mat A)) vi) = scal_vec_C (RtoC 1-li)%C (scal_vec_C (invc (RtoC 1-li))%C 
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))).
+{ symmetry. apply scal_of_scal_vec. } rewrite H14 in H13. clear H14.
+assert (scal_vec_C (invc (RtoC 1 - li))%C (mulmx  (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi) = 
+                mulmx (mulmx (conjugate_transpose vi) A1_C) vi).
+{ apply (@scal_vec_eq 0%N (RtoC 1-li)%C (scal_vec_C (invc (RtoC 1 - li))%C
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))
+              (mulmx (mulmx (conjugate_transpose vi) A1_C) vi) H9).  
+  rewrite <-H13. rewrite HeqA1_C. rewrite H8. apply matrixP. unfold eqrel. intros.
+  rewrite !mxE. assert (y=0). { apply ord1. } by rewrite H14. 
+}
+assert (scal_vec_C (RtoC 1 - conjc li)%C  (mulmx  (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (diag_A A))) vi) = scal_vec_C ((RtoC 1 - conjc li) * ((RtoC 1- li)* (invc (RtoC 1-li))))%C  
+              (mulmx  (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi)).
+{ assert (((RtoC 1-li)* (invc (RtoC 1-li)))%C = RtoC 1).
+  { rewrite mulrC. apply mulVc. by apply /eqP. } rewrite H15.
+  assert (((RtoC 1 - conjc li) * RtoC 1)%C = (RtoC 1 - conjc li)%C). { apply mulr1. }  
+  by rewrite H16.
+}  
+assert (((RtoC 1 - conjc li) * ((RtoC 1 - li) * invc (RtoC 1 - li)))%C = ((invc (RtoC 1-li))* ((RtoC 1 - conjc li)*(RtoC 1-li)))%C).
+{ assert(((invc (RtoC 1-li))* ((RtoC 1- conjc li)*(RtoC 1-li)))%C = (((RtoC 1- conjc li)*(RtoC 1-li)) * (invc (RtoC 1-li)))%C).
+  { apply mulrC. } rewrite H16. apply mulrA.
+} rewrite H16 in H15. clear H16.
+assert (scal_vec_C (invc (RtoC 1 - li) * ((RtoC 1 - conjc li) * (RtoC 1 - li)))%C (mulmx
+              (mulmx (conjugate_transpose vi)  (RtoC_mat (diag_A A))) vi) = scal_vec_C (invc (RtoC 1 - li))%C
+                (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C (mulmx
+              (mulmx (conjugate_transpose vi)  (RtoC_mat (diag_A A))) vi))).
+{ symmetry. apply scal_of_scal_vec. } rewrite H16 in H15. clear H16.
+assert (scal_vec_C (RtoC 1 - li)%C (scal_vec_C (invc (RtoC 1 - li))%C (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)) = 
+            scal_vec_C (invc (RtoC 1 - li))%C (scal_vec_C (RtoC 1 - li)%C (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))).
+{ apply scal_vec_C_comm. } rewrite H16 in H13. clear H16.
+assert ( scal_vec_C (invc(RtoC 1 - li))%C (scal_vec_C (RtoC 1 - li)%C  (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A))
+              vi)) = addmx (scal_vec_C (invc (RtoC 1 - li))%C (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi)))
+              ( scal_vec_C ((RtoC 1 - conjc li) * (-li))%C  (scal_vec_C (invc (RtoC 1 - li))%C  (mulmx
+                (mulmx (conjugate_transpose vi)  (RtoC_mat A)) vi)))).
+{ rewrite <- H15.  rewrite <- H13.  rewrite H14. apply H10. }
+assert ((scal_vec_C ((RtoC 1 - conjc li) * (-li))%C  (scal_vec_C (invc (RtoC 1 - li))%C
+              (mulmx  (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))) = 
+              (scal_vec_C (invc (RtoC 1 - li))%C  (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+              (mulmx  (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))).
+{ apply scal_vec_C_comm. } rewrite H17 in H16. clear H17.
+assert ( addmx
+              (scal_vec_C (invc (RtoC 1 - li))%C
+                (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C
+                 (mulmx
+                    (mulmx (conjugate_transpose vi)
+                        (RtoC_mat (diag_A A))) vi)))
+              (scal_vec_C (invc (RtoC 1 - li))%C
+                (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C
+                  (mulmx
+                    (mulmx (conjugate_transpose vi)
+                        (RtoC_mat A)) vi))) = scal_vec_C (invc (RtoC 1 - li))%C (addmx
+                (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C
+                 (mulmx
+                    (mulmx (conjugate_transpose vi)
+                        (RtoC_mat (diag_A A))) vi)) (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C
+                  (mulmx
+                    (mulmx (conjugate_transpose vi)
+                        (RtoC_mat A)) vi)))).
+{ apply scal_vec_add. } rewrite H17 in H16. clear H17.
+assert ((scal_vec_C (RtoC 1 - li)%C  (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)) = 
+           addmx
+           (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))
+           (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C
+              (mulmx  (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))).
+{ apply scal_vec_eq with (invc (RtoC 1 - li))%C. apply Cinv_not_0.
+  apply H9. apply H16.
+}
+assert (scal_vec_C (RtoC 1 - li)%C  (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi) =
+              addmx (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C  (mulmx
+                        (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))
+                     (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)) ->
+              addmx (scal_vec_C (RtoC 1 - li)%C  (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))
+                    (oppmx (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))) = 
+              addmx (addmx (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C  (mulmx
+                        (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))
+                     (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))
+                    (oppmx (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))).
+{ apply Mplus_add_mat_eq. }  specialize (H18 H17).
+assert ( addmx (addmx (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C  (mulmx
+                        (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))
+                     (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))
+                    (oppmx (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))=
+            addmx (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C  (mulmx
+                        (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))
+                  (addmx (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))
+                      (oppmx (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                        (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))))).
+{ symmetry. apply addmxA. } rewrite H19 in H18. clear H19.
+assert ((addmx (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))
+                      (oppmx (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                        (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))) =0).
+{ apply Mplus_opp_r_C. }  rewrite H19 in H18. clear H19.
+assert (addmx (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C
+                    (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi)) 0=
+                (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C
+                    (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))).
+{ apply Mplus_zero_r_C. } rewrite H19 in H18. clear H19.
+assert (oppmx (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C (mulmx
+                 (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)) =
+              scal_vec_C  (-((RtoC 1 - conjc li) * (-li)))%C (mulmx
+                 (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)).
+{ apply scal_vec_C_Mopp. } rewrite H19 in H18. clear H19.
+assert (addmx
+        (scal_vec_C (RtoC 1 - li)%C
+           (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A))
+              vi))
+        (scal_vec_C (- ((RtoC 1 - conjc li) * (-li)))%C
+           (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A))
+              vi)) = scal_vec_C ((RtoC 1 - li) + (- ((RtoC 1 - conjc li) * (-li))))%C  (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A))  vi)).
+{ apply scal_vec_add_xy. } rewrite H19 in H18. clear H19.
+assert (((RtoC 1 - li) + (- ((RtoC 1 - conjc (li)) * (-li))))%C = (RtoC 1 - (conjc li * li))%C).
+{ rewrite mulrDl mul1r -addrA.
+  assert ((- li - (- li + - (li^*)%C * - li)) = - (((li)^*)%C * (li))).
+  { by rewrite opprD addrA addrC addrN addr0 mulNr opprK mulrN. }
+  by rewrite H19 //= mulNr. 
+} rewrite H19 in H18. clear H19.
+  
+(** Simplifying the LHS of (8): Conj li * li = (Cmod li)^2  **)
+
+assert ((RtoC 1 - (conjc li * li))%C = (RtoC 1- RtoC (Rsqr (C_mod li)))%C).
+{ assert ((conjc li * li)%C= RtoC (Rsqr (C_mod li))). { apply conj_prod. }
+  by rewrite H19. 
+} rewrite H19 in H18.
+
+assert ( (RtoC 1 - RtoC (C_mod li)²)%C = RtoC (1- Rsqr (C_mod li))).
+{ rewrite /RtoC. apply /eqP. rewrite eq_complex //=. apply /andP.
+  split.
+  + by apply /eqP.
+  + apply /eqP. by rewrite subr0.
+} rewrite H20 in H18.
+
+
+assert (((RtoC 1 - conjc li) * (RtoC 1 - li))%C = RtoC (Rsqr (C_mod (RtoC 1 - li)%C))).
+{ assert ((RtoC 1 - conjc li)%C = conjc (RtoC 1 -  li)%C).
+  { assert (conjc (RtoC 1) = RtoC 1).
+    { rewrite /conjc /RtoC. apply /eqP. rewrite eq_complex //=. apply /andP.
+    split. by apply /eqP. rewrite oppr0. by apply /eqP.
+    } rewrite Cconj_add H21.
+    assert (- (li^*)%C = ((- li)^*)%C).
+    { assert (li = (Re li +i* Im li)%C). { by rewrite -C_destruct. }
+      rewrite H22. by simpc.
+    } by rewrite H22.
+  } rewrite H21. apply conj_prod.
+} rewrite H21 in H18.
+
+  unfold is_positive_definite in H3. destruct H5.
+  specialize (H3 vi H22).
+  assert (is_positive_definite (diag_A A)).
+  { apply is_positive_definite_diag. auto. }
+
+
+  
+  assert (scal_of_mat0 (scal_vec_C (RtoC (1 - (C_mod li)²))
+            (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)) =
+             scal_of_mat0 (scal_vec_C (RtoC (C_mod (RtoC 1 - li)%C)²)
+              (mulmx
+                 (mulmx (conjugate_transpose vi)
+                    (RtoC_mat (diag_A A))) vi))).
+  { unfold scal_of_mat0. by rewrite H18.  } 
+  
+  assert (scal_of_mat0
+            (scal_vec_C (RtoC (1 - (C_mod li)²))
+               (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A))
+                  vi)) = ((RtoC (1 - (C_mod li)²)) * 
+                    scal_of_mat0 (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))%C).
+  { apply scal_conv_scal_vec. } rewrite H25 in H24. clear H25.
+
+  assert (scal_of_mat0
+            (scal_vec_C (RtoC (C_mod (RtoC 1 - li)%C)²)
+               (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi)) = ((RtoC (C_mod (RtoC 1 - li)%C)²) *
+                scal_of_mat0 (mulmx  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi))%C).
+  { apply scal_conv_scal_vec. } rewrite H25 in H24. clear H25.
+
+  assert (((RtoC (1 - (C_mod li)²)%R) *
+             scal_of_mat0
+               (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))%C =
+            ((RtoC (C_mod (RtoC 1 - li))²) *
+             scal_of_mat0
+               (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi))%C ->
+            Re (((RtoC (1 - (C_mod li)²)%R) *
+             scal_of_mat0
+               (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))%C) = 
+
+            Re (((RtoC (C_mod (RtoC 1 - li))²) *
+             scal_of_mat0
+               (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi))%C)).
+  { apply Re_eq. } specialize (H25 H24).
+  
+  assert (Re
+            (RtoC (1 - (C_mod li)²)%R *
+             scal_of_mat0
+               (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A))
+                  vi))%C = Re (RtoC (1 - (C_mod li)²)%R) * Re (scal_of_mat0
+               (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A))
+                  vi))).
+  { apply Re_prod. } rewrite H26 in H25. clear H26.
+
+  assert (Re
+            ((RtoC (C_mod (RtoC 1 - li)%C)²) *
+             (scal_of_mat0
+               (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi)))%C = Rmult (Re (RtoC (C_mod (RtoC 1 - li)%C)²))  
+                (Re (scal_of_mat0 (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi)))).
+  { apply Re_prod. } rewrite H26 in H25. clear H26. unfold scal_of_mat0 in H25.
+
+  unfold is_positive_definite in H23.
+  specialize (H23 vi H22).
+
+  assert (Rmult (Re (RtoC (C_mod (RtoC 1 - li)%C)²))  
+                (Re (scal_of_mat0 (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi))) >0%Re).
+  { apply /RltbP. apply Rmult_gt_0_compat.
+    unfold RtoC. simpl. apply Rlt_gt. apply Rsqr_pos_lt.
+    assert ( Rlt 0%Re (C_mod ((1 +i* 0)%C - li)%C) -> C_mod ((1 +i* 0)%C-  li)%C <> 0%Re). { nra. }
+    apply H26. apply /RltP. apply C_mod_gt_0. apply H9. apply /RltbP. rewrite mulmxA in H23. apply H23.
+  }  unfold scal_of_mat0 in H26. rewrite <-H25 in H26. apply /RltbP.
+  apply Rsqr_incrst_0.
+  - assert ( Rsqr 1 = 1%Re). { apply Rsqr_1. } rewrite H27. apply Rplus_lt_reg_r with (-1).
+    assert ((1 + -1)%Re=0%Re). { nra. }  rewrite H28.
+    assert (((C_mod li)² + -1)%Re = ((C_mod li)² -1)%Re). { nra. } rewrite H29.
+    apply Ropp_lt_cancel. assert ((-0)%Re=0%Re).  { nra. } rewrite H30.
+    assert ((- ((C_mod li)² - 1))%Re = (1- (C_mod li)²)%Re). { nra. } rewrite H31.
+    assert (Re (RtoC (1 - (C_mod li)²)) = (1 - (C_mod li)²)%Re). 
+    { unfold RtoC. simpl. reflexivity. } rewrite <-H32.
+    apply Rmult_lt_reg_r with (Re
+        ((mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A))
+              vi) 0 0)). 
+    * rewrite mulmxA in H3.  apply /RltbP. apply H3.
+    * assert ( 0 *
+                  Re
+                    ((mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi) 0 0)= 0%Re).
+      { by rewrite mul0r. } apply /RltbP. rewrite RmultE. rewrite H33. apply H26.
+  - apply C_mod_ge_0.
+  - apply Rlt_le. apply Rlt_0_1.
+Qed.
+
+
+
+(*
+
+(** Proof of the Reich theorem for the Gauss_seidel iteration **)
+Theorem Reich_sufficiency: forall (n:nat) (A: 'M[R]_n.+1),
+  (forall i:'I_n.+1,  A i i > 0) ->
+  (forall i j:'I_n.+1,   A i j = A j i) ->  
+  A= addmx (A1 A) (A2 A) -> 
+  A1 A \in unitmx -> 
+  is_positive_definite A ->
+    (let S:= oppmx (mulmx (RtoC_mat (invmx (A1 A))) (RtoC_mat (A2 A))) in  
+      (forall i: 'I_n.+1,
+          @eigenvalue (complex_fieldType _) n.+1 S (lambda S i) ->
+          C_mod (lambda S i) < 1)).
 Proof.
 intros.
 
@@ -324,7 +846,501 @@ intros.
 
 remember (lambda S i) as li.
 assert ( exists v: 'cV_n.+1, (mulmx S v = (lambda S i) *: v) /\ (v !=0)).
-{ specialize (H4 i).  by apply right_eigen_vector_exists. }
+{ (*specialize (H4 i). *) rewrite Heqli in H4. by apply right_eigen_vector_exists. }
+destruct H5 as [vi H5].
+remember (RtoC_mat ((A1 A))) as A1_C.
+
+(** equation (2) **)
+
+assert (mulmx (mulmx (- conjugate_transpose vi) A1_C) (mulmx S vi)=
+           mulmx (mulmx (- conjugate_transpose vi) A1_C) (scal_vec_C li vi)).
+{ apply matrix_eq. rewrite -scal_vec_mathcomp_compat_col. rewrite Heqli. apply H5. }
+
+
+(** simpligying equation (2) **)
+assert (mulmx (mulmx (- conjugate_transpose vi) A1_C) (mulmx S vi)=
+           mulmx (mulmx (mulmx (- conjugate_transpose vi) A1_C) S) vi).
+{ apply mulmxA. } rewrite H7 in H6.
+
+assert (mulmx (mulmx (- conjugate_transpose vi) A1_C) S = 
+            mulmx (conjugate_transpose vi)  (mulmx (-A1_C) S)).
+{ symmetry. rewrite -Mopp_mult_l_complex -Mopp_mult_r_complex.
+  rewrite -![in RHS]Mopp_mult_l_complex. by rewrite mulmxA.
+} rewrite H8 in H6.
+clear H7 H8.
+
+assert (mulmx (-A1_C) S = RtoC_mat (A2 A)).
+{ unfold S. rewrite Mopp_mult_l_complex.  
+  assert (mulmx (-A1_C) ((mulmx (oppmx (RtoC_mat (invmx (A1 A)))) (RtoC_mat (A2 A))))=
+           mulmx (mulmx (-A1_C) (oppmx (RtoC_mat ((invmx (A1 A)))))) (RtoC_mat (A2 A))).
+  { apply mulmxA. } rewrite H7. clear H7.
+  rewrite HeqA1_C. rewrite -Mopp_mult_r_complex -!Mopp_mult_l_complex .
+  rewrite Mopp_opp_complex. rewrite RtoC_mat_prod.
+  assert (mulmx (A1 A) (invmx (A1 A)) = 1%:M /\ mulmx (invmx (A1 A)) (A1 A) = 1%:M).
+  { by apply inverse_A. } destruct H7. rewrite H7.
+  rewrite RtoC_mat_prod. by rewrite mul1mx.
+} rewrite H7 in H6.
+
+(* Work on the RHS of (2) *)  
+assert (mulmx (mulmx (- conjugate_transpose vi) A1_C) (scal_vec_C li vi)=
+            scal_vec_C (-li)%C (mulmx (mulmx (conjugate_transpose vi) A1_C) vi)).
+{ rewrite /conjugate_transpose /scal_vec_C /transpose_C /conjugate.
+  apply matrixP. unfold eqrel. intros. rewrite !mxE. rewrite big_scal.
+  apply eq_big. by []. intros. rewrite !mxE.
+  rewrite -mulrC -!mulrA. rewrite !big_distrr //=. rewrite big_distrl //=.
+  rewrite big_distrr //=. apply eq_big. by [].
+  intros. rewrite !mxE. rewrite !mulNr. rewrite !mulrN.
+  assert ((vi i0 0 * (((vi i1 x)^*)(*%C * A1_C i1 i0))%C = 
+          (((vi i1 x)^*)(*%C * A1_C i1 i0 * vi i0 0)%C).
+  { by rewrite mulrC. } by rewrite H10.
+} rewrite H8 in H6. clear H8.
+
+(* Working on (3) *)
+assert (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi=
+          scal_vec_C (RtoC 1- li)%C 
+          (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat ((A1 A)))) vi)).
+{ have H9: conjugate_transpose vi *m RtoC_mat A *m vi = 
+            conjugate_transpose vi *m RtoC_mat (addmx (A1 A) (A2 A)) *m vi.
+  rewrite <-H1. reflexivity. rewrite H9. clear H9.
+  rewrite RtoC_mat_add. rewrite mulmxDr mulmxDl. rewrite H6. rewrite -scal_vec_add_xy.
+  have H9: conjugate_transpose vi *m RtoC_mat ((A1 A)) *m vi = (scal_vec_C (RtoC 1)
+              (conjugate_transpose vi *m RtoC_mat ((A1 A)) *m vi)).
+  { apply matrixP. unfold eqrel. intros. rewrite !mxE. 
+    assert (y=0). { apply ord1. } rewrite H8 /RtoC. by rewrite mul1r.  
+  } rewrite H9. apply matrixP. unfold eqrel. intros.
+  rewrite !mxE. by rewrite !mul1r HeqA1_C.  
+} 
+    
+(** (1+li)<>0 **)
+assert ( (RtoC 1-li)%C <> 0%C).
+{ destruct H5. 
+  assert (forall x: 'cV[complex R]_n.+1,  x != 0 -> 
+        scal_of_mat0 (mulmx (mulmx (conjugate_transpose x) (RtoC_mat A)) x) <> 0%C).
+  { unfold is_positive_definite in H3. intros.
+    specialize (H3 x H10). rewrite /scal_of_mat0. 
+    assert ((conjugate_transpose x *m RtoC_mat A *m x) 0 0 = 
+            (Re ((conjugate_transpose x *m RtoC_mat A *m x) 0 0) +i* 
+              Im ((conjugate_transpose x *m RtoC_mat A *m x) 0 0))%C).
+    { apply C_destruct. } rewrite H11.
+    apply /eqP. rewrite eq_complex //=. apply /nandP. left.
+    apply /eqP. apply Rgt_not_eq. apply Rlt_gt. apply /RltP.
+    by rewrite -mulmxA.
+  } specialize (H10 vi H9).
+  assert ( ((RtoC 1 - li)%C * (scal_of_mat0
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)))%C <> 0%C <->
+              (RtoC 1 - li)%C <> 0%C /\ (scal_of_mat0
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)) <> 0%C).
+  { apply prod_not_zero. } destruct H11.
+  assert (scal_of_mat0 (scal_vec_C (RtoC 1 - li)%C  (mulmx
+           (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi) )=
+            ((RtoC 1 - li)%C *
+                   (scal_of_mat0
+                     (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)))%C).
+  { apply scal_conv_scal_vec. } rewrite <-H13 in H11. rewrite <-H8 in H11.
+  specialize (H11 H10). destruct H11. apply H11.
+}
+
+(** conjugate transpose, LHS and RHS: (4) to (5) **)
+assert (scal_vec_C (RtoC 1 - li)%C (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)=
+              scal_mat_C (RtoC 1 - li)%C (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)).
+{ symmetry. apply scal_mat_to_vec. } rewrite H10 in H8. clear H10.
+assert (conjugate_transpose (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)=
+            conjugate_transpose (scal_mat_C (RtoC 1 - li)%C  (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi))).
+{ by rewrite H8. } 
+(*LHS*)
+assert (conjugate_transpose (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)=
+              mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi).
+{ assert (conjugate_transpose (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)=
+                mulmx (conjugate_transpose vi) 
+                  (conjugate_transpose (mulmx (conjugate_transpose vi) (RtoC_mat A)))).
+  { apply (conj_matrix_mul (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi). }
+  rewrite H11.
+  assert (conjugate_transpose (mulmx (conjugate_transpose vi) (RtoC_mat A))=
+               mulmx (conjugate_transpose (RtoC_mat A)) (conjugate_transpose (conjugate_transpose vi))).
+  { apply conj_matrix_mul. } rewrite H12.
+  assert (conjugate_transpose (conjugate_transpose vi) = vi). { apply conj_of_conj. } rewrite H13.
+  assert (conjugate_transpose (RtoC_mat A) = RtoC_mat A). { apply conj_transpose_A.  apply H0. }
+  rewrite H14. apply mulmxA. 
+} rewrite H11 in H10.
+
+
+(*RHS*)
+assert (conjugate_transpose (scal_mat_C (RtoC 1 - li)%C (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A))) vi)) = scal_mat_C (conjc (RtoC 1 - li)%C) 
+              (conjugate_transpose (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A))) vi))).
+{ apply conj_scal_mat_mul. } rewrite H12 in H10.
+assert ((conjugate_transpose (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A))) vi))= mulmx (mulmx (conjugate_transpose vi) 
+              (transpose_C (RtoC_mat (A1 A)))) vi).
+{ assert ((conjugate_transpose (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A))) vi)) = mulmx (conjugate_transpose vi) 
+                  (conjugate_transpose (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A))))).
+  { apply conj_matrix_mul. }  rewrite H13.
+  assert ((conjugate_transpose (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A)))) = mulmx (conjugate_transpose (RtoC_mat (A1 A)))
+                (conjugate_transpose (conjugate_transpose vi))).
+  { apply conj_matrix_mul. } rewrite H14.
+  assert (conjugate_transpose (conjugate_transpose vi) = vi). 
+  { apply conj_of_conj. } rewrite H15.
+  assert ((conjugate_transpose (RtoC_mat (A1 A))) = transpose_C (RtoC_mat (A1 A))).
+  { apply conj_transpose_A1. } rewrite H16. by rewrite mulmxA.
+} rewrite H13 in H10. clear H11 H12 H13.
+assert ((conjc (RtoC 1 - li)%C = (RtoC 1 - conjc li)%C)).
+{ assert ( conjc (RtoC 1)= (RtoC 1)).
+  { rewrite /RtoC /conjc. apply /eqP. rewrite eq_complex //=.
+    apply /andP. split.
+    + by apply /eqP.
+    + apply /eqP. by rewrite oppr0.
+  } rewrite Cconj_add H11. 
+  assert (conjc (-li) = - conjc li).
+  { assert (li = (Re li +i* Im li)%C). { by rewrite -C_destruct. }
+    rewrite H12. by simpc.
+  } by rewrite H12.
+} rewrite H11 in H10.
+assert (scal_mat_C (RtoC 1 - conjc li)%C
+            (mulmx
+            (mulmx (conjugate_transpose vi)
+              (transpose_C (RtoC_mat (A1 A)))) vi) = scal_vec_C (RtoC 1 - conjc li)%C (mulmx
+            (mulmx (conjugate_transpose vi)
+              (transpose_C (RtoC_mat (A1 A)))) vi)).
+{ apply scal_mat_to_vec. } rewrite H12 in H10. clear H12.
+
+(** Working on (7) **)
+assert (transpose_C (RtoC_mat (A1 A)) = addmx (RtoC_mat (diag_A A)) (RtoC_mat (A2 A))).
+{ apply A1_tr_split_C. apply H0. }
+rewrite H12 in H10.
+assert (mulmx (conjugate_transpose vi) (addmx (RtoC_mat (diag_A A)) (RtoC_mat (A2 A))) =
+            addmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) 
+                  (mulmx (conjugate_transpose vi) (RtoC_mat (A2 A)))).
+{ by rewrite mulmxDr. }
+rewrite H13 in H10.
+assert (mulmx (addmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A)))
+                          (mulmx (conjugate_transpose vi) (RtoC_mat (A2 A)))) vi = 
+             addmx (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi)
+                   (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A2 A))) vi)).
+{ by rewrite mulmxDl. } rewrite H14 in H10.
+
+assert (scal_vec_C (RtoC 1 - conjc li)%C (addmx (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (diag_A A))) vi)  (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A2 A))) vi)) = addmx (scal_vec_C (RtoC 1 - conjc li)%C 
+                (mulmx (mulmx (conjugate_transpose vi)  (RtoC_mat (diag_A A))) vi)) 
+               (scal_vec_C (RtoC 1 - conjc li)%C (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A2 A))) vi))).
+{ apply matrixP. unfold eqrel. intros. by rewrite !mxE mulrDr.
+} rewrite H15 in H10. clear H13 H14 H15.
+rewrite H6 in H10.
+assert ((scal_vec_C (RtoC 1 - conjc li)%C (scal_vec_C (-li) (mulmx
+                 (mulmx (conjugate_transpose vi) A1_C) vi))) = scal_vec_C ((RtoC 1 - conjc li) * (-li))%C
+                (mulmx (mulmx (conjugate_transpose vi) A1_C) vi)).
+{ apply scal_of_scal_vec. } rewrite H13 in H10. clear H13.
+
+(** Working on (8) **)
+assert ( mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi=
+              scal_vec_C (RtoC 1) (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)).
+{ apply matrixP. unfold eqrel. intros. rewrite !mxE. rewrite mul1r.
+  assert (y=0). { apply ord1. } by rewrite H13.
+} 
+assert (scal_vec_C (RtoC 1)
+        (mulmx
+           (mulmx (conjugate_transpose vi)
+              (RtoC_mat A)) vi)= scal_vec_C ((RtoC 1- li)* (invc (RtoC 1- li)))%C
+        (mulmx
+           (mulmx (conjugate_transpose vi)
+              (RtoC_mat A)) vi)).
+{ assert (((RtoC 1- li)* (invc (RtoC 1- li)))%C = RtoC 1).
+  { rewrite mulrC. apply mulVc. by apply /eqP. (* 1+ lj <> 0 *) } 
+  by rewrite H14. 
+} rewrite H14 in H13. clear H14.
+assert ( scal_vec_C ((RtoC 1 - li) * invc (RtoC 1 - li))%C (mulmx (mulmx (conjugate_transpose vi)
+              (RtoC_mat A)) vi) = scal_vec_C (RtoC 1-li)%C (scal_vec_C (invc (RtoC 1-li))%C 
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))).
+{ symmetry. apply scal_of_scal_vec. } rewrite H14 in H13. clear H14.
+assert (scal_vec_C (invc (RtoC 1 - li))%C (mulmx  (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi) = 
+                mulmx (mulmx (conjugate_transpose vi) A1_C) vi).
+{ apply (@scal_vec_eq 0%N (RtoC 1-li)%C (scal_vec_C (invc (RtoC 1 - li))%C
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))
+              (mulmx (mulmx (conjugate_transpose vi) A1_C) vi) H9).  
+  rewrite <-H13. rewrite HeqA1_C. rewrite H8. apply matrixP. unfold eqrel. intros.
+  rewrite !mxE. assert (y=0). { apply ord1. } by rewrite H14. 
+}
+assert (scal_vec_C (RtoC 1 - conjc li)%C  (mulmx  (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (diag_A A))) vi) = scal_vec_C ((RtoC 1 - conjc li) * ((RtoC 1- li)* (invc (RtoC 1-li))))%C  
+              (mulmx  (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi)).
+{ assert (((RtoC 1-li)* (invc (RtoC 1-li)))%C = RtoC 1).
+  { rewrite mulrC. apply mulVc. by apply /eqP. } rewrite H15.
+  assert (((RtoC 1 - conjc li) * RtoC 1)%C = (RtoC 1 - conjc li)%C). { apply mulr1. }  
+  by rewrite H16.
+}  
+assert (((RtoC 1 - conjc li) * ((RtoC 1 - li) * invc (RtoC 1 - li)))%C = ((invc (RtoC 1-li))* ((RtoC 1 - conjc li)*(RtoC 1-li)))%C).
+{ assert(((invc (RtoC 1-li))* ((RtoC 1- conjc li)*(RtoC 1-li)))%C = (((RtoC 1- conjc li)*(RtoC 1-li)) * (invc (RtoC 1-li)))%C).
+  { apply mulrC. } rewrite H16. apply mulrA.
+} rewrite H16 in H15. clear H16.
+assert (scal_vec_C (invc (RtoC 1 - li) * ((RtoC 1 - conjc li) * (RtoC 1 - li)))%C (mulmx
+              (mulmx (conjugate_transpose vi)  (RtoC_mat (diag_A A))) vi) = scal_vec_C (invc (RtoC 1 - li))%C
+                (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C (mulmx
+              (mulmx (conjugate_transpose vi)  (RtoC_mat (diag_A A))) vi))).
+{ symmetry. apply scal_of_scal_vec. } rewrite H16 in H15. clear H16.
+assert (scal_vec_C (RtoC 1 - li)%C (scal_vec_C (invc (RtoC 1 - li))%C (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)) = 
+            scal_vec_C (invc (RtoC 1 - li))%C (scal_vec_C (RtoC 1 - li)%C (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))).
+{ apply scal_vec_C_comm. } rewrite H16 in H13. clear H16.
+assert ( scal_vec_C (invc(RtoC 1 - li))%C (scal_vec_C (RtoC 1 - li)%C  (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A))
+              vi)) = addmx (scal_vec_C (invc (RtoC 1 - li))%C (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi)))
+              ( scal_vec_C ((RtoC 1 - conjc li) * (-li))%C  (scal_vec_C (invc (RtoC 1 - li))%C  (mulmx
+                (mulmx (conjugate_transpose vi)  (RtoC_mat A)) vi)))).
+{ rewrite <- H15.  rewrite <- H13.  rewrite H14. apply H10. }
+assert ((scal_vec_C ((RtoC 1 - conjc li) * (-li))%C  (scal_vec_C (invc (RtoC 1 - li))%C
+              (mulmx  (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))) = 
+              (scal_vec_C (invc (RtoC 1 - li))%C  (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+              (mulmx  (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))).
+{ apply scal_vec_C_comm. } rewrite H17 in H16. clear H17.
+assert ( addmx
+              (scal_vec_C (invc (RtoC 1 - li))%C
+                (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C
+                 (mulmx
+                    (mulmx (conjugate_transpose vi)
+                        (RtoC_mat (diag_A A))) vi)))
+              (scal_vec_C (invc (RtoC 1 - li))%C
+                (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C
+                  (mulmx
+                    (mulmx (conjugate_transpose vi)
+                        (RtoC_mat A)) vi))) = scal_vec_C (invc (RtoC 1 - li))%C (addmx
+                (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C
+                 (mulmx
+                    (mulmx (conjugate_transpose vi)
+                        (RtoC_mat (diag_A A))) vi)) (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C
+                  (mulmx
+                    (mulmx (conjugate_transpose vi)
+                        (RtoC_mat A)) vi)))).
+{ apply scal_vec_add. } rewrite H17 in H16. clear H17.
+assert ((scal_vec_C (RtoC 1 - li)%C  (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)) = 
+           addmx
+           (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))
+           (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C
+              (mulmx  (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))).
+{ apply scal_vec_eq with (invc (RtoC 1 - li))%C. apply Cinv_not_0.
+  apply H9. apply H16.
+}
+assert (scal_vec_C (RtoC 1 - li)%C  (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi) =
+              addmx (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C  (mulmx
+                        (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))
+                     (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)) ->
+              addmx (scal_vec_C (RtoC 1 - li)%C  (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))
+                    (oppmx (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))) = 
+              addmx (addmx (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C  (mulmx
+                        (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))
+                     (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))
+                    (oppmx (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))).
+{ apply Mplus_add_mat_eq. }  specialize (H18 H17).
+assert ( addmx (addmx (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C  (mulmx
+                        (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))
+                     (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))
+                    (oppmx (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))=
+            addmx (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C  (mulmx
+                        (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))
+                  (addmx (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))
+                      (oppmx (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                        (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))))).
+{ symmetry. apply addmxA. } rewrite H19 in H18. clear H19.
+assert ((addmx (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))
+                      (oppmx (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C 
+                        (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))) =0).
+{ apply Mplus_opp_r_C. }  rewrite H19 in H18. clear H19.
+assert (addmx (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C
+                    (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi)) 0=
+                (scal_vec_C ((RtoC 1 - conjc li) * (RtoC 1 - li))%C
+                    (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))).
+{ apply Mplus_zero_r_C. } rewrite H19 in H18. clear H19.
+assert (oppmx (scal_vec_C ((RtoC 1 - conjc li) * (-li))%C (mulmx
+                 (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)) =
+              scal_vec_C  (-((RtoC 1 - conjc li) * (-li)))%C (mulmx
+                 (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)).
+{ apply scal_vec_C_Mopp. } rewrite H19 in H18. clear H19.
+assert (addmx
+        (scal_vec_C (RtoC 1 - li)%C
+           (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A))
+              vi))
+        (scal_vec_C (- ((RtoC 1 - conjc li) * (-li)))%C
+           (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A))
+              vi)) = scal_vec_C ((RtoC 1 - li) + (- ((RtoC 1 - conjc li) * (-li))))%C  (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A))  vi)).
+{ apply scal_vec_add_xy. } rewrite H19 in H18. clear H19.
+assert (((RtoC 1 - li) + (- ((RtoC 1 - conjc (li)) * (-li))))%C = (RtoC 1 - (conjc li * li))%C).
+{ rewrite mulrDl mul1r -addrA.
+  assert ((- li - (- li + - (li^*)(*%C * - li)) = - (((li)^*)(*%C * (li))).
+  { by rewrite opprD addrA addrC addrN addr0 mulNr opprK mulrN. }
+  by rewrite H19 //= mulNr. 
+} rewrite H19 in H18. clear H19.
+  
+(** Simplifying the LHS of (8): Conj li * li = (Cmod li)^2  **)
+
+assert ((RtoC 1 - (conjc li * li))%C = (RtoC 1- RtoC (Rsqr (C_mod li)))%C).
+{ assert ((conjc li * li)%C= RtoC (Rsqr (C_mod li))). { apply conj_prod. }
+  by rewrite H19. 
+} rewrite H19 in H18.
+
+assert ( (RtoC 1 - RtoC (C_mod li)²)%C = RtoC (1- Rsqr (C_mod li))).
+{ rewrite /RtoC. apply /eqP. rewrite eq_complex //=. apply /andP.
+  split.
+  + by apply /eqP.
+  + apply /eqP. by rewrite subr0.
+} rewrite H20 in H18.
+
+
+assert (((RtoC 1 - conjc li) * (RtoC 1 - li))%C = RtoC (Rsqr (C_mod (RtoC 1 - li)%C))).
+{ assert ((RtoC 1 - conjc li)%C = conjc (RtoC 1 -  li)%C).
+  { assert (conjc (RtoC 1) = RtoC 1).
+    { rewrite /conjc /RtoC. apply /eqP. rewrite eq_complex //=. apply /andP.
+    split. by apply /eqP. rewrite oppr0. by apply /eqP.
+    } rewrite Cconj_add H21.
+    assert (- (li^*)(*%C = ((- li)^*)(*%C).
+    { assert (li = (Re li +i* Im li)%C). { by rewrite -C_destruct. }
+      rewrite H22. by simpc.
+    } by rewrite H22.
+  } rewrite H21. apply conj_prod.
+} rewrite H21 in H18.
+
+  unfold is_positive_definite in H3. destruct H5.
+  specialize (H3 vi H22).
+  assert (is_positive_definite (diag_A A)).
+  { apply is_positive_definite_diag. auto. }
+
+
+  
+  assert (scal_of_mat0 (scal_vec_C (RtoC (1 - (C_mod li)²))
+            (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)) =
+             scal_of_mat0 (scal_vec_C (RtoC (C_mod (RtoC 1 - li)%C)²)
+              (mulmx
+                 (mulmx (conjugate_transpose vi)
+                    (RtoC_mat (diag_A A))) vi))).
+  { unfold scal_of_mat0. by rewrite H18.  } 
+  
+  assert (scal_of_mat0
+            (scal_vec_C (RtoC (1 - (C_mod li)²))
+               (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A))
+                  vi)) = ((RtoC (1 - (C_mod li)²)) * 
+                    scal_of_mat0 (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))%C).
+  { apply scal_conv_scal_vec. } rewrite H25 in H24. clear H25.
+
+  assert (scal_of_mat0
+            (scal_vec_C (RtoC (C_mod (RtoC 1 - li)%C)²)
+               (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi)) = ((RtoC (C_mod (RtoC 1 - li)%C)²) *
+                scal_of_mat0 (mulmx  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi))%C).
+  { apply scal_conv_scal_vec. } rewrite H25 in H24. clear H25.
+
+  assert (((RtoC (1 - (C_mod li)²)%R) *
+             scal_of_mat0
+               (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))%C =
+            ((RtoC (C_mod (RtoC 1 - li))²) *
+             scal_of_mat0
+               (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi))%C ->
+            Re (((RtoC (1 - (C_mod li)²)%R) *
+             scal_of_mat0
+               (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))%C) = 
+
+            Re (((RtoC (C_mod (RtoC 1 - li))²) *
+             scal_of_mat0
+               (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi))%C)).
+  { apply Re_eq. } specialize (H25 H24).
+  
+  assert (Re
+            (RtoC (1 - (C_mod li)²)%R *
+             scal_of_mat0
+               (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A))
+                  vi))%C = Re (RtoC (1 - (C_mod li)²)%R) * Re (scal_of_mat0
+               (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A))
+                  vi))).
+  { apply Re_prod. } rewrite H26 in H25. clear H26.
+
+  assert (Re
+            ((RtoC (C_mod (RtoC 1 - li)%C)²) *
+             (scal_of_mat0
+               (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi)))%C = Rmult (Re (RtoC (C_mod (RtoC 1 - li)%C)²))  
+                (Re (scal_of_mat0 (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi)))).
+  { apply Re_prod. } rewrite H26 in H25. clear H26. unfold scal_of_mat0 in H25.
+
+  unfold is_positive_definite in H23.
+  specialize (H23 vi H22).
+
+  assert (Rmult (Re (RtoC (C_mod (RtoC 1 - li)%C)²))  
+                (Re (scal_of_mat0 (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi))) >0%Re).
+  { apply /RltbP. apply Rmult_gt_0_compat.
+    unfold RtoC. simpl. apply Rlt_gt. apply Rsqr_pos_lt.
+    assert ( Rlt 0%Re (C_mod ((1 +i* 0)%C - li)%C) -> C_mod ((1 +i* 0)%C-  li)%C <> 0%Re). { nra. }
+    apply H26. apply /RltP. apply C_mod_gt_0. apply H9. apply /RltbP. rewrite mulmxA in H23. apply H23.
+  }  unfold scal_of_mat0 in H26. rewrite <-H25 in H26. apply /RltbP.
+  apply Rsqr_incrst_0.
+  - assert ( Rsqr 1 = 1%Re). { apply Rsqr_1. } rewrite H27. apply Rplus_lt_reg_r with (-1).
+    assert ((1 + -1)%Re=0%Re). { nra. }  rewrite H28.
+    assert (((C_mod li)² + -1)%Re = ((C_mod li)² -1)%Re). { nra. } rewrite H29.
+    apply Ropp_lt_cancel. assert ((-0)%Re=0%Re).  { nra. } rewrite H30.
+    assert ((- ((C_mod li)² - 1))%Re = (1- (C_mod li)²)%Re). { nra. } rewrite H31.
+    assert (Re (RtoC (1 - (C_mod li)²)) = (1 - (C_mod li)²)%Re). 
+    { unfold RtoC. simpl. reflexivity. } rewrite <-H32.
+    apply Rmult_lt_reg_r with (Re
+        ((mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A))
+              vi) 0 0)). 
+    * rewrite mulmxA in H3.  apply /RltbP. apply H3.
+    * assert ( 0 *
+                  Re
+                    ((mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi) 0 0)= 0%Re).
+      { by rewrite mul0r. } apply /RltbP. rewrite RmultE. rewrite H33. apply H26.
+  - apply C_mod_ge_0.
+  - apply Rlt_le. apply Rlt_0_1.
+Qed.
+
+*)
+
+(*
+Theorem Reich_sufficiency: forall (n:nat) (A: 'M[R]_n.+1),
+  (forall i:'I_n.+1,  A i i > 0) ->
+  (forall i j:'I_n.+1,   A i j = A j i) ->  
+  A= addmx (A1 A) (A2 A) -> 
+  A1 A \in unitmx -> 
+  is_positive_definite A ->
+    (let S:= (mulmx (RtoC_mat (invmx (A1 A))) (RtoC_mat (A2 A))) in  
+      (forall i: 'I_n.+1,
+          @eigenvalue (complex_fieldType _) n.+1 S (lambda S i) ->
+          C_mod (lambda S i) < 1)).
+Proof.
+intros.
+
+(*** Working with the ith characteristic pair  **)
+
+
+remember (lambda S i) as li.
+assert ( exists v: 'cV_n.+1, (mulmx S v = (lambda S i) *: v) /\ (v !=0)).
+{ (*specialize (H4 i). *) rewrite Heqli in H4. by apply right_eigen_vector_exists. }
 destruct H5 as [vi H5].
 remember (RtoC_mat (A1 A)) as A1_C.
 
@@ -364,10 +1380,10 @@ assert (mulmx (mulmx (conjugate_transpose vi) A1_C) (scal_vec_C li vi)=
   apply eq_big. by []. intros. rewrite !mxE.
   rewrite -mulrC -!mulrA.
   assert ((vi i0 0 * \big[+%R/0]_j0
-              ((\matrix_(i1, j1) (\matrix_(i2, j2) ((vi i2 j2)^*)%C)
+              ((\matrix_(i1, j1) (\matrix_(i2, j2) ((vi i2 j2)^*)(*%C)
                                    j1 i1) x j0 * A1_C j0 i0)) = 
           (\big[+%R/0]_j0
-          ((\matrix_(i1, j1) (\matrix_(i2, j2) ((vi i2 j2)^*)%C)
+          ((\matrix_(i1, j1) (\matrix_(i2, j2) ((vi i2 j2)^*)(*%C)
                          j1 i1) x j0 * A1_C j0 i0) * vi i0 0)).
   { by rewrite mulrC. } by rewrite H9.
 } rewrite H8 in H6. clear H8.
@@ -657,7 +1673,7 @@ assert (addmx
 { apply scal_vec_add_xy. } rewrite H19 in H18. clear H19.
 assert (((RtoC 1 + li) + (- ((RtoC 1 + conjc li) * li)))%C = (RtoC 1 - (conjc li * li))%C).
 { rewrite mulrDl mul1r -addrA.
-  assert ( (li - (li + (li^*)%C * li)) = - (li^*)%C * li).
+  assert ( (li - (li + (li^*)(*%C * li)) = - (li^*)(*%C * li).
   { by rewrite opprD addrA addrC addrN addr0 mulNr. }
   by rewrite H19 //= mulNr. 
 } rewrite H19 in H18. clear H19.
@@ -788,6 +1804,493 @@ assert (((RtoC 1 + conjc li) * (RtoC 1 + li))%C = RtoC (Rsqr (C_mod (RtoC 1 + li
   - apply Rlt_le. apply Rlt_0_1.
 Qed.
 
+*)
+
+
+(*
+
+
+Theorem Reich_sufficiency: forall (n:nat) (A: 'M[R]_n.+1),
+  (forall i:'I_n.+1,  A i i > 0) ->
+  (forall i j:'I_n.+1,   A i j = A j i) ->  
+  A= addmx (A1 A) (A2 A) -> 
+  A1 A \in unitmx -> 
+  is_positive_definite A ->
+    (let S:= (mulmx (RtoC_mat (invmx (A1 A))) (RtoC_mat (A2 A))) in 
+      (forall i:'I_n.+1, @eigenvalue (complex_fieldType _) n.+1 S (lambda S i)) -> 
+      (forall i: 'I_n.+1, C_mod (lambda S i) < 1)).
+Proof.
+intros.
+
+(*** Working with the ith characteristic pair  **)
+
+
+remember (lambda S i) as li.
+assert ( exists v: 'cV_n.+1, (mulmx S v = (lambda S i) *: v) /\ (v !=0)).
+{ specialize (H4 i).  by apply right_eigen_vector_exists. }
+destruct H5 as [vi H5].
+remember (RtoC_mat (A1 A)) as A1_C.
+
+(** equation (2) **)
+
+assert (mulmx (mulmx (conjugate_transpose vi) A1_C) (mulmx S vi)=
+           mulmx (mulmx (conjugate_transpose vi) A1_C) (scal_vec_C li vi)).
+{ apply matrix_eq. rewrite -scal_vec_mathcomp_compat_col. rewrite Heqli. apply H5. }
+
+
+(** simpligying equation (2) **)
+assert (mulmx (mulmx (conjugate_transpose vi) A1_C) (mulmx S vi)=
+           mulmx (mulmx (mulmx (conjugate_transpose vi) A1_C) S) vi).
+{ apply mulmxA. } rewrite H7 in H6.
+
+assert (mulmx (mulmx (conjugate_transpose vi) A1_C) S = 
+            mulmx (conjugate_transpose vi)  (mulmx A1_C S)).
+{ symmetry. apply mulmxA. } rewrite H8 in H6.
+clear H7 H8.
+
+assert (mulmx A1_C S = RtoC_mat (A2 A)).
+{ unfold S. 
+  assert (mulmx A1_C (mulmx (RtoC_mat (invmx (A1 A))) (RtoC_mat (A2 A)))=
+           mulmx (mulmx A1_C (RtoC_mat (invmx (A1 A))))(RtoC_mat (A2 A))).
+  { apply mulmxA. } rewrite H7. clear H7.
+  rewrite HeqA1_C. rewrite RtoC_mat_prod.
+  assert (mulmx (A1 A) (invmx (A1 A)) = 1%:M /\ mulmx (invmx (A1 A)) (A1 A) = 1%:M).
+  { by apply inverse_A. } destruct H7. rewrite H7.
+  rewrite RtoC_mat_prod. by rewrite mul1mx.
+} rewrite H7 in H6.
+
+(* Work on the RHS of (2) *)  
+assert (mulmx (mulmx (conjugate_transpose vi) A1_C) (scal_vec_C li vi)=
+            scal_vec_C li (mulmx (mulmx (conjugate_transpose vi) A1_C) vi)).
+{ rewrite /conjugate_transpose /scal_vec_C /transpose_C /conjugate.
+  apply matrixP. unfold eqrel. intros. rewrite !mxE. rewrite big_scal.
+  apply eq_big. by []. intros. rewrite !mxE.
+  rewrite -mulrC -!mulrA.
+  assert ((vi i0 0 * \big[+%R/0]_j0
+              ((\matrix_(i1, j1) (\matrix_(i2, j2) ((vi i2 j2)^*) (*%C)
+                                   j1 i1) x j0 * A1_C j0 i0)) = 
+          (\big[+%R/0]_j0
+          ((\matrix_(i1, j1) (\matrix_(i2, j2) ((vi i2 j2)^*)(*%C)
+                         j1 i1) x j0 * A1_C j0 i0) * vi i0 0)).
+  { by rewrite mulrC. } by rewrite H9.
+} rewrite H8 in H6. clear H8.
+
+(* Working on (3) *)
+assert (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi=
+          scal_vec_C (RtoC 1+li)%C 
+          (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)).
+{ have H9: conjugate_transpose vi *m RtoC_mat A *m vi = 
+            conjugate_transpose vi *m RtoC_mat (addmx (A1 A) (A2 A)) *m vi.
+  rewrite <-H1. reflexivity. rewrite H9. clear H9.
+  rewrite RtoC_mat_add. rewrite mulmxDr mulmxDl. rewrite H6. rewrite -scal_vec_add_xy.
+  have H9: conjugate_transpose vi *m RtoC_mat (A1 A) *m vi = (scal_vec_C (RtoC 1)
+              (conjugate_transpose vi *m RtoC_mat (A1 A) *m vi)).
+  { apply matrixP. unfold eqrel. intros. rewrite !mxE. 
+    assert (y=0). { apply ord1. } rewrite H8 /RtoC. by rewrite mul1r.  
+  } rewrite H9. apply matrixP. unfold eqrel. intros.
+  rewrite !mxE. by rewrite !mul1r HeqA1_C .  
+} 
+    
+(** (1+li)<>0 **)
+assert ( (RtoC 1+li)%C <> 0%C).
+{ destruct H5. 
+  assert (forall x: 'cV[complex R]_n.+1,  x != 0 -> 
+        scal_of_mat0 (mulmx (mulmx (conjugate_transpose x) (RtoC_mat A)) x) <> 0%C).
+  { unfold is_positive_definite in H3. intros.
+    specialize (H3 x H10). rewrite /scal_of_mat0. 
+    assert ((conjugate_transpose x *m RtoC_mat A *m x) 0 0 = 
+            (Re ((conjugate_transpose x *m RtoC_mat A *m x) 0 0) +i* 
+              Im ((conjugate_transpose x *m RtoC_mat A *m x) 0 0))%C).
+    { apply C_destruct. } rewrite H11.
+    apply /eqP. rewrite eq_complex //=. apply /nandP. left.
+    apply /eqP. apply Rgt_not_eq. apply Rlt_gt. apply /RltP.
+    by rewrite -mulmxA.
+  } specialize (H10 vi H9).
+  assert ( ((RtoC 1 + li)%C * (scal_of_mat0
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)))%C <> 0%C <->
+              (RtoC 1 + li)%C <> 0%C /\ (scal_of_mat0
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)) <> 0%C).
+  { apply prod_not_zero. } destruct H11.
+  assert (scal_of_mat0 (scal_vec_C (RtoC 1 + li)%C  (mulmx
+           (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi) )=
+            ((RtoC 1 + li)%C *
+                   (scal_of_mat0
+                     (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)))%C).
+  { apply scal_conv_scal_vec. } rewrite <-H13 in H11. rewrite <-H8 in H11.
+  specialize (H11 H10). destruct H11. apply H11.
+}
+
+(** conjugate transpose, LHS and RHS: (4) to (5) **)
+assert (scal_vec_C (RtoC 1 + li)%C (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)=
+              scal_mat_C (RtoC 1 + li)%C (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi)).
+{ symmetry. apply scal_mat_to_vec. } rewrite H10 in H8. clear H10.
+assert (conjugate_transpose (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)=
+            conjugate_transpose (scal_mat_C (RtoC 1 + li)%C  (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat (A1 A))) vi))).
+{ by rewrite H8. } 
+(*LHS*)
+assert (conjugate_transpose (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)=
+              mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi).
+{ assert (conjugate_transpose (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)=
+                mulmx (conjugate_transpose vi) 
+                  (conjugate_transpose (mulmx (conjugate_transpose vi) (RtoC_mat A)))).
+  { apply (conj_matrix_mul (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi). }
+  rewrite H11.
+  assert (conjugate_transpose (mulmx (conjugate_transpose vi) (RtoC_mat A))=
+               mulmx (conjugate_transpose (RtoC_mat A)) (conjugate_transpose (conjugate_transpose vi))).
+  { apply conj_matrix_mul. } rewrite H12.
+  assert (conjugate_transpose (conjugate_transpose vi) = vi). { apply conj_of_conj. } rewrite H13.
+  assert (conjugate_transpose (RtoC_mat A) = RtoC_mat A). { apply conj_transpose_A.  apply H0. }
+  rewrite H14. apply mulmxA. 
+} rewrite H11 in H10.
+
+
+(*RHS*)
+assert (conjugate_transpose (scal_mat_C (RtoC 1 + li)%C (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A))) vi)) = scal_mat_C (conjc (RtoC 1 + li)%C) 
+              (conjugate_transpose (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A))) vi))).
+{ apply conj_scal_mat_mul. } rewrite H12 in H10.
+assert ((conjugate_transpose (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A))) vi))= mulmx (mulmx (conjugate_transpose vi) 
+              (transpose_C (RtoC_mat (A1 A)))) vi).
+{ assert ((conjugate_transpose (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A))) vi)) = mulmx (conjugate_transpose vi) 
+                  (conjugate_transpose (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A))))).
+  { apply conj_matrix_mul. }  rewrite H13.
+  assert ((conjugate_transpose (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A1 A)))) = mulmx (conjugate_transpose (RtoC_mat (A1 A)))
+                (conjugate_transpose (conjugate_transpose vi))).
+  { apply conj_matrix_mul. } rewrite H14.
+  assert (conjugate_transpose (conjugate_transpose vi) = vi). 
+  { apply conj_of_conj. } rewrite H15.
+  assert ((conjugate_transpose (RtoC_mat (A1 A))) = transpose_C (RtoC_mat (A1 A))).
+  { apply conj_transpose_A1. } rewrite H16. by rewrite mulmxA.
+} rewrite H13 in H10. clear H11 H12 H13.
+assert ((conjc (RtoC 1 + li)%C = (RtoC 1+ conjc li)%C)).
+{ assert ( conjc (RtoC 1)= (RtoC 1)).
+  { rewrite /RtoC /conjc. apply /eqP. rewrite eq_complex //=.
+    apply /andP. split.
+    + by apply /eqP.
+    + apply /eqP. by rewrite oppr0.
+  } by rewrite Cconj_add H11.
+} rewrite H11 in H10.
+assert (scal_mat_C (RtoC 1 + conjc li)%C
+            (mulmx
+            (mulmx (conjugate_transpose vi)
+              (transpose_C (RtoC_mat (A1 A)))) vi) = scal_vec_C (RtoC 1 + conjc li)%C (mulmx
+            (mulmx (conjugate_transpose vi)
+              (transpose_C (RtoC_mat (A1 A)))) vi)).
+{ apply scal_mat_to_vec. } rewrite H12 in H10. clear H12.
+
+(** Working on (7) **)
+assert (transpose_C (RtoC_mat (A1 A)) = addmx (RtoC_mat (diag_A A)) (RtoC_mat (A2 A))).
+{ apply A1_tr_split_C. apply H0. }
+rewrite H12 in H10.
+assert (mulmx (conjugate_transpose vi) (addmx (RtoC_mat (diag_A A)) (RtoC_mat (A2 A))) =
+            addmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) 
+                  (mulmx (conjugate_transpose vi) (RtoC_mat (A2 A)))).
+{ by rewrite mulmxDr. }
+rewrite H13 in H10.
+assert (mulmx (addmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A)))
+                          (mulmx (conjugate_transpose vi) (RtoC_mat (A2 A)))) vi = 
+             addmx (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi)
+                   (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (A2 A))) vi)).
+{ by rewrite mulmxDl. } rewrite H14 in H10.
+
+assert (scal_vec_C (RtoC 1 + conjc li)%C (addmx (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (diag_A A))) vi)  (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A2 A))) vi)) = addmx (scal_vec_C (RtoC 1 + conjc li)%C 
+                (mulmx (mulmx (conjugate_transpose vi)  (RtoC_mat (diag_A A))) vi)) 
+               (scal_vec_C (RtoC 1 + conjc li)%C (mulmx (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (A2 A))) vi))).
+{ apply matrixP. unfold eqrel. intros. by rewrite !mxE mulrDr.
+} rewrite H15 in H10. clear H13 H14 H15.
+rewrite H6 in H10.
+assert ((scal_vec_C (RtoC 1 + conjc li)%C (scal_vec_C li (mulmx
+                 (mulmx (conjugate_transpose vi) A1_C) vi))) = scal_vec_C ((RtoC 1 + conjc li) * li)%C
+                (mulmx (mulmx (conjugate_transpose vi) A1_C) vi)).
+{ apply scal_of_scal_vec. } rewrite H13 in H10. clear H13.
+
+(** Working on (8) **)
+assert ( mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi=
+              scal_vec_C (RtoC 1) (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)).
+{ apply matrixP. unfold eqrel. intros. rewrite !mxE. rewrite mul1r.
+  assert (y=0). { apply ord1. } by rewrite H13.
+} 
+assert (scal_vec_C (RtoC 1)
+        (mulmx
+           (mulmx (conjugate_transpose vi)
+              (RtoC_mat A)) vi)= scal_vec_C ((RtoC 1+li)* (invc (RtoC 1+li)))%C
+        (mulmx
+           (mulmx (conjugate_transpose vi)
+              (RtoC_mat A)) vi)).
+{ assert (((RtoC 1+li)* (invc (RtoC 1+li)))%C = RtoC 1).
+  { rewrite mulrC. apply mulVc. by apply /eqP. (* 1+ lj <> 0 *) } 
+  by rewrite H14. 
+} rewrite H14 in H13. clear H14.
+assert ( scal_vec_C ((RtoC 1 + li) * invc (RtoC 1 + li))%C (mulmx (mulmx (conjugate_transpose vi)
+              (RtoC_mat A)) vi) = scal_vec_C (RtoC 1+li)%C (scal_vec_C (invc (RtoC 1+li))%C 
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))).
+{ symmetry. apply scal_of_scal_vec. } rewrite H14 in H13. clear H14.
+assert (scal_vec_C (invc (RtoC 1 + li))%C (mulmx  (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi) = 
+                mulmx (mulmx (conjugate_transpose vi) A1_C) vi).
+{ apply (@scal_vec_eq 0%N (RtoC 1+li)%C (scal_vec_C (invc (RtoC 1 + li))%C
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))
+              (mulmx (mulmx (conjugate_transpose vi) A1_C) vi) H9).  
+  rewrite <-H13. rewrite HeqA1_C. rewrite H8. apply matrixP. unfold eqrel. intros.
+  rewrite !mxE. assert (y=0). { apply ord1. } by rewrite H14. 
+}
+assert (scal_vec_C (RtoC 1 + conjc li)%C  (mulmx  (mulmx (conjugate_transpose vi)
+                 (RtoC_mat (diag_A A))) vi) = scal_vec_C ((RtoC 1 + conjc li) * ((RtoC 1+li)* (invc (RtoC 1+li))))%C  
+              (mulmx  (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi)).
+{ assert (((RtoC 1+li)* (invc (RtoC 1+li)))%C = RtoC 1).
+  { rewrite mulrC. apply mulVc. by apply /eqP. } rewrite H15.
+  assert (((RtoC 1 + conjc li) * RtoC 1)%C = (RtoC 1 + conjc li)%C). { apply mulr1. }  
+  by rewrite H16.
+}  
+assert (((RtoC 1 + conjc li) * ((RtoC 1 + li) * invc (RtoC 1 + li)))%C = ((invc (RtoC 1+li))* ((RtoC 1+ conjc li)*(RtoC 1+li)))%C).
+{ assert(((invc (RtoC 1+li))* ((RtoC 1+ conjc li)*(RtoC 1+li)))%C = (((RtoC 1+ conjc li)*(RtoC 1+li)) * (invc (RtoC 1+li)))%C).
+  { apply mulrC. } rewrite H16. apply mulrA.
+} rewrite H16 in H15. clear H16.
+assert (scal_vec_C (invc (RtoC 1 + li) * ((RtoC 1 + conjc li) * (RtoC 1 + li)))%C (mulmx
+              (mulmx (conjugate_transpose vi)  (RtoC_mat (diag_A A))) vi) = scal_vec_C (invc (RtoC 1 + li))%C
+                (scal_vec_C ((RtoC 1 + conjc li) * (RtoC 1 + li))%C (mulmx
+              (mulmx (conjugate_transpose vi)  (RtoC_mat (diag_A A))) vi))).
+{ symmetry. apply scal_of_scal_vec. } rewrite H16 in H15. clear H16.
+assert (scal_vec_C (RtoC 1 + li)%C (scal_vec_C (invc (RtoC 1 + li))%C (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)) = 
+            scal_vec_C (invc (RtoC 1 + li))%C (scal_vec_C (RtoC 1 + li)%C (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))).
+{ apply scal_vec_C_comm. } rewrite H16 in H13. clear H16.
+assert ( scal_vec_C (invc(RtoC 1 + li))%C (scal_vec_C (RtoC 1 + li)%C  (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A))
+              vi)) = addmx (scal_vec_C (invc (RtoC 1 + li))%C (scal_vec_C ((RtoC 1 + conjc li) * (RtoC 1 + li))%C
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi)))
+              ( scal_vec_C ((RtoC 1 + conjc li) * li)%C  (scal_vec_C (invc (RtoC 1 + li))%C  (mulmx
+                (mulmx (conjugate_transpose vi)  (RtoC_mat A)) vi)))).
+{ rewrite <- H15.  rewrite <- H13.  rewrite H14. apply H10. }
+assert ((scal_vec_C ((RtoC 1 + conjc li) * li)%C  (scal_vec_C (invc (RtoC 1 + li))%C
+              (mulmx  (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))) = 
+              (scal_vec_C (invc (RtoC 1 + li))%C  (scal_vec_C ((RtoC 1 + conjc li) * li)%C 
+              (mulmx  (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))).
+{ apply scal_vec_C_comm. } rewrite H17 in H16. clear H17.
+assert ( addmx
+              (scal_vec_C (invc (RtoC 1 + li))%C
+                (scal_vec_C ((RtoC 1 + conjc li) * (RtoC 1 + li))%C
+                 (mulmx
+                    (mulmx (conjugate_transpose vi)
+                        (RtoC_mat (diag_A A))) vi)))
+              (scal_vec_C (invc (RtoC 1 + li))%C
+                (scal_vec_C ((RtoC 1 + conjc li) * li)%C
+                  (mulmx
+                    (mulmx (conjugate_transpose vi)
+                        (RtoC_mat A)) vi))) = scal_vec_C (invc (RtoC 1 + li))%C (addmx
+                (scal_vec_C ((RtoC 1 + conjc li) * (RtoC 1 + li))%C
+                 (mulmx
+                    (mulmx (conjugate_transpose vi)
+                        (RtoC_mat (diag_A A))) vi)) (scal_vec_C ((RtoC 1 + conjc li) * li)%C
+                  (mulmx
+                    (mulmx (conjugate_transpose vi)
+                        (RtoC_mat A)) vi)))).
+{ apply scal_vec_add. } rewrite H17 in H16. clear H17.
+assert ((scal_vec_C (RtoC 1 + li)%C  (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)) = 
+           addmx
+           (scal_vec_C ((RtoC 1 + conjc li) * (RtoC 1 + li))%C
+              (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))
+           (scal_vec_C ((RtoC 1 + conjc li) * li)%C
+              (mulmx  (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))).
+{ apply scal_vec_eq with (invc (RtoC 1 + li))%C. apply Cinv_not_0.
+  apply H9. apply H16.
+}
+assert (scal_vec_C (RtoC 1 + li)%C  (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi) =
+              addmx (scal_vec_C ((RtoC 1 + conjc li) * (RtoC 1 + li))%C  (mulmx
+                        (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))
+                     (scal_vec_C ((RtoC 1 + conjc li) * li)%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)) ->
+              addmx (scal_vec_C (RtoC 1 + li)%C  (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))
+                    (oppmx (scal_vec_C ((RtoC 1 + conjc li) * li)%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))) = 
+              addmx (addmx (scal_vec_C ((RtoC 1 + conjc li) * (RtoC 1 + li))%C  (mulmx
+                        (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))
+                     (scal_vec_C ((RtoC 1 + conjc li) * li)%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))
+                    (oppmx (scal_vec_C ((RtoC 1 + conjc li) * li)%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))).
+{ apply Mplus_add_mat_eq. }  specialize (H18 H17).
+assert ( addmx (addmx (scal_vec_C ((RtoC 1 + conjc li) * (RtoC 1 + li))%C  (mulmx
+                        (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))
+                     (scal_vec_C ((RtoC 1 + conjc li) * li)%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))
+                    (oppmx (scal_vec_C ((RtoC 1 + conjc li) * li)%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))=
+            addmx (scal_vec_C ((RtoC 1 + conjc li) * (RtoC 1 + li))%C  (mulmx
+                        (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))
+                  (addmx (scal_vec_C ((RtoC 1 + conjc li) * li)%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))
+                      (oppmx (scal_vec_C ((RtoC 1 + conjc li) * li)%C 
+                        (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))))).
+{ symmetry. apply addmxA. } rewrite H19 in H18. clear H19.
+assert ((addmx (scal_vec_C ((RtoC 1 + conjc li) * li)%C 
+                      (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))
+                      (oppmx (scal_vec_C ((RtoC 1 + conjc li) * li)%C 
+                        (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)))) =0).
+{ apply Mplus_opp_r_C. }  rewrite H19 in H18. clear H19.
+assert (addmx (scal_vec_C ((RtoC 1 + conjc li) * (RtoC 1 + li))%C
+                    (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi)) 0=
+                (scal_vec_C ((RtoC 1 + conjc li) * (RtoC 1 + li))%C
+                    (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat (diag_A A))) vi))).
+{ apply Mplus_zero_r_C. } rewrite H19 in H18. clear H19.
+assert (oppmx (scal_vec_C ((RtoC 1 + conjc li) * li)%C (mulmx
+                 (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)) =
+              scal_vec_C  (-((RtoC 1 + conjc li) * li))%C (mulmx
+                 (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)).
+{ apply scal_vec_C_Mopp. } rewrite H19 in H18. clear H19.
+assert (addmx
+        (scal_vec_C (RtoC 1 + li)%C
+           (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A))
+              vi))
+        (scal_vec_C (- ((RtoC 1 + conjc li) * li))%C
+           (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A))
+              vi)) = scal_vec_C ((RtoC 1 + li) + (- ((RtoC 1 + conjc li) * li)))%C  (mulmx
+              (mulmx (conjugate_transpose vi) (RtoC_mat A))  vi)).
+{ apply scal_vec_add_xy. } rewrite H19 in H18. clear H19.
+assert (((RtoC 1 + li) + (- ((RtoC 1 + conjc li) * li)))%C = (RtoC 1 - (conjc li * li))%C).
+{ rewrite mulrDl mul1r -addrA.
+  assert ( (li - (li + (li^*)(*%C * li)) = - (li^*)(*%C * li).
+  { by rewrite opprD addrA addrC addrN addr0 mulNr. }
+  by rewrite H19 //= mulNr. 
+} rewrite H19 in H18. clear H19.
+  
+(** Simplifying the LHS of (8): Conj li * li = (Cmod li)^2  **)
+
+assert ((RtoC 1 - conjc li * li)%C = (RtoC 1- RtoC (Rsqr (C_mod li)))%C).
+{ assert ((conjc li * li)%C= RtoC (Rsqr (C_mod li))). { apply conj_prod. }
+  by rewrite H19. 
+} rewrite H19 in H18.
+
+assert ( (RtoC 1 - RtoC (C_mod li)²)%C = RtoC (1- Rsqr (C_mod li))).
+{ rewrite /RtoC. apply /eqP. rewrite eq_complex //=. apply /andP.
+  split.
+  + by apply /eqP.
+  + apply /eqP. by rewrite subr0.
+} rewrite H20 in H18.
+
+
+assert (((RtoC 1 + conjc li) * (RtoC 1 + li))%C = RtoC (Rsqr (C_mod (RtoC 1 + li)%C))).
+{ assert ((RtoC 1 + conjc li)%C = conjc (RtoC 1+ li)%C).
+  { assert (conjc (RtoC 1) = RtoC 1).
+    { rewrite /conjc /RtoC. apply /eqP. rewrite eq_complex //=. apply /andP.
+    split. by apply /eqP. rewrite oppr0. by apply /eqP.
+    } by rewrite Cconj_add H21.
+  } rewrite H21. apply conj_prod.
+} rewrite H21 in H18.
+
+  unfold is_positive_definite in H3. destruct H5.
+  specialize (H3 vi H22).
+  assert (is_positive_definite (diag_A A)).
+  { apply is_positive_definite_diag. auto. }
+
+
+  
+  assert (scal_of_mat0 (scal_vec_C (RtoC (1 - (C_mod li)²))
+            (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi)) =
+             scal_of_mat0 (scal_vec_C (RtoC (C_mod (RtoC 1 + li)%C)²)
+              (mulmx
+                 (mulmx (conjugate_transpose vi)
+                    (RtoC_mat (diag_A A))) vi))).
+  { unfold scal_of_mat0. by rewrite H18.  } 
+  
+  assert (scal_of_mat0
+            (scal_vec_C (RtoC (1 - (C_mod li)²))
+               (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A))
+                  vi)) = ((RtoC (1 - (C_mod li)²)) * 
+                    scal_of_mat0 (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))%C).
+  { apply scal_conv_scal_vec. } rewrite H25 in H24. clear H25.
+
+  assert (scal_of_mat0
+            (scal_vec_C (RtoC (C_mod (RtoC 1 + li)%C)²)
+               (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi)) = ((RtoC (C_mod (RtoC 1 + li)%C)²) *
+                scal_of_mat0 (mulmx  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi))%C).
+  { apply scal_conv_scal_vec. } rewrite H25 in H24. clear H25.
+
+  assert (((RtoC (1 - (C_mod li)²)%R) *
+             scal_of_mat0
+               (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))%C =
+            ((RtoC (C_mod (RtoC 1 + li))²) *
+             scal_of_mat0
+               (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi))%C ->
+            Re (((RtoC (1 - (C_mod li)²)%R) *
+             scal_of_mat0
+               (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi))%C) = 
+
+            Re (((RtoC (C_mod (RtoC 1 + li))²) *
+             scal_of_mat0
+               (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi))%C)).
+  { apply Re_eq. } specialize (H25 H24).
+  
+  assert (Re
+            (RtoC (1 - (C_mod li)²)%R *
+             scal_of_mat0
+               (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A))
+                  vi))%C = Re (RtoC (1 - (C_mod li)²)%R) * Re (scal_of_mat0
+               (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A))
+                  vi))).
+  { apply Re_prod. } rewrite H26 in H25. clear H26.
+
+  assert (Re
+            ((RtoC (C_mod (RtoC 1 + li)%C)²) *
+             (scal_of_mat0
+               (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi)))%C = Rmult (Re (RtoC (C_mod (RtoC 1 + li)%C)²))  
+                (Re (scal_of_mat0 (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi)))).
+  { apply Re_prod. } rewrite H26 in H25. clear H26. unfold scal_of_mat0 in H25.
+
+  unfold is_positive_definite in H23.
+  specialize (H23 vi H22).
+
+  assert (Rmult (Re (RtoC (C_mod (RtoC 1 + li)%C)²))  
+                (Re (scal_of_mat0 (mulmx
+                  (mulmx (conjugate_transpose vi)
+                     (RtoC_mat (diag_A A))) vi))) >0%Re).
+  { apply /RltbP. apply Rmult_gt_0_compat.
+    unfold RtoC. simpl. apply Rlt_gt. apply Rsqr_pos_lt.
+    assert ( Rlt 0%Re (C_mod ((1 +i* 0)%C+ li)%C) -> C_mod ((1 +i* 0)%C+ li)%C <> 0%Re). { nra. }
+    apply H26. apply /RltP. apply C_mod_gt_0. apply H9. apply /RltbP. rewrite mulmxA in H23. apply H23.
+  }  unfold scal_of_mat0 in H26. rewrite <-H25 in H26. apply /RltbP.
+  apply Rsqr_incrst_0.
+  - assert ( Rsqr 1 = 1%Re). { apply Rsqr_1. } rewrite H27. apply Rplus_lt_reg_r with (-1).
+    assert ((1 + -1)%Re=0%Re). { nra. }  rewrite H28.
+    assert (((C_mod li)² + -1)%Re = ((C_mod li)² -1)%Re). { nra. } rewrite H29.
+    apply Ropp_lt_cancel. assert ((-0)%Re=0%Re).  { nra. } rewrite H30.
+    assert ((- ((C_mod li)² - 1))%Re = (1- (C_mod li)²)%Re). { nra. } rewrite H31.
+    assert (Re (RtoC (1 - (C_mod li)²)) = (1 - (C_mod li)²)%Re). 
+    { unfold RtoC. simpl. reflexivity. } rewrite <-H32.
+    apply Rmult_lt_reg_r with (Re
+        ((mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A))
+              vi) 0 0)). 
+    * rewrite mulmxA in H3.  apply /RltbP. apply H3.
+    * assert ( 0 *
+                  Re
+                    ((mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi) 0 0)= 0%Re).
+      { by rewrite mul0r. } apply /RltbP. rewrite RmultE. rewrite H33. apply H26.
+  - apply C_mod_ge_0.
+  - apply Rlt_le. apply Rlt_0_1.
+Qed.
+*)
 
 
 Lemma A_A1_A2_split: forall (n:nat) (A: 'M[R]_n.+1),
@@ -874,6 +2377,94 @@ intros. split.
   - by [].
 Qed.
 
+
+Theorem Gauss_Seidel_converges:
+  forall (n:nat) (A: 'M[R]_n.+1) (b: 'cV[R]_n.+1) (X: 'cV[R]_n.+1),
+   A \in unitmx ->
+   mulmx A X = b ->
+   (forall i : 'I_(succn n), 0 < A i i) ->
+   (forall i j : 'I_(succn n), A i j = A j i) ->
+   (A1 A) \in unitmx ->
+   is_positive_definite A ->
+   (let S_mat:= RtoC_mat (oppmx (mulmx ((invmx (A1 A))) (A2 A))) in
+    forall x0: 'cV[R]_n.+1,
+        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1 A) (A2 A)) (oppmx X))) 0%Re).
+Proof.
+intros.
+apply iter_convergence with A.
++ by [].
++ by [].
++ by [].
++ apply A_A1_A2_split.
++ intros. rewrite /S_mat. apply /RltP.
+  rewrite /S_mat0.
+  rewrite RtoC_mat_oppmx.
+  assert (forall (n:nat) (A: 'M[R]_n.+1),
+          (forall i:'I_n.+1,  A i i > 0) ->
+          (forall i j:'I_n.+1,   A i j = A j i) -> 
+          A= addmx (A1 A) (A2 A) -> 
+          A1 A \in unitmx -> 
+          is_positive_definite A ->
+            (let S:= oppmx (mulmx (RtoC_mat (invmx (A1 A))) (RtoC_mat (A2 A))) in  
+              (forall i: 'I_n.+1, C_mod (lambda S i) < 1))).
+   { apply Reich_sufficiency. }
+  specialize (H5 n A H1 H2).
+  assert (A = addmx (A1 A) (A2 A)). { by apply A_A1_A2_split. }
+  assert (A1 A \in unitmx ). { by [].  } 
+  specialize (H5 H6 H7).
+  specialize (H5 H4).
+  simpl in H5.  rewrite RtoC_mat_prod in H5. 
+  rewrite /S_mat0.
+  apply H5.
+Qed.
+
+(*
+
+Theorem Gauss_Seidel_converges:
+  forall (n:nat) (A: 'M[R]_n.+1) (b: 'cV[R]_n.+1) (X: 'cV[R]_n.+1),
+   A \in unitmx ->
+   mulmx A X = b ->
+   (forall i : 'I_(succn n), 0 < A i i) ->
+   (forall i j : 'I_(succn n), A i j = A j i) ->
+   (A1 A) \in unitmx ->
+   is_positive_definite A ->
+   (let S_mat:= RtoC_mat (oppmx (mulmx ((invmx (A1 A))) (A2 A))) in
+    forall x0: 'cV[R]_n.+1,
+        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1 A) (A2 A)) (oppmx X))) 0%Re).
+Proof.
+intros.
+apply iter_convergence with A.
++ by [].
++ by [].
++ by [].
++ apply A_A1_A2_split.
++ intros. rewrite /S_mat. apply /RltP.
+  rewrite /S_mat0.
+  rewrite RtoC_mat_oppmx.
+  assert (forall (n:nat) (A: 'M[R]_n.+1),
+          (forall i:'I_n.+1,  A i i > 0) ->
+          (forall i j:'I_n.+1,   A i j = A j i) -> 
+          A= addmx (A1 A) (A2 A) -> 
+          A1 A \in unitmx -> 
+          is_positive_definite A ->
+            (let S:= oppmx (mulmx (RtoC_mat (invmx (A1 A))) (RtoC_mat (A2 A))) in  
+              (forall i: 'I_n.+1,
+                 @eigenvalue (complex_fieldType _) n.+1 S (lambda S i) ->
+                 C_mod (lambda S i) < 1))).
+   { apply Reich_sufficiency. }
+  specialize (H6 n A H1 H2).
+  assert (A = addmx (A1 A) (A2 A)). { by apply A_A1_A2_split. }
+  assert (A1 A \in unitmx ). { by [].  } 
+  specialize (H6 H7 H8).
+  specialize (H6 H4).
+  simpl in H6.  rewrite RtoC_mat_prod in H6. 
+  rewrite /S_mat0.
+  apply H6. intros. fold S_mat0. rewrite -RtoC_mat_oppmx. 
+  apply lambda_is_an_eigen_val.
+Qed.
+
+*)
+(*
 Theorem Gauss_Seidel_converges:
   forall (n:nat) (A: 'M[R]_n.+1) (b: 'cV[R]_n.+1) (X: 'cV[R]_n.+1),
    A \in unitmx ->
@@ -917,7 +2508,7 @@ apply iter_convergence with A.
   rewrite eigenvalue_oppmx. rewrite -H5.
   simpl in H6. rewrite -RtoC_mat_oppmx. apply H6.
 Qed.
-
+*)
 
 (** Gauss Seidel iteration for a 3 x 3 matrix **)
 
@@ -1797,6 +3388,34 @@ Theorem Gauss_seidel_Ah_converges:
   (0 < h)%Re -> 
   let A := (Ah 2%N h) in
    mulmx A X = b ->
+   (let S_mat:= RtoC_mat (oppmx (mulmx ((invmx (A1 A))) (A2 A))) in
+    forall x0: 'cV[R]_3,
+        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1 A) (A2 A)) (oppmx X))) 0%Re).
+Proof.
+intros.
+apply Gauss_Seidel_converges.
++ by apply Ah_is_invertible.
++ by [].
++ intros. rewrite /A0. rewrite !mxE.
+  assert (i == i :>nat). { by []. }
+  rewrite H1. apply /RltP.
+  apply Rmult_lt_0_compat.
+  - assert ((1 / h ^ 2)%Re = (/ (h^2))%Re). { nra. }
+    rewrite H2. apply Rinv_0_lt_compat. apply Rmult_lt_0_compat; nra.
+  - apply Rlt_0_2.
++ intros. rewrite /A0. 
+  by apply Ah_is_symmetric.
++ by apply A1_invertible.
++ by apply Ah_pd.
+Qed.
+
+
+(*
+Theorem Gauss_seidel_Ah_converges:
+  forall (b: 'cV[R]_3) (X: 'cV[R]_3) (h:R),
+  (0 < h)%Re -> 
+  let A := (Ah 2%N h) in
+   mulmx A X = b ->
    (forall (S: 'M[complex R]_3) (i: 'I_3), lambda (oppmx S) i = -lambda S i) ->
    (let S_mat:= RtoC_mat (oppmx (mulmx ((invmx (A1 A))) (A2 A))) in
     (forall i:'I_3, @eigenvalue (complex_fieldType _) 3 S_mat (lambda S_mat i))) ->
@@ -1821,3 +3440,4 @@ apply Gauss_Seidel_converges.
 + by [].
 + by [].
 Qed.
+*)

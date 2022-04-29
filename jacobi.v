@@ -1469,6 +1469,61 @@ apply iter_convergence with A0.
 + by [].
 + by apply A1_invertible.
 + apply Ah_J_split.
+(*+ intros. rewrite Lambda_eq. apply /eigenvalueP.
+  exists (RtoC_vec (Eigen_vec i 2%N (Re (a 3%N h)) (Re (b 3%N h)) (Re (c 3%N h))))^T.
+  - by apply eigen_system.
+  - apply /rV0Pn. exists 0. rewrite !mxE.
+    assert (Rpower (Re (a 3 h) * / Re (c 3 h)) (INR 0 + 1 - 1 * / 2) = 1%Re).
+    { by apply Rpower_a_c_div_eq_1. } rewrite H1.
+    rewrite eq_complex //=. apply /nandP.
+    left. rewrite mulr1. apply /eqP.
+    apply Rmult_integral_contrapositive.
+    split.
+    * assert ((0 < sqrt (2 / (1 + 1 + 1 + 1)))%Re -> 
+                    sqrt (2 / (1 + 1 + 1 + 1)) <> 0%Re). { nra. } apply H2.
+      apply sqrt_lt_R0.
+      nra.
+    * assert (((0 + 1))%Re = 1%Re). { nra. } rewrite H2.
+      assert ((1 * INR (i + 1) * PI * / (1 + 1 + 1 + 1))%Re = 
+              (INR (i + 1) * PI * /4)%Re). { nra. } rewrite H3.
+      assert ( (0 < sin (INR (i + 1) * PI * / 4))%Re -> 
+              sin (INR (i + 1) * PI * / 4) <> 0%Re).
+      { nra. } apply H4. apply sin_gt_0.
+      + apply Rmult_lt_0_compat.
+        ++ apply Rmult_lt_0_compat.
+           -- apply lt_0_INR. apply /ssrnat.ltP. by rewrite addn1.
+           -- apply PI_RGT_0.
+        ++ nra. 
+      + assert (PI = (1 * PI)%Re). { nra. } rewrite H5.
+        assert ((INR (i + 1) * (1 * PI) * / 4)%Re = 
+                  ((INR (i+1) * /4) * PI)%Re).
+        { nra. } rewrite H6.
+        apply Rmult_lt_compat_r.
+        - apply PI_RGT_0.
+        - assert ((INR (i + 1)  < 4 )%Re -> (INR (i + 1) * / 4 < 1)%Re).
+          { nra. } apply H7. assert (INR 4 = 4%Re). { simpl. nra. }
+          rewrite -H8. apply lt_INR. apply /ssrnat.ltP. 
+          assert ((i < 3)%N). { apply ltn_ord. } 
+          assert (4%N = (3 + 1)%N). { by []. } rewrite H10. by rewrite ltn_add2r.
+*)
++ intros. rewrite Lambda_eq. by apply eig_less_than_1.
+Qed.
+
+(*
+Theorem Jacobi_converges: 
+  forall (b: 'cV[R]_2.+1) (X: 'cV[R]_2.+1) (h:R),
+  (0 < h)%Re -> 
+  let A := (Ah 2%N h) in  
+   mulmx A X = b ->
+    (forall x0: 'cV[R]_2.+1,
+        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1_J 2%N h) (A2_J 2%N h)) (oppmx X))) 0%Re).
+Proof.
+intros.
+apply iter_convergence with A0.
++ rewrite /A0. by apply Ah_is_invertible.
++ by [].
++ by apply A1_invertible.
++ apply Ah_J_split.
 + intros. rewrite Lambda_eq. apply /eigenvalueP.
   exists (RtoC_vec (Eigen_vec i 2%N (Re (a 3%N h)) (Re (b 3%N h)) (Re (c 3%N h))))^T.
   - by apply eigen_system.
@@ -1507,4 +1562,4 @@ apply iter_convergence with A0.
           assert (4%N = (3 + 1)%N). { by []. } rewrite H10. by rewrite ltn_add2r.
 + intros. rewrite Lambda_eq. by apply eig_less_than_1.
 Qed.
-
+*)

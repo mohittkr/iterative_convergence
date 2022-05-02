@@ -1456,17 +1456,16 @@ Qed.
  
 
 Theorem Jacobi_converges: 
-  forall (b: 'cV[R]_2.+1) (X: 'cV[R]_2.+1) (h:R),
+  forall (b: 'cV[R]_3) (h:R),
   (0 < h)%Re -> 
-  let A := (Ah 2%N h) in  
-   mulmx A X = b ->
-    (forall x0: 'cV[R]_2.+1,
-        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1_J 2%N h) (A2_J 2%N h)) (oppmx X))) 0%Re).
+  let A := (Ah 2%N h) in 
+  let x := (invmx A) *m b in  
+    (forall x0: 'cV[R]_3,
+        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1_J 2%N h) (A2_J 2%N h)) (oppmx x))) 0%Re).
 Proof.
 intros.
-apply iter_convergence with A0.
+apply iter_convergence.
 + rewrite /A0. by apply Ah_is_invertible.
-+ by [].
 + by apply A1_invertible.
 + apply Ah_J_split.
 (*+ intros. rewrite Lambda_eq. apply /eigenvalueP.

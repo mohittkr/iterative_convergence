@@ -1529,6 +1529,8 @@ destruct H.
   } by rewrite H3.
 Qed.
 
+(*
+
 Definition A1_inverse := \matrix_(i<3, j<3)
   if (i==j :> nat) then (1/2)%Re else
       (if ((i-j)%N==1%N :>nat) then (1/4)%Re else
@@ -1665,7 +1667,7 @@ intros. rewrite unitmxE. rewrite unitrE. rewrite -det_inv.
 rewrite -det_mulmx. rewrite invmx_A1_mul_A1_1. by rewrite det1.
 by []. 
 Qed.
-  
+ *) 
 
 Lemma Ah_is_invertible: 
   forall (h:R), (0 < h)%Re -> (Ah 2%N h) \in unitmx.

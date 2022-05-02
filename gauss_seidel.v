@@ -1830,9 +1830,8 @@ Theorem Gauss_seidel_Ah_converges:
   (0 < h)%Re -> 
   let A := (Ah 2%N h) in
    mulmx A X = b ->
-   (let S_mat:= RtoC_mat (oppmx (mulmx ((invmx (A1 A))) (A2 A))) in
     forall x0: 'cV[R]_3,
-        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1 A) (A2 A)) (oppmx X))) 0%Re).
+        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1 A) (A2 A)) (oppmx X))) 0%Re.
 Proof.
 intros.
 apply Gauss_Seidel_converges.

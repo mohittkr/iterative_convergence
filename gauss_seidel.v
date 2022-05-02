@@ -330,17 +330,101 @@ Proof.
 intros. apply matrixP. unfold eqrel. intros. rewrite !mxE. apply opprK.
 Qed.
 
+
+Lemma A_A1_A2_split: forall (n:nat) (A: 'M[R]_n.+1),
+  A = addmx (A1 A) (A2 A).
+Proof.
+intros. apply matrixP. unfold eqrel. intros. rewrite !mxE.
+assert ((y<=x)%N \/ (y>=x)%N). { apply /orP. apply leq_total. } destruct H.
++ assert (y <=? x = true).
+  { apply leb_correct. apply /ssrnat.leP. apply H. }
+  rewrite H0. rewrite leq_gtF. by rewrite addr0 //=. by []. 
++ assert ( x == y \/ (x<y)%N). { apply /orP. rewrite -leq_eqVlt. apply H. }
+  destruct H0.
+  - assert (x= y). { by apply /eqP. } rewrite -H1.
+    assert ((x <=? x)%N = true). { apply leb_correct. lia. } rewrite H2.
+    assert ((x < x)%N = false).  { apply ltnn. } rewrite H3.
+    by rewrite addr0.
+  - assert ((y <=? x)%N = false). { apply leb_correct_conv. apply /ssrnat.ltP. apply H0. }
+    rewrite H1. rewrite H0. by rewrite add0r. 
+Qed.
+
+
+Lemma A1_is_triangular: forall (n:nat) (A: 'M[R]_n.+1),
+  is_trig_mx (A1 A).
+Proof.
+intros. rewrite /is_trig_mx.
+apply /forallP. intros.
+apply /forallP. intros.
+rewrite !mxE.
+assert ((x0 <= x)%coq_nat \/ (x < x0)%coq_nat).
+{ lia. } destruct H.
++ assert ( (x0 <= x)%N). { by apply /ssrnat.leP. } 
+  assert ((x < x0)%N = false). { by apply leq_gtF. }
+  by rewrite H1.
++ assert ((x < x0)%N). { by apply /ssrnat.ltP. }
+  rewrite H0. simpl.
+  assert (x0 <=? x = false).
+  { apply leb_correct_conv. apply /ssrnat.ltP. apply H0. }
+  by rewrite H1.
+Qed.
+
+
+Lemma A1_prod: forall (n:nat) (F : 'I_n.+1 -> R),
+  (forall i, 0 < F i) ->
+  (0 < \big[ *%R/1]_(i < succn n) F i)%Re.
+Proof.
+intros. induction n.
++ rewrite big_ord_recr //= big_ord0 mul1r. by apply /RltP.
++ rewrite big_ord_recr //=. rewrite -RmultE.
+  apply Rmult_lt_0_compat.
+  - by apply IHn.
+  - by apply /RltP.
+Qed.
+
+Lemma A1_is_invertible: 
+  forall (n:nat) (A: 'M[R]_n.+1),
+  (forall i:'I_n.+1,  A i i > 0) ->
+  A1 A \in unitmx.
+Proof.
+intros.
+rewrite unitmxE.
+assert (\det (A1 A) = \prod_(i < n.+1) ((A1 A) i i)).
+{ apply det_trig, A1_is_triangular. }
+rewrite H0.
+rewrite unitrE. apply /eqP.
+assert (forall i, A1 A i i = A i i).
+{ intros. rewrite !mxE. 
+  assert (i <=? i = true). { apply leb_correct. lia. }
+  by rewrite H1.
+}
+rewrite -RdivE.
++ apply Rinv_r.
+  assert ( (0 < \big[ *%R/1]_(i < succn n) A1 A i i )%Re ->   
+            (\big[ *%R/1]_(i < succn n) A1 A i i)%Re <> 0%Re).
+  { nra. } apply H2.  apply A1_prod.
+  intros. by rewrite H1.
++ apply /eqP.
+  assert ( (0 < \big[ *%R/1]_(i < succn n) A1 A i i )%Re ->   
+            (\big[ *%R/1]_(i < succn n) A1 A i i)%Re <> 0%Re).
+  { nra. } apply H2. 
+  apply A1_prod.
+  intros. by rewrite H1.
+Qed.
+  
+
 (** Proof of the Reich theorem for the Gauss_seidel iteration **)
 Theorem Reich_sufficiency: forall (n:nat) (A: 'M[R]_n.+1),
   (forall i:'I_n.+1,  A i i > 0) ->
   (forall i j:'I_n.+1,   A i j = A j i) ->  
-  A= addmx (A1 A) (A2 A) -> 
-  A1 A \in unitmx -> 
-  is_positive_definite A ->
+  is_positive_definite A -> 
     (let S:= oppmx (mulmx (RtoC_mat (invmx (A1 A))) (RtoC_mat (A2 A))) in  
       (forall i: 'I_n.+1, C_mod (lambda S i) < 1)).
 Proof.
 intros.
+
+assert (A= addmx (A1 A) (A2 A)). { by apply A_A1_A2_split. }
+assert (A1 A \in unitmx). { by apply A1_is_invertible. }
 
 (*** Working with the ith characteristic pair  **)
 
@@ -405,7 +489,7 @@ assert (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi=
           (mulmx (mulmx (conjugate_transpose vi) (RtoC_mat ((A1 A)))) vi)).
 { have H9: conjugate_transpose vi *m RtoC_mat A *m vi = 
             conjugate_transpose vi *m RtoC_mat (addmx (A1 A) (A2 A)) *m vi.
-  rewrite <-H1. reflexivity. rewrite H9. clear H9.
+  rewrite <-H2. reflexivity. rewrite H9. clear H9.
   rewrite RtoC_mat_add. rewrite mulmxDr mulmxDl. rewrite H6. rewrite -scal_vec_add_xy.
   have H9: conjugate_transpose vi *m RtoC_mat ((A1 A)) *m vi = (scal_vec_C (RtoC 1)
               (conjugate_transpose vi *m RtoC_mat ((A1 A)) *m vi)).
@@ -420,8 +504,8 @@ assert ( (RtoC 1-li)%C <> 0%C).
 { destruct H5. 
   assert (forall x: 'cV[complex R]_n.+1,  x != 0 -> 
         scal_of_mat0 (mulmx (mulmx (conjugate_transpose x) (RtoC_mat A)) x) <> 0%C).
-  { unfold is_positive_definite in H3. intros.
-    specialize (H3 x H10). rewrite /scal_of_mat0. 
+  { unfold is_positive_definite in H1. intros.
+    specialize (H1 x H10). rewrite /scal_of_mat0. 
     assert ((conjugate_transpose x *m RtoC_mat A *m x) 0 0 = 
             (Re ((conjugate_transpose x *m RtoC_mat A *m x) 0 0) +i* 
               Im ((conjugate_transpose x *m RtoC_mat A *m x) 0 0))%C).
@@ -721,8 +805,8 @@ assert (((RtoC 1 - conjc li) * (RtoC 1 - li))%C = RtoC (Rsqr (C_mod (RtoC 1 - li
   } rewrite H21. apply conj_prod.
 } rewrite H21 in H18.
 
-  unfold is_positive_definite in H3. destruct H5.
-  specialize (H3 vi H22).
+  unfold is_positive_definite in H1. destruct H5.
+  specialize (H1 vi H22).
   assert (is_positive_definite (diag_A A)).
   { apply is_positive_definite_diag. auto. }
 
@@ -814,34 +898,13 @@ assert (((RtoC 1 - conjc li) * (RtoC 1 - li))%C = RtoC (Rsqr (C_mod (RtoC 1 - li
     apply Rmult_lt_reg_r with (Re
         ((mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A))
               vi) 0 0)). 
-    * rewrite mulmxA in H3.  apply /RltbP. apply H3.
+    * rewrite mulmxA in H1.  apply /RltbP. apply H1.
     * assert ( 0 *
                   Re
                     ((mulmx (mulmx (conjugate_transpose vi) (RtoC_mat A)) vi) 0 0)= 0%Re).
       { by rewrite mul0r. } apply /RltbP. rewrite RmultE. rewrite H33. apply H26.
   - apply C_mod_ge_0.
   - apply Rlt_le. apply Rlt_0_1.
-Qed.
-
-
-
-
-Lemma A_A1_A2_split: forall (n:nat) (A: 'M[R]_n.+1),
-  A = addmx (A1 A) (A2 A).
-Proof.
-intros. apply matrixP. unfold eqrel. intros. rewrite !mxE.
-assert ((y<=x)%N \/ (y>=x)%N). { apply /orP. apply leq_total. } destruct H.
-+ assert (y <=? x = true).
-  { apply leb_correct. apply /ssrnat.leP. apply H. }
-  rewrite H0. rewrite leq_gtF. by rewrite addr0 //=. by []. 
-+ assert ( x == y \/ (x<y)%N). { apply /orP. rewrite -leq_eqVlt. apply H. }
-  destruct H0.
-  - assert (x= y). { by apply /eqP. } rewrite -H1.
-    assert ((x <=? x)%N = true). { apply leb_correct. lia. } rewrite H2.
-    assert ((x < x)%N = false).  { apply ltnn. } rewrite H3.
-    by rewrite addr0.
-  - assert ((y <=? x)%N = false). { apply leb_correct_conv. apply /ssrnat.ltP. apply H0. }
-    rewrite H1. rewrite H0. by rewrite add0r. 
 Qed.
 
 
@@ -855,9 +918,6 @@ split.
 + apply /eqP. by rewrite //=.
 + apply /eqP. by rewrite //= oppr0.
 Qed.
-
-
-
 
 Lemma big_minus (n:nat) (F : 'I_n.+1 -> (complex R)):
   - (\big[+%R/0]_(j < n.+1) (F j)) = (\big[+%R/0]_(j < n.+1) (-(F j))).
@@ -912,22 +972,20 @@ Qed.
 
 
 Theorem Gauss_Seidel_converges:
-  forall (n:nat) (A: 'M[R]_n.+1) (b: 'cV[R]_n.+1) (X: 'cV[R]_n.+1),
+  forall (n:nat) (A: 'M[R]_n.+1) (b: 'cV[R]_n.+1),
+  let x:= (invmx A) *m b in 
    A \in unitmx ->
-   mulmx A X = b ->
    (forall i : 'I_(succn n), 0 < A i i) ->
    (forall i j : 'I_(succn n), A i j = A j i) ->
-   (A1 A) \in unitmx ->
    is_positive_definite A ->
    (let S_mat:= RtoC_mat (oppmx (mulmx ((invmx (A1 A))) (A2 A))) in
     forall x0: 'cV[R]_n.+1,
-        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1 A) (A2 A)) (oppmx X))) 0%Re).
+        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1 A) (A2 A)) (oppmx x))) 0%Re).
 Proof.
 intros.
-apply iter_convergence with A.
+apply iter_convergence.
 + by [].
-+ by [].
-+ by [].
++ by apply A1_is_invertible.
 + apply A_A1_A2_split.
 + intros. rewrite /S_mat. apply /RltP.
   rewrite /S_mat0.
@@ -935,20 +993,16 @@ apply iter_convergence with A.
   assert (forall (n:nat) (A: 'M[R]_n.+1),
           (forall i:'I_n.+1,  A i i > 0) ->
           (forall i j:'I_n.+1,   A i j = A j i) -> 
-          A= addmx (A1 A) (A2 A) -> 
-          A1 A \in unitmx -> 
           is_positive_definite A ->
             (let S:= oppmx (mulmx (RtoC_mat (invmx (A1 A))) (RtoC_mat (A2 A))) in  
               (forall i: 'I_n.+1, C_mod (lambda S i) < 1))).
    { apply Reich_sufficiency. }
-  specialize (H5 n A H1 H2).
+  specialize (H3 n A H0 H1).
   assert (A = addmx (A1 A) (A2 A)). { by apply A_A1_A2_split. }
-  assert (A1 A \in unitmx ). { by [].  } 
-  specialize (H5 H6 H7).
-  specialize (H5 H4).
-  simpl in H5.  rewrite RtoC_mat_prod in H5. 
+  specialize (H3 H2).
+  simpl in H3.  rewrite RtoC_mat_prod in H3. 
   rewrite /S_mat0.
-  apply H5.
+  apply H3.
 Qed.
 
 
@@ -1826,27 +1880,25 @@ split.
 Qed.
 
 Theorem Gauss_seidel_Ah_converges:
-  forall (b: 'cV[R]_3) (X: 'cV[R]_3) (h:R),
+  forall (b: 'cV[R]_3) (h:R),
   (0 < h)%Re -> 
   let A := (Ah 2%N h) in
-   mulmx A X = b ->
+  let x:= (invmx A) *m b in
     forall x0: 'cV[R]_3,
-        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1 A) (A2 A)) (oppmx X))) 0%Re.
+        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1 A) (A2 A)) (oppmx x))) 0%Re.
 Proof.
 intros.
 apply Gauss_Seidel_converges.
 + by apply Ah_is_invertible.
-+ by [].
 + intros. rewrite /A0. rewrite !mxE.
   assert (i == i :>nat). { by []. }
-  rewrite H1. apply /RltP.
+  rewrite H0. apply /RltP.
   apply Rmult_lt_0_compat.
   - assert ((1 / h ^ 2)%Re = (/ (h^2))%Re). { nra. }
-    rewrite H2. apply Rinv_0_lt_compat. apply Rmult_lt_0_compat; nra.
+    rewrite H1. apply Rinv_0_lt_compat. apply Rmult_lt_0_compat; nra.
   - apply Rlt_0_2.
 + intros. rewrite /A0. 
   by apply Ah_is_symmetric.
-+ by apply A1_invertible.
 + by apply Ah_pd.
 Qed.
 

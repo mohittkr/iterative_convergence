@@ -978,8 +978,7 @@ Theorem Gauss_Seidel_converges:
    (forall i : 'I_(succn n), 0 < A i i) ->
    (forall i j : 'I_(succn n), A i j = A j i) ->
    is_positive_definite A ->
-   (let S_mat:= RtoC_mat (oppmx (mulmx ((invmx (A1 A))) (A2 A))) in
-    forall x0: 'cV[R]_n.+1,
+    (forall x0: 'cV[R]_n.+1,
         is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1 A) (A2 A)) (oppmx x))) 0%Re).
 Proof.
 intros.
@@ -988,7 +987,6 @@ apply iter_convergence.
 + by apply A1_is_invertible.
 + apply A_A1_A2_split.
 + intros. rewrite /S_mat. apply /RltP.
-  rewrite /S_mat0.
   rewrite RtoC_mat_oppmx.
   assert (forall (n:nat) (A: 'M[R]_n.+1),
           (forall i:'I_n.+1,  A i i > 0) ->
@@ -1000,8 +998,7 @@ apply iter_convergence.
   specialize (H3 n A H0 H1).
   assert (A = addmx (A1 A) (A2 A)). { by apply A_A1_A2_split. }
   specialize (H3 H2).
-  simpl in H3.  rewrite RtoC_mat_prod in H3. 
-  rewrite /S_mat0.
+  simpl in H3. rewrite RtoC_mat_prod in H3. 
   apply H3.
 Qed.
 

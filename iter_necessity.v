@@ -155,9 +155,86 @@ Definition lambda (n:nat) (A: 'M[complex R]_n.+1) (i:nat) : complex R:=
   let sp:= root_seq_poly (invariant_factors A) in
   (nth (0,0%N) sp i).1.
 
+Lemma eigen_matrix_set (n:nat) (A: 'M[complex R]_n.+1):
+  { V : 'M_n.+1 | ((V \in unitmx) &&
+    (V *m A == conform_mx V (Jordan_form A) *m V ))}.
+Proof.
+apply: sigW.
+case: (V_exists A)=> P [Pu PA].
+exists P; apply/andP; split;[exact: Pu | apply/eqP; exact PA].
+Qed.
+
+
+(** assumption that the sum of algebraic multiplicity
+  of the eigen values = size of the matrix
+**)
+Hypothesis total_eigen_val: forall (n:nat) (A: 'M[complex R]_n.+1),
+ size_sum
+  [seq x.2.-1 | x <- root_seq_poly (invariant_factors A)] = n.
+
+
+Lemma invert_vec_not_zero (n:nat) (A: 'M[complex R]_n.+1):
+  A \in unitmx ->
+  (exists v : 'rV_n.+1, v <= A /\ v != 0)%MS .
+Proof.
+intros. apply mxrank_unit in H.
+assert (\rank A != 0%N). { by rewrite H. }
+rewrite mxrank_eq0 in H0.
+assert ((exists2 v : 'rV_n.+1, v <= A & v != 0)%MS).
+{ by apply /rowV0Pn. } destruct H1 as [v H1].
+exists v. by split.
+Qed. 
+
+
+Definition lambda_seq (n: nat) (A: 'M[complex R]_n.+1):=
+  let sizes:= size_sum
+        [seq x.2.-1
+           | x <- root_seq_poly (invariant_factors A)] in
+  [seq (Jordan_form A) i i | i <- enum 'I_(sizes).+1].
+
+
+Lemma Jordan_ii_is_eigen_aux:
+ forall (n: nat) (A: 'M[complex R]_n.+1),
+  let sizes:= size_sum
+        [seq x.2.-1
+           | x <- root_seq_poly (invariant_factors A)] in 
+  forall  (i: 'I_sizes.+1),
+    @eigenvalue (complex_fieldType _) n.+1 A (@nth _  0%C (lambda_seq A) i).
+Proof.
+intros.
+rewrite eigenvalue_root_char.
+rewrite -root_root_seq.
++ assert (perm_eq [seq (Jordan_form A) i i | i <- enum 'I_(sizes).+1] 
+          (root_seq (char_poly A))).
+  { apply eigen_diag. }
+  apply perm_mem in H. unfold eq_mem in H.
+  specialize (H (@nth _  0%C (lambda_seq A) i)).
+  rewrite -H. rewrite /lambda_seq. apply mem_nth.
+  by rewrite size_map size_enum_ord.
++ apply monic_neq0. apply char_poly_monic.
+Qed.
+
+
+Lemma Jordan_ii_is_eigen:
+ forall (n: nat) (A: 'M[complex R]_n.+1),
+  forall  (i: 'I_n.+1),
+    @eigenvalue (complex_fieldType _) n.+1 A (@nth _  0%C (lambda_seq A) i).
+Proof.
+intros.
+assert (forall (n: nat) (A: 'M[complex R]_n.+1),
+        let sizes:= size_sum
+              [seq x.2.-1
+                 | x <- root_seq_poly (invariant_factors A)] in 
+        forall  (i: 'I_sizes.+1),
+          @eigenvalue (complex_fieldType _) n.+1 A (@nth _  0%C (lambda_seq A) i)).
+{ apply Jordan_ii_is_eigen_aux. }
+specialize (H n A). rewrite total_eigen_val in H.
+simpl in H. apply H.
+Qed.
+
 Lemma lambda_is_an_eigen_val:
    forall (n:nat) (A: 'M[complex R]_n.+1) (i: 'I_n.+1),
-    @eigenvalue (complex_fieldType _) n.+1 A (lambda A i).
+    @eigenvalue (complex_fieldType _) n.+1 A (lambda A i). 
 Admitted.
 
 
@@ -263,13 +340,6 @@ split.
 Qed.
 
 
-
-(** assumption that the sum of algebraic multiplicity
-  of the eigen values = size of the matrix
-**)
-Hypothesis total_eigen_val: forall (n:nat) (A: 'M[complex R]_n.+1),
- size_sum
-  [seq x.2.-1 | x <- root_seq_poly (invariant_factors A)] = n.
 
 
 
@@ -1935,17 +2005,6 @@ exists P; apply/andP; split;[exact: Pu | apply/eqP; exact PA].
 Qed.
 *)
 
-Lemma invert_vec_not_zero (n:nat) (A: 'M[complex R]_n.+1):
-  A \in unitmx ->
-  (exists v : 'rV_n.+1, v <= A /\ v != 0)%MS .
-Proof.
-intros. apply mxrank_unit in H.
-assert (\rank A != 0%N). { by rewrite H. }
-rewrite mxrank_eq0 in H0.
-assert ((exists2 v : 'rV_n.+1, v <= A & v != 0)%MS).
-{ by apply /rowV0Pn. } destruct H1 as [v H1].
-exists v. by split.
-Qed. 
 
 
 (** Define an eigenvector from the predicate of eigenvalue **)

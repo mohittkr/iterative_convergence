@@ -626,7 +626,7 @@ assert (A *m x = b).
 
 assert (forall (n:nat) (A: 'M[complex R]_n.+1) (i: 'I_n.+1),
             @eigenvalue (complex_fieldType _) n.+1 A (lambda A i)).
-{ apply lambda_is_an_eigen_val. }
+{ apply Jordan_ii_is_eigen. }
 assert (forall x0: 'cV[R]_n.+1,
          is_lim_seq (fun m:nat => vec_norm (addmx (X_m 0 x0 b A1 A2) (oppmx x))) 
               (vec_norm (addmx (X_m 0 x0 b A1 A2) (oppmx x)))).

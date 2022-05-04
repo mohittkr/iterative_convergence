@@ -430,7 +430,7 @@ assert (A1 A \in unitmx). { by apply A1_is_invertible. }
 
 assert (forall i: 'I_n.+1,
           @eigenvalue (complex_fieldType _) n.+1 S (lambda S i)).
-{ apply lambda_is_an_eigen_val. }
+{ apply Jordan_ii_is_eigen. }
 
 remember (lambda S i) as li.
 assert ( exists v: 'cV_n.+1, (mulmx S v = (lambda S i) *: v) /\ (v !=0)).

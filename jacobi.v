@@ -32,12 +32,7 @@ Require Import iter_necessity iter_convergence.
 Import ComplexField. 
 
 (** define a tridiagonal system **)
-(*
-Definition A (n:nat):= \matrix_(i<n.+1, j<n.+1)
-   if (i==j :> nat) then -2 else
-      (if ((i-j)%N==0%N :>nat) then 1 else
-            (if ((j-i)%N==0%N :>nat) then 1 else 0)).
-*)
+
 
 Definition A (n:nat):= \matrix_(i<n.+1, j<n.+1)
    if (i==j :> nat) then -2 else

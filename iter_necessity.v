@@ -160,13 +160,318 @@ exists P; apply/andP; split;[exact: Pu | apply/eqP; exact PA].
 Qed.
 
 
+Print Jordan.
+
+(*
+Lemma Frobenius n (A : 'M[complex R]_n.+1) :
+  similar A (Frobenius_form A).
+Proof.
+apply/similar_fundamental; rewrite char_diag_block_mx; last first.
+  by rewrite -size_eq0 size_map size_eq0 nnil_inv_factors.
+apply: (equiv_trans (equiv_Smith (char_poly_mx A))).
+rewrite /Smith_form.
+apply/(equiv_trans (equiv_Frobenius_seq A))/equiv_sym.
+have Hn:= (size_Frobenius_seq A).
+rewrite /equivalent -{2 4 37 38 43 44}Hn cast_inv.
+apply: (equiv_trans _ (equiv_sbc_ssc A)).
+apply: equiv_diag_block=>[|i]; first by rewrite !size_map.
+rewrite size_map=> Hi.
+rewrite !(nth_map 0) //. 
+set C := char_poly_mx _.
+apply: (equiv_trans (equiv_Smith C)).
+apply: Smith_companion; move: (mem_nth 0 Hi).
+  by rewrite mem_filter=> /andP [].
+exact: monic_invariant_factors.
+Qed.
+*)
+
+(*
+Lemma Jordan n (A : 'M[complex R]_n.+1) : similar A (Jordan_form A).
+Proof.
+apply:(similar_trans (Frobenius _)).
+apply:(similar_trans (similar_Frobenius _)).
+rewrite /Frobenius_form_CF /Jordan_form /root_seq_poly /linear_factor_seq.
+set s1 := flatten _.
+set s2 := map _ _.
+have Hs: size s1 = size s2.
+  rewrite /s1 size_map.
+  by do 2! rewrite map_comp -map_flatten size_map.
+apply: similar_diag_block=> // i; rewrite /s1.
+(do 2! rewrite map_comp -map_flatten size_map) => Hi.
+rewrite !(nth_map 0) ?size_map //.
+rewrite !(nth_map (0,0%N)) ?size_map //.  
+set x := nth _ _ _.
+rewrite -(@prednK x.2); first exact: similar_cj.
+have/flattenP [s Hfs Hx] := (mem_nth (0,0%N) Hi); move: Hfs.
+case/(nthP nil)=> m; rewrite !size_map=> Hm Heq.
+move: Heq Hx; rewrite (nth_map 0) // => <-.
+apply: root_mu_seq_pos.
+apply: (@invariant_factor_neq0 _ _ A).
+by rewrite mem_nth.
+Qed.
+*)
+
 (** assumption that the sum of algebraic multiplicity
   of the eigen values = size of the matrix
 **)
-Hypothesis total_eigen_val: forall (n:nat) (A: 'M[complex R]_n.+1),
- size_sum
-  [seq x.2.-1 | x <- root_seq_poly (invariant_factors A)] = n.
+Print cast_inv.
 
+Lemma exists_in_not_nill: forall (T: eqType) (s : seq T),
+  s != [::] <->
+  exists x, x \in s.
+Proof.
+intros.
+Admitted.
+
+Lemma seq_not_nill: forall (T1 T2: eqType) (f: T1 -> T2) (s : seq T1),
+  s != [::] ->
+  injective f ->
+  map f s != [::].
+Proof.
+intros. 
+apply exists_in_not_nill.
+apply exists_in_not_nill in H.
+destruct H as [x H].
+exists (f x).
+by rewrite mem_map.
+Qed.
+
+
+Lemma total_eigen_val: forall (n:nat) (A: 'M[complex R]_n.+1),
+ (size_sum
+  [seq x.2.-1 | x <- root_seq_poly (invariant_factors A)]).+1 = n.+1.
+Proof.
+intros. 
+rewrite map_comp. 
+assert ((size_sum [seq (size p).-2 | p : {poly complex_fieldType R_realFieldType} <- (invariant_factors A)]).+1 = 
+          (size_sum
+             [seq i.-1
+                | i <- [seq i.2
+                          | i <- root_seq_poly
+                                   (invariant_factors A)]]).+1).
+{ admit.  }
+rewrite -H.  
+rewrite -cast_inv.
+by rewrite size_Frobenius_seq.
+Admitted.
+
+(*
+Lemma total_eigen_val: forall (n:nat) (A: 'M[complex R]_n.+1),
+ (size_sum
+  [seq x.2.-1 | x <- root_seq_poly (invariant_factors A)]).+1 = n.+1.
+Proof.
+intros. 
+rewrite map_comp. 
+assert ((size_sum [seq (size p).-2 | p : {poly complex_fieldType R_realFieldType} <- (invariant_factors A)]).+1 = 
+          (size_sum
+             [seq i.-1
+                | i <- [seq i.2
+                          | i <- root_seq_poly
+                                   (invariant_factors A)]]).+1).
+{ rewrite !size_sum_big. 
+  + rewrite !big_map //=. 
+    rewrite /root_seq_poly. rewrite big_flatten //=.
+    rewrite big_map //=. apply eq_big. by [].
+    intros.
+    a 
+    assert ((size i).-2.+1 = (size i).-1).
+    { by []. }
+
+
+
+rewrite /root_mu_seq. rewrite !big_map.
+    rewrite /root_seq_uniq. rewrite big_map.
+
+
+
+ admit.
+  + rewrite -size_eq0. rewrite size_map size_eq0.
+    rewrite -size_eq0. rewrite size_map. rewrite /root_seq_poly. 
+    rewrite /root_mu_seq //=. 
+
+ rewrite size_allpairs_dep. rewrite sumnE. rewrite !big_map.
+ assert (forall j, j \in  invariant_factors A -> size (root_seq_uniq j) != 0).
+ rewrite /root_seq_uniq.
+ rewrite -?sum_nat_eq0. 
+    rewrite -sumn_flatten.
+
+
+
+
+ rewrite size_flatten.
+    rewrite /shape. rewrite size_allpairs_dep.
+
+
+
+ rewrite /root_seq_poly.
+    rewrite /root_mu_seq //=. rewrite size1_zip. 
+    rewrite size_flatten. rewrite /shape. rewrite -map_comp. 
+
+rewrite size_eq0.
+    rewrite /root_seq_poly.
+    unfold flatten.
+
+rewrite size_flatten. 
+
+
+ admit. (*apply seq_not_nill.
+    - apply seq_not_nill.
+      * rewrite exists_in_not_nill. *)
+  + by rewrite -size_eq0 size_map size_eq0 nnil_inv_factors. 
+
+
+apply: eq_big_seq=> i.
+
+
+ rewrite -map_comp.
+
+
+ rewrite big_map //=. rewrite /root_seq_uniq.
+    rewrite big_undup //=.
+    rewrite size_eq0.
+    rewrite /root_mu_seq. 
+
+
+
+
+admit. }
+rewrite -H.  
+rewrite -cast_inv.
+by rewrite size_Frobenius_seq.
+
+
+
+ rewrite !size_sum_big. 
+  + rewrite !big_map //=. 
+    rewrite /root_seq_poly. rewrite big_flatten //=.
+    rewrite big_map //=. apply eq_big. by [].
+    intros.  rewrite big_map //=. rewrite /root_seq_uniq.
+    rewrite big_undup //=.
+    rewrite size_eq0.
+    rewrite /root_mu_seq. 
+  
+
+
+
+
+
+  assert ([seq (size p).-2
+               | p : {poly complex_fieldType R_realFieldType} <- invariant_factors A] = 
+          [seq i.-1
+               | i <- [seq i.2
+                         | i <- root_seq_poly
+                                 (invariant_factors
+                                 A)]]).
+  { rewrite -eq_in_map.
+
+
+rewrite -map_comp. rewrite /root_seq_poly.   rewrite /root_mu_seq //=. 
+    apply eq_in_map.
+    rewrite map_flatten //=. 
+
+
+
+  assert ([seq i.-1
+               | i <- [seq i.2
+                         | i <- root_seq_poly
+                                 (invariant_factors
+                                 A)]] = 
+          map (map (fun x => x.2.-1) (root_seq_poly (invariant_factors A)))).
+
+
+ rewrite ?size_eq0.
+
+
+rewrite /root_seq_poly. 
+rewrite !size_sum_big -?size_eq0 ?size_map ?size_eq0 //.
+
+rewrite !big_map //=. rewrite sumn_flatten.
+assert (flatten
+              [seq root_mu_seq i
+                 | i <- invariant_factors A] = 
+
+
+ rewrite flatten_seq1.
+
+
+
+Print sum_size_inv_factors.
+apply congr_big.
+
+
+
+
+
+rewrite /invariant_factors.
+rewrite map_flatten //=.
+
+
+ apply: eq_big_seq.
+ 
+  rewrite map_flatten //=. rewrite map_comp. rewrite size_map.
+  set s1:= flatten _.
+  set s2 := map _ _.
+  have Hs: size s1 = size s2.
+    rewrite /s1 size_map.
+  admit.
+  
+}
+
+
+
+
+ admit. } rewrite -H.  
+rewrite -cast_inv.
+by rewrite size_Frobenius_seq.
+
+
+
+assert (n = (size (Frobenius_seq A)).-1).
+{ by rewrite size_Frobenius_seq. } rewrite H.
+move: A.
+rewrite -size_Frobenius_seq.
+
+
+rewrite /root_seq_poly /linear_factor_seq.
+set s1:= flatten _.
+set s2 := map _ _.
+have Hs: size s1 = size s2.
+  rewrite /s1 size_map. 
+  admit.
+rewrite /s2. rewrite map_comp. rewrite size_map.
+ 
+
+
+  by do 2! rewrite map_comp -map_flatten size_map.
+
+
+
+
+
+
+assert (n = size (enum 'I_n)).
+{ by rewrite size_enum_ord. } move: A. rewrite H.
+intros. 
+rewrite map_comp. rewrite map_flatten. 
+have Hs: size s1 = size s2.
+  rewrite /s1 size_map.
+  by do 2! rewrite map_comp -map_flatten size_map.
+
+
+
+rewrite size_map.
+
+ move: A.  rewrite -[in RHS]size_enum_ord.
+set w:= size_sum _.
+
+rewrite map_comp. rewrite map_comp.
+
+ rewrite /size_sum //=.
+
+
+ rewrite size_map.
+rewrite map_comp -map_flatten size_map.
+*)
 
 Lemma invert_vec_not_zero (n:nat) (A: 'M[complex R]_n.+1):
   A \in unitmx ->
@@ -179,6 +484,8 @@ assert ((exists2 v : 'rV_n.+1, v <= A & v != 0)%MS).
 { by apply /rowV0Pn. } destruct H1 as [v H1].
 exists v. by split.
 Qed. 
+
+
 
 Definition lambda_seq (n: nat) (A: 'M[complex R]_n.+1):=
   let sizes:= size_sum
@@ -223,8 +530,9 @@ assert (forall (n: nat) (A: 'M[complex R]_n.+1),
         forall  (i: 'I_sizes.+1),
           @eigenvalue (complex_fieldType _) n.+1 A (@nth _  0%C (lambda_seq A) i)).
 { apply Jordan_ii_is_eigen_aux. }
-specialize (H n A). rewrite total_eigen_val in H.
-simpl in H. apply H.
+specialize (H n A). simpl in H.
+rewrite total_eigen_val in H.
+apply H.
 Qed.
 
 (** Define i^th eigen value **)
@@ -1372,8 +1680,8 @@ destruct H0.
         + apply leq_trans with k.
           - by apply index_leq.
           - apply leqW. 
-            assert (size_sum sizes = n).
-            { by rewrite total_eigen_val. } by rewrite -H7.
+            assert ((size_sum sizes) = n).
+            { apply /eqP. rewrite -eqSS. apply /eqP. by rewrite total_eigen_val. } by rewrite -H7.
         + rewrite ltnS. assert ((n.+1 <= n0)%N). { by apply /ssrnat.leP. }
           by [].
       } by rewrite subn_gt0.
@@ -1474,7 +1782,7 @@ destruct H0.
         - by apply index_leq.
         - apply leqW. 
           assert (size_sum sizes = n).
-          { by rewrite total_eigen_val. } by rewrite -H13.
+          { apply /eqP. rewrite -eqSS. apply /eqP. by rewrite total_eigen_val. } by rewrite -H13.
       + rewrite ltnS. assert ((n.+1 <= n0)%N). { by apply /ssrnat.leP. }
         by [].
     }
@@ -1646,7 +1954,8 @@ destruct H0.
                            by apply nat_ring_mn_le.
                          * apply /ssrnat.leP. apply leq_trans with k.
                            ++ by apply index_leq.
-                           ++ assert (n = size_sum sizes). { by rewrite total_eigen_val. }
+                           ++ assert (n = size_sum sizes). 
+                              { symmetry. apply /eqP. rewrite -eqSS. apply /eqP. by rewrite total_eigen_val. }
                               by rewrite H15.
                     ++ apply Rlt_le_trans with (eps * C_mod (lam) ^ n)%Re.
                        - apply Hyp. rewrite Heqlam.
@@ -1690,7 +1999,8 @@ destruct H0.
                                   apply ltn_ord.
                             ++ apply leq_trans with k.
                                - by apply index_leq.
-                               - assert (n = size_sum sizes). { by rewrite total_eigen_val. }
+                               - assert (n = size_sum sizes). 
+                                 { symmetry. apply /eqP. rewrite -eqSS. apply /eqP. by rewrite total_eigen_val. }
                                  by rewrite H12.
                   * apply Rle_ge. apply Rlt_le. apply Rmult_lt_0_compat.
                     { apply pow_lt. by apply nat_ring_lt. }
@@ -1961,7 +2271,9 @@ apply (is_lim_seq_ext
            - apply mat_norm_eq.
              assert ((conform_mx V (Jordan_form A)) ^+ n0.+1 = 
                       conform_mx V ((Jordan_form A) ^+ n0.+1)).
-             { apply conform_mx_mat_power. apply total_eigen_val.  } rewrite H6.
+             { apply conform_mx_mat_power.
+               apply /eqP. rewrite -eqSS. apply /eqP. by rewrite total_eigen_val.
+             } rewrite H6.
              unfold Jordan_form. by rewrite exp_diag_block_S.
            
            (** now that we have powers for each Jordan block,
@@ -1987,7 +2299,7 @@ apply (is_lim_seq_ext
                            Jordan_block (nth (0, 0%N) sp i).1 n0.+1 ^+ m.+1 in
                          diag_block_mx sizes blocks)))).
             * intros. simpl. rewrite matrix_norm_equality. by [].
-              apply total_eigen_val.
+              apply /eqP. rewrite -eqSS. apply /eqP. by rewrite total_eigen_val.
             * apply (is_lim_seq_ext  
                       (fun m : nat =>
                        let sp := root_seq_poly (invariant_factors A) in

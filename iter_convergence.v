@@ -607,14 +607,14 @@ Qed.
 Theorem iter_convergence: 
   forall (n:nat) (A: 'M[R]_n.+1) (b: 'cV[R]_n.+1)
   (A1 A2 : 'M[R]_n.+1), 
-  let x := (invmx A) *m b in
   A \in unitmx ->
    A1 \in unitmx ->
-   A = addmx A1 A2 ->
-   (let S_mat:= RtoC_mat (oppmx (mulmx ((invmx A1)) A2)) in 
+   A = A1 + A2 ->
+   let x := (invmx A) *m b in
+   (let S_mat:= RtoC_mat (- ( A1^-1 *m A2)) in 
      (forall (i: 'I_n.+1), (C_mod (lambda S_mat i) < 1)%Re)) <->
     (forall x0: 'cV[R]_n.+1,
-        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b A1 A2) (oppmx x))) 0%Re).
+        is_lim_seq (fun m:nat => vec_norm ((X_m m.+1 x0 b A1 A2) - x)) 0%Re).
 Proof.
 intros.
 assert (A *m x = b).
@@ -700,7 +700,7 @@ assert (forall (x0 : 'cV[R]_n.+1) (m : nat),
       rewrite H8. 
       assert (mulmx A x = b). { apply H2. } rewrite <-H9. clear H9. 
       assert (mulmx A x = mulmx (addmx A1 A2) x).
-      { by rewrite -H1. } rewrite H9. 
+      { assert (addmx A1 A2 = A1 + A2). { by []. } by rewrite H9 -H1. } rewrite H9. 
       assert (mulmx (addmx A1 A2) x = addmx (mulmx A1 x) (mulmx A2 x)).
       { apply mulmxDl. } rewrite H10.
       assert (mulmx (invmx A1)

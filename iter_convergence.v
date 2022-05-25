@@ -416,20 +416,20 @@ Qed.
 
 
 (** If all ||S v|| / ||v|| = 0 , then it's maximum will also be 0**)
-Lemma lim_max: forall (n:nat) (A: 'M[R]_n.+1) (X: 'cV[R]_n.+1),
+Lemma lim_max: forall (n:nat) (A: 'M[R]_n.+1) (x: 'cV[R]_n.+1),
    (forall x0: 'cV[R]_n.+1, 
-    let v:= (addmx x0 (oppmx X)) in
+    let v:= x0 - x in
     let vc:= RtoC_vec v in 
-      is_lim_seq (fun m: nat => vec_norm_C (mulmx (RtoC_mat (A^+m.+1)) vc)) 0%Re) ->
+      is_lim_seq (fun m: nat => vec_norm_C ((RtoC_mat (A^+m.+1)) *m vc)) 0%Re) ->
         is_lim_seq (fun m:nat => matrix_norm (RtoC_mat (A^+m.+1))) 0%Re.
 Proof.
 intros.
 apply lim_max_aux.
-intros. specialize (H (X + x)).
-assert (addmx (X + x) (oppmx X) =x).
+intros. specialize (H (x + x0)).
+assert ((x + x0) - x =x0).
 { apply matrixP. unfold eqrel. intros. rewrite !mxE.
   rewrite addrC. rewrite addrA. rewrite addrC. 
-  assert ((- X x0 y + X x0 y)  = 0%Re).
+  assert ((- x x1 y + x x1 y)  = 0%Re).
   { rewrite addrC. rewrite -RminusE. nra. } rewrite H0. 
   by rewrite addr0.
 } rewrite H0 in H. apply H.
@@ -776,9 +776,9 @@ assert (forall (x0 : 'cV[R]_n.+1) (m : nat),
 
 (** Splitting things here **)
 assert ((forall x0: 'cV[R]_n.+1,
-          is_lim_seq (fun m : nat => vec_norm  (addmx (X_m m.+1 x0 b A1 A2) (oppmx x))) 0%Re) <->
+          is_lim_seq (fun m : nat => vec_norm  ((X_m m.+1 x0 b A1 A2) - x)) 0%Re) <->
         is_lim_seq (fun m:nat =>  (matrix_norm  
-              (RtoC_mat ((oppmx (mulmx (invmx A1) A2))^+m.+1) ))) 0%Re).
+              (RtoC_mat ((- (A1^-1 *m A2))^+m.+1) ))) 0%Re).
 { split.
   + intros.
     apply lim_max with x. intros.
@@ -888,9 +888,9 @@ assert ((forall x0: 'cV[R]_n.+1,
 }
 
 assert (is_lim_seq (fun m:nat => matrix_norm
-          (RtoC_mat ((oppmx (mulmx (invmx A1) A2))^+m.+1 ))) 0%Re <->
+          (RtoC_mat ((- ((A1^-1 *m A2)))^+m.+1 ))) 0%Re <->
         (let S_mat :=
-           RtoC_mat (oppmx (invmx A1 *m A2)) in
+           RtoC_mat (- (A1^-1 *m A2)) in
          forall i : 'I_n.+1,
          (C_mod (lambda S_mat i) < 1)%Re)).
 { split. 

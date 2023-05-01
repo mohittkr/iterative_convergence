@@ -60,10 +60,9 @@ assert (vec_norm x = (vec_norm x + 0)%Re).
 { nra. } rewrite [in X in (is_lim_seq _ X)]H3.
 apply is_lim_seq_plus'.
 apply is_lim_seq_const.
-assert (forall m:nat,
-         (vec_norm x <= vec_norm (X_m m.+1 x0 b A1 A2))%Re \/
-          (vec_norm (X_m m.+1 x0 b A1 A2) <= vec_norm x)%Re).
-{ intros. nra. } 
+pose proof (@iter_convergence n A b A1 A2 H H0 H1).
+destruct H4. specialize (H4 H2).
+
 
 
 

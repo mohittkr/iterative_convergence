@@ -1,8 +1,6 @@
 Require Import Reals Psatz R_sqrt R_sqr.
 From mathcomp Require Import all_algebra all_ssreflect ssrnum bigop.
 From mathcomp.analysis Require Import Rstruct normedtype topology.
-(*From mathcomp.analysis Require Import boolp Rstruct classical_sets posnum
-     topology normedtype landau sequences.*)
 Require Import Coquelicot.Lim_seq.
 Require Import Coquelicot.Rbar.
 Require Import Coquelicot.Hierarchy Coquelicot.Lub.

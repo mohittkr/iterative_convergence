@@ -2,13 +2,12 @@
 
 Require Import Reals Psatz R_sqrt R_sqr.
 From mathcomp Require Import all_algebra all_ssreflect ssrnum bigop ssrnat.
-From mathcomp.analysis Require Import boolp Rstruct classical_sets posnum
-     topology normedtype landau sequences.
+From mathcomp.analysis Require Import Rstruct normedtype topology.
 Require Import Coquelicot.Lim_seq.
 Require Import Coquelicot.Rbar.
 Require Import Coquelicot.Hierarchy Coquelicot.Lub.
 From mathcomp Require Import mxalgebra matrix all_field vector.
-From canonical_forms Require Import jordan similar closed_poly frobenius_form.
+From matrix_canonical_forms Require Import jordan similar closed_poly frobenius_form.
 From CoqEAL Require Import mxstructure ssrcomplements.
 
 Set Implicit Arguments.

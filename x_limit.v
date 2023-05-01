@@ -61,7 +61,16 @@ assert (vec_norm x = (vec_norm x + 0)%Re).
 apply is_lim_seq_plus'.
 apply is_lim_seq_const.
 pose proof (@iter_convergence n A b A1 A2 H H0 H1).
-destruct H4. specialize (H4 H2).
+destruct H4. specialize (H4 H2 x0).
+clear H5.
+apply is_lim_seq_spec in H4. unfold is_lim_seq' in H4.
+apply is_lim_seq_spec. unfold is_lim_seq'.
+intros. specialize (H4 eps).
+unfold eventually in *. destruct H4 as [N H4]. exists N.
+intros. specialize (H4 n0 H5).
+rewrite Rminus_0_r . rewrite Rminus_0_r in H4.
+
+
 
 
 

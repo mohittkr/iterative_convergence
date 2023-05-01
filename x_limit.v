@@ -69,9 +69,10 @@ intros. specialize (H4 eps).
 unfold eventually in *. destruct H4 as [N H4]. exists N.
 intros. specialize (H4 n0 H5).
 rewrite Rminus_0_r . rewrite Rminus_0_r in H4.
-
-
-
+eapply Rle_lt_trans; last by apply H4.
+rewrite [in X in (_ <= X)%Re]Rabs_right.
++ admit.
++ rewrite -vec_norm_R_C. apply Rle_ge. apply vec_norm_C_ge_0.
 
 
 

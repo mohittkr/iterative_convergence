@@ -2,13 +2,14 @@
   using an example **)
 Require Import Reals Psatz R_sqrt R_sqr.
 From mathcomp Require Import all_algebra all_ssreflect ssrnum bigop ssrnat.
-From mathcomp.analysis Require Import boolp Rstruct classical_sets posnum
-     topology normedtype landau sequences.
+From mathcomp.analysis Require Import Rstruct normedtype topology.
+(*From mathcomp.analysis Require Import boolp Rstruct classical_sets posnum
+     topology normedtype landau sequences.*)
 Require Import Coquelicot.Lim_seq.
 Require Import Coquelicot.Rbar.
 Require Import Coquelicot.Hierarchy Coquelicot.Lub.
 From mathcomp Require Import mxalgebra matrix all_field.
-From canonical_forms Require Import jordan similar closed_poly frobenius_form.
+From matrix_canonical_forms Require Import jordan similar closed_poly frobenius_form.
 From CoqEAL Require Import mxstructure ssrcomplements.
 
 Set Implicit Arguments.
@@ -35,7 +36,7 @@ Import ComplexField.
 
 
 Definition A (n:nat):= \matrix_(i<n.+1, j<n.+1)
-   if (i==j :> nat) then -2 else
+   if (i==j :> nat) then (-2)%Re else
       (if ((i-j)%N==1%N :>nat) then (1)%Re else
             (if ((j-i)%N==1%N :>nat) then (1)%Re else 0)).
 
@@ -1048,7 +1049,7 @@ intros. assert ((Re (a 3 h) * / Re (c 3 h))%Re = 1%Re).
             { nra. } rewrite H11. rewrite Rinv_r.
             + rewrite Rmult_comm Rmult_1_r. rewrite -div1r. rewrite -RdivE.
               - assert ((1 / 2)%Re = (/2)%Re). { nra. } by rewrite H12.
-              - by [].
+              - apply /eqP. assert ((0 <2)%Re -> 2%Re <> 0%Re) by nra. apply H12. nra.
             + nra.
           } rewrite H11. nra.
         * nra.
@@ -1136,7 +1137,7 @@ rewrite invmx_A1_J.
              assert (((succn i)%:R * PI * / 4%:R)%Re= ((INR (i+1) * PI) / 4)%Re).
              { assert (4%:R  = INR 4 :> R). { by rewrite inr_to_R. } rewrite H17.
                assert ((succn i)%:R  = INR (i + 1)). { by rewrite addn1 inr_to_R. } rewrite H18.
-               assert (INR 4 = 4). { simpl. nra. } rewrite H19. by [].
+               assert (INR 4 = 4%Re). { simpl. nra. } rewrite H19. by [].
              } rewrite H17.
              assert (((h ^+ 2 * 2^-1 * (1 / (h * (h * 1)) * 1)))%Re = (/2)%Re).
              { rewrite expr2. rewrite -RmultE. rewrite !Rmult_1_r.
@@ -1144,7 +1145,7 @@ rewrite invmx_A1_J.
                { nra. } rewrite H18. rewrite Rinv_r.
                + rewrite Rmult_comm Rmult_1_r. rewrite -div1r. rewrite -RdivE.
                  - assert ((1 / 2)%Re = (/2)%Re). { nra. } by rewrite H19.
-                 - by [].
+                 - apply /eqP. assert ((0 <2)%Re -> 2%Re <> 0%Re) by nra. apply H19. nra.
                + nra.
              } rewrite H18.
              assert ((cos (INR (i + 1) * PI / 4) * sin (3 * INR (i + 1) * PI / 4))%Re = 
@@ -1198,7 +1199,7 @@ rewrite invmx_A1_J.
                { nra. } rewrite H13. rewrite Rinv_r.
                + rewrite Rmult_comm Rmult_1_r. rewrite -div1r. rewrite -RdivE.
                  - assert ((1 / 2)%Re = (/2)%Re). { nra. } by rewrite H14.
-                 - by [].
+                 - apply /eqP. assert ((0 <2)%Re -> 2%Re <> 0%Re) by nra. apply H14. nra.
                + nra.
              } rewrite H13. 
              assert ((sqrt (2 / (1 + 1 + 1 + 1)) *
@@ -1272,7 +1273,7 @@ rewrite invmx_A1_J.
                          { nra. } rewrite H23. rewrite Rinv_r.
                          + rewrite Rmult_comm Rmult_1_r. rewrite -div1r. rewrite -RdivE.
                            - assert ((1 / 2)%Re = (/2)%Re). { nra. } by rewrite H24.
-                           - by [].
+                           - apply /eqP. assert ((0 <2)%Re -> 2%Re <> 0%Re) by nra. apply H24. nra.
                          + nra.
                        } rewrite H23.
                        assert (((1 + 1) * / 2 *
@@ -1309,7 +1310,7 @@ rewrite invmx_A1_J.
                        assert (((succn i)%:R * PI * / 4%:R)%Re= ((INR (i+1) * PI) / 4)%Re).
                        { assert (4%:R  = INR 4 :> R). { by rewrite inr_to_R. } rewrite H23.
                          assert ((succn i)%:R  = INR (i + 1)). { by rewrite addn1 inr_to_R. } rewrite H24.
-                         assert (INR 4 = 4). { simpl. nra. } rewrite H25. by [].
+                         assert (INR 4 = 4%Re). { simpl. nra. } rewrite H25. by [].
                        } rewrite H23. clear H23.
                        assert ( ((1 + 1) * INR (i + 1) * PI * / (1 + 1 + 1 + 1))%Re =
                                   (2 * INR (i + 1) * PI / 4)%Re). { nra. } by rewrite H23. 
@@ -1381,7 +1382,7 @@ rewrite invmx_A1_J.
                          { nra. } rewrite H22. rewrite Rinv_r.
                          + rewrite Rmult_comm Rmult_1_r. rewrite -div1r. rewrite -RdivE.
                            - assert ((1 / 2)%Re = (/2)%Re). { nra. } by rewrite H23.
-                           - by [].
+                           - apply /eqP. assert ((0 <2)%Re -> 2%Re <> 0%Re) by nra. apply H23. nra.
                          + nra.
                        } rewrite H22.
                        assert ((h ^+ 2 * 2^-1 * (1 / (h * (h * 1)) * 1))%Re = 
@@ -1412,7 +1413,7 @@ rewrite invmx_A1_J.
                        assert (((succn i)%:R * PI * / 4%:R)%Re= ((INR (i+1) * PI) / 4)%Re).
                        { assert (4%:R  = INR 4 :> R). { by rewrite inr_to_R. } rewrite H23.
                          assert ((succn i)%:R  = INR (i + 1)). { by rewrite addn1 inr_to_R. } rewrite H24.
-                         assert (INR 4 = 4). { simpl. nra. } rewrite H25. by [].
+                         assert (INR 4 = 4%Re). { simpl. nra. } rewrite H25. by [].
                        } rewrite H23. clear H23.
                        assert (sin ((1 + 1) * INR (i + 1) * PI * / (1 + 1 + 1 + 1)) = 
                                   sin ((2 * INR (i+1) * PI) / 4)).
@@ -1435,7 +1436,7 @@ rewrite invmx_A1_J.
                          { nra. } rewrite H22. rewrite Rinv_r.
                          + rewrite Rmult_comm Rmult_1_r. rewrite -div1r. rewrite -RdivE.
                            - assert ((1 / 2)%Re = (/2)%Re). { nra. } by rewrite H23.
-                           - by [].
+                           - apply /eqP. assert ((0 <2)%Re -> 2%Re <> 0%Re) by nra. apply H23. nra.
                          + nra.
                        } rewrite H22. nra.
                   -- nra.

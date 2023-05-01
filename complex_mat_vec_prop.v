@@ -3,13 +3,14 @@
 
 Require Import Reals Psatz R_sqrt R_sqr.
 From mathcomp Require Import all_algebra all_ssreflect ssrnum bigop.
-From mathcomp.analysis Require Import boolp Rstruct classical_sets posnum
-     topology normedtype landau sequences.
+From mathcomp.analysis Require Import Rstruct normedtype topology.
+(*From mathcomp.analysis Require Import boolp Rstruct classical_sets posnum
+     topology normedtype landau sequences.*)
 Require Import Coquelicot.Lim_seq.
 Require Import Coquelicot.Rbar.
 Require Import Coquelicot.Hierarchy Coquelicot.Lub.
 From mathcomp Require Import mxalgebra matrix all_field.
-From canonical_forms Require Import jordan similar closed_poly frobenius_form.
+From matrix_canonical_forms Require Import jordan similar closed_poly frobenius_form.
 From CoqEAL Require Import mxstructure ssrcomplements.
 
 Set Implicit Arguments.
@@ -28,6 +29,7 @@ Open Scope classical_set_scope.
 
 From mathcomp Require Import complex.
 Import ComplexField.
+Import Normc.
 
 (** Define the modulus of a complex number **)
 Definition C_mod (x: R[i]):=
@@ -239,7 +241,6 @@ Qed.
 Definition RtoC (x:R):= (x +i* 0)%C.
 
 
-
 (** Compatibilty between C_mod and normc in the mathcomp/complex
   libary **)
 Lemma C_modE y : C_mod y = normc y.
@@ -392,7 +393,7 @@ Qed.
 Lemma x_pow_n_not_0: forall (x:R) (n:nat), x <> 0 -> x^+n <> 0.
 Proof.
 move => x n H. induction n.
-+ rewrite expr0. by apply /eqP.
++ rewrite expr0. apply /eqP. apply oner_neq0.
 + rewrite exprS. by apply Rmult_integral_contrapositive.
 Qed.
 

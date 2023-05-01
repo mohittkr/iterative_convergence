@@ -7,13 +7,14 @@ of a matrix is less than 1, then
 
 Require Import Reals Psatz R_sqrt R_sqr.
 From mathcomp Require Import all_algebra all_ssreflect ssrnum bigop.
-From mathcomp.analysis Require Import boolp Rstruct classical_sets posnum
-     topology normedtype landau sequences.
+From mathcomp.analysis Require Import Rstruct normedtype topology.
+(*From mathcomp.analysis Require Import boolp Rstruct classical_sets posnum
+     topology normedtype landau sequences. *)
 Require Import Coquelicot.Lim_seq.
 Require Import Coquelicot.Rbar.
 Require Import Coquelicot.Hierarchy Coquelicot.Lub.
 From mathcomp Require Import mxalgebra matrix all_field.
-From canonical_forms Require Import jordan similar closed_poly frobenius_form.
+From matrix_canonical_forms Require Import jordan similar closed_poly frobenius_form.
 From CoqEAL Require Import mxstructure ssrcomplements.
 From mathcomp Require Import mxalgebra mxpoly.
 
@@ -257,7 +258,7 @@ intros. apply ext_block.
 intros. by rewrite Jordan_expn.
 Qed.
 
-
+(*
 Lemma lim_exp_0 (x : [archiFieldType of R]) : `|x| < 1 ->
   ((fun n => x ^+ n) --> 0%Re).
 Proof.
@@ -268,7 +269,7 @@ apply: funext => n.
 by rewrite /geometric /= mul1r.
 Qed.
 
-
+*)
 
 Lemma diag_destruct (R: ringType)
   (s : seq nat) (F : (forall n, nat -> 'M[R]_n.+1)):
@@ -453,7 +454,7 @@ Lemma fact_complex_ring_not_0: forall (k:nat),
   k`!%:R != 0 :> complex R.
 Proof.
 intros. apply leq_not_0. induction k.
-+ by rewrite fact0. 
++ rewrite fact0. simpc. apply /andP. split;try auto. apply /RltP. apply Rlt_0_1. 
 + rewrite factS mul_ring. rewrite ltcE //=.
   rewrite ltcE in IHk. simpl in IHk. 
   assert ((Im k`!%:R == 0%Re) /\ (0%Re < Re k`!%:R)).

@@ -64,7 +64,30 @@ destruct H1.
   - apply sqrt_pos.
 Qed.
 
+Lemma vec_norm_ge_0:
+  forall (n:nat) (v : 'cV[R]_n.+1),
+  (0 <= vec_norm v)%Re.
+Proof.
+intros. rewrite -vec_norm_R_C. apply vec_norm_C_ge_0.
+Qed.
 
+
+Lemma vec_norm_sub_le:
+  forall (n:nat) (v1 v2: 'cV[R]_n.+1),
+  vec_norm v1 - vec_norm v2 <= vec_norm (v1 - v2).
+Proof.
+intros. apply /RleP. rewrite -RminusE.
+assert ((vec_norm v1 <= vec_norm v2)%Re \/
+        (vec_norm v1 >= vec_norm v2)%Re).
+{ nra. } destruct H.
++ apply Rle_trans with 0%Re.  
+  - apply Rle_minus. apply H.
+  - apply vec_norm_ge_0.
++
+
+
+
+(*
 Lemma vec_norm_sub_le:
   forall (n:nat) (v1 v2: 'cV[complex R]_n.+1),
   vec_norm_C v1 - vec_norm_C v2 <= vec_norm_C (v1 - v2).
@@ -135,7 +158,13 @@ assert ((vec_norm_C v1 <= vec_norm_C v2)%Re \/
             assert ((c^2)%Re = Rsqr c)%Re. { unfold Rsqr; nra. }
             rewrite H6. apply Rle_0_sqr.
           } specialize (H4 H6). 
-           specialize (H4 H1). apply Rle_trans with 0%Re.
+           specialize (H4 H1). 
+
+
+
+
+  
+apply Rle_trans with 0%Re.
           -- Search (_ 
 
 
@@ -214,7 +243,7 @@ rewrite [in X in (_ <= X)%Re]Rabs_right.
 + apply Rabs_le. split.
   - match goal with |-context[(_ <= ?a - ?b)%Re]=>
       replace (a - b)%Re with (- (b - a))%Re by nra
-    end. apply Ropp_le_contravar.
+    end. apply Ropp_le_contravar. Locate vec_norm.
     Search vec_norm_C. 
 
 

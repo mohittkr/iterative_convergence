@@ -133,9 +133,9 @@ assert ((vec_norm_C v1 <= vec_norm_C v2)%Re \/
             rewrite H6. apply Rle_0_sqr.
             assert ((c^2)%Re = Rsqr c)%Re. { unfold Rsqr; nra. }
             rewrite H6. apply Rle_0_sqr.
-          } specialize (H4 H6).
+          } specialize (H4 H6). apply Rge_le in H1.
            specialize (H4 H1).
-  
+          
     
     
 

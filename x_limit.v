@@ -38,6 +38,36 @@ Theorem iter_convergence:
 
 **)
 
+Print vec_norm_add_le.
+
+Lemma sqrt_sub:
+  forall (x y :R), 
+  (0 <= x)%Re -> (0 <= y)%Re ->
+  (sqrt x - sqrt y <= sqrt (x + y))%Re.
+Proof.
+intros.
+apply Rsqr_incr_0_var. 
++ rewrite  Rsqr_sqrt; last by nra.
+  rewrite Rsqr_minus. repeat (rewrite  Rsqr_sqrt; last by nra).
+  assert (forall a b:R, (0 <= b)%Re -> (a - b <= a)%Re).
+  { intros. nra. } apply H1. repeat 
+  
+
+
+
+
+admit.
++ apply sqrt_pos.
+
+
+Lemma vec_norm_sub_le:
+  forall (n:nat) (v1 v2: 'cV[complex R]_n.+1),
+  vec_norm_C v1 - vec_norm_C v2 <= vec_norm_C (v1 - v2).
+Proof.
+intros. apply /RleP. rewrite -RminusE.
+unfold vec_norm_C.
+
+*)
 Theorem x_limit_eq: 
   forall (n:nat) (A: 'M[R]_n.+1) (b: 'cV[R]_n.+1)
   (A1 A2 : 'M[R]_n.+1), 

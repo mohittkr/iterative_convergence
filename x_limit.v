@@ -83,7 +83,10 @@ assert ((vec_norm v1 <= vec_norm v2)%Re \/
 + apply Rle_trans with 0%Re.  
   - apply Rle_minus. apply H.
   - apply vec_norm_ge_0.
-+
++ unfold vec_norm. eapply Rle_trans. apply sqrt_sub.
+  apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rle_0_sqr. 
+  apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rle_0_sqr.
+  
 
 
 

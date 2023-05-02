@@ -148,7 +148,15 @@ rewrite [in X in (_ <= X)%Re]Rabs_right.
     end. apply Ropp_le_contravar. 
     rewrite -!vec_norm_R_C. eapply Rle_trans.
     apply /RleP. apply vec_norm_sub_le.
-    
+    assert ((RtoC_vec x - RtoC_vec (X_m n0.+1 x0 b A1 A2)) = 
+             - (RtoC_vec (X_m n0.+1 x0 b A1 A2 - x))).
+    { apply matrixP. unfold eqrel. intros. rewrite !mxE.
+      apply /eqP. rewrite eq_complex. simpl. apply /andP.
+      split.
+      + apply /eqP. rewrite -!RminusE -!RplusE -RoppE. nra.
+      + apply /eqP. rewrite -RminusE. rewrite -RoppE. 
+        rewrite Rminus_0_r. by rewrite Ropp_0. 
+    } rewrite H6. rewrite -vec_norm_opp. unfold x. apply Rle_refl.
     
 
 

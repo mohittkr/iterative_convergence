@@ -91,7 +91,11 @@ assert ((vec_norm_C v1 <= vec_norm_C v2)%Re \/
     apply C_mod_ge_0. apply Rge_le. apply H.
     apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
     apply C_mod_ge_0.
-  - 
+  - rewrite Rle_minus_l. 
+    apply /RleP. rewrite RplusE. rewrite big_sum_add.
+    
+
+apply /RleP. rewrite RminusE. 
  
 apply Rsqr_0_le.
 

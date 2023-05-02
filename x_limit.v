@@ -94,7 +94,8 @@ assert ((vec_norm_C v1 <= vec_norm_C v2)%Re \/
   - rewrite Rle_minus_l. 
     apply /RleP. rewrite RplusE. rewrite big_sum_add.
     apply big_sum_ge_ex_abstract. intros. rewrite -RplusE.
-    rewrite -Rle_minus_l. rewrite mxE. 
+    rewrite -Rle_minus_l. 
+    rewrite mxE. 
     rewrite -!conj_mag_re. rewrite !mxE.
     assert (v1 i 0 = (Re (v1 i 0) +i* Im (v1 i 0))%C).
     { apply C_destruct. } 
@@ -104,7 +105,13 @@ assert ((vec_norm_C v1 <= vec_norm_C v2)%Re \/
     remember (Re (v2 i 0)) as b.
     remember (Im (v1 i 0)) as c.
     remember (Im (v2 i 0)) as d.
-    simpl. rewrite !mxE.
+    simpl. rewrite -!RplusE -!RmultE -!RoppE.
+    assert (((a + - b) * (a + - b) +
+                - ((c + - d) * (d + - c)))%Re = 
+            ( (a - b) * (a - b) + (c - d) * (c - d))%Re).
+    { nra. } rewrite H3. clear H3.
+    
+    
 
 
 

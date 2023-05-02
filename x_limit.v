@@ -73,28 +73,25 @@ intros. apply /RleP. rewrite -RminusE.
 assert ((vec_norm_C v1 <= vec_norm_C v2)%Re \/
         (vec_norm_C v1 >= vec_norm_C v2)%Re).
 { nra. } destruct H.
-+ apply Rle_trans with 0%Re. 
-  
-
-
-
-
-
-unfold vec_norm_C. 
-eapply Rle_trans. apply sqrt_sub.
-apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
-apply C_mod_ge_0. 
-apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
-apply C_mod_ge_0. 
-apply sqrt_le_1.
-+ apply Rplus_le_le_0_compat. 
++ apply Rle_trans with 0%Re.  
+  - apply Rle_minus. apply H.
+  - apply vec_norm_C_ge_0.
++ unfold vec_norm_C. 
+  eapply Rle_trans. apply sqrt_sub.
   apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
   apply C_mod_ge_0. 
   apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
   apply C_mod_ge_0. 
-  apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
-  apply C_mod_ge_0.
-+ 
+  apply sqrt_le_1.
+  - unfold vec_norm_C in H. rewrite -Rminus_le_0.
+    apply sqrt_le_0. 
+    apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
+    apply C_mod_ge_0. 
+    apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
+    apply C_mod_ge_0. apply Rge_le. apply H.
+    apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
+    apply C_mod_ge_0.
+  - 
  
 apply Rsqr_0_le.
 

@@ -70,6 +70,16 @@ Lemma vec_norm_sub_le:
   vec_norm_C v1 - vec_norm_C v2 <= vec_norm_C (v1 - v2).
 Proof.
 intros. apply /RleP. rewrite -RminusE.
+assert ((vec_norm_C v1 <= vec_norm_C v2)%Re \/
+        (vec_norm_C v1 >= vec_norm_C v2)%Re).
+{ nra. } destruct H.
++ apply Rle_trans with 0%Re. 
+  
+
+
+
+
+
 unfold vec_norm_C. 
 eapply Rle_trans. apply sqrt_sub.
 apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.

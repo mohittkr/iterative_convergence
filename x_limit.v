@@ -101,8 +101,8 @@ assert ((vec_norm_C v1 <= vec_norm_C v2)%Re \/
     * apply Rle_trans with 0%Re.
       ++ apply Rle_minus. apply Rsqr_incr_1. apply H1.
          apply C_mod_ge_0. apply C_mod_ge_0. 
-         apply Rle_0_sqr.
-      ++  rewrite mxE. 
+      ++ apply Rle_0_sqr.
+    * rewrite mxE. 
           rewrite -!conj_mag_re. rewrite !mxE.
           assert (v1 i 0 = (Re (v1 i 0) +i* Im (v1 i 0))%C).
           { apply C_destruct. } 
@@ -118,6 +118,7 @@ assert ((vec_norm_C v1 <= vec_norm_C v2)%Re \/
                   ( (a - b) * (a - b) + (c - d) * (c - d))%Re).
           { nra. } rewrite H4. clear H4.
           unfold C_mod in H1. rewrite -Heqa -Heqb -Heqc -Heqd in H1.
+          apply Rge_le in H1.
           pose proof sqrt_le_0.
           specialize (H4  (b ^+ 2 + d ^+ 2)%Re (a ^+ 2 + c ^+ 2)%Re).
           assert ((0 <= b ^+ 2 + d ^+ 2)%Re).
@@ -133,8 +134,18 @@ assert ((vec_norm_C v1 <= vec_norm_C v2)%Re \/
             rewrite H6. apply Rle_0_sqr.
             assert ((c^2)%Re = Rsqr c)%Re. { unfold Rsqr; nra. }
             rewrite H6. apply Rle_0_sqr.
-          } specialize (H4 H6). apply Rge_le in H1.
-           specialize (H4 H1).
+          } specialize (H4 H6). 
+           specialize (H4 H1). apply Rle_trans with 0%Re.
+          -- Search (_ 
+
+
+
+ rewrite Rle_minus_l.
+
+
+          Search (_ - _ <= _)%Re.
+
+
           assert ((a * a + c * c - (b * b + d * d))%Re =  
                    ((Rsqr a - Rsqr b) + (Rsqr c - Rsqr d))%Re).
           { unfold Rsqr; nra. } rewrite H7. clear H7.

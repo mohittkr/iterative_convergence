@@ -102,28 +102,22 @@ assert ((vec_norm_C v1 <= vec_norm_C v2)%Re \/
       ++ apply Rle_minus. apply Rsqr_incr_1. apply H1.
          apply C_mod_ge_0. apply C_mod_ge_0. 
          apply Rle_0_sqr.
-      ++
-    
-
-
-
-
-
-    rewrite mxE. 
-    rewrite -!conj_mag_re. rewrite !mxE.
-    assert (v1 i 0 = (Re (v1 i 0) +i* Im (v1 i 0))%C).
-    { apply C_destruct. } 
-    assert (v2 i 0 = (Re (v2 i 0) +i* Im (v2 i 0))%C).
-    { apply C_destruct. } rewrite H1 H2. simpc.
-    remember (Re (v1 i 0)) as a.
-    remember (Re (v2 i 0)) as b.
-    remember (Im (v1 i 0)) as c.
-    remember (Im (v2 i 0)) as d.
-    simpl. rewrite -!RplusE -!RmultE -!RoppE.
-    assert (((a + - b) * (a + - b) +
-                - ((c + - d) * (d + - c)))%Re = 
-            ( (a - b) * (a - b) + (c - d) * (c - d))%Re).
-    { nra. } rewrite H3. clear H3.
+      ++  rewrite mxE. 
+          rewrite -!conj_mag_re. rewrite !mxE.
+          assert (v1 i 0 = (Re (v1 i 0) +i* Im (v1 i 0))%C).
+          { apply C_destruct. } 
+          assert (v2 i 0 = (Re (v2 i 0) +i* Im (v2 i 0))%C).
+          { apply C_destruct. } rewrite H2 H3. simpc.
+          remember (Re (v1 i 0)) as a.
+          remember (Re (v2 i 0)) as b.
+          remember (Im (v1 i 0)) as c.
+          remember (Im (v2 i 0)) as d.
+          simpl. rewrite -!RplusE -!RmultE -!RoppE.
+          assert (((a + - b) * (a + - b) +
+                      - ((c + - d) * (d + - c)))%Re = 
+                  ( (a - b) * (a - b) + (c - d) * (c - d))%Re).
+          { nra. } rewrite H4. clear H4.
+          
     
     
 

@@ -1,0 +1,7 @@
+complex_mat_vec_prop.v
+matrix_norm.v
+iter_necessity.v
+iter_convergence.v
+gauss_seidel.v
+jacobi.v 
+x_limit.v 

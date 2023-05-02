@@ -22,24 +22,6 @@ From mathcomp Require Import complex.
 Require Import complex_mat_vec_prop iter_necessity matrix_norm iter_convergence.
 Import ComplexField.
 
-
-(**
-Theorem iter_convergence: 
-  forall (n:nat) (A: 'M[R]_n.+1) (b: 'cV[R]_n.+1)
-  (A1 A2 : 'M[R]_n.+1), 
-  A \in unitmx ->
-   A1 \in unitmx ->
-   A = A1 + A2 ->
-   let x := (invmx A) *m b in
-   (let S_mat:= RtoC_mat (- ( A1^-1 *m A2)) in 
-     (forall (i: 'I_n.+1), (C_mod (lambda S_mat i) < 1)%Re)) <->
-    (forall x0: 'cV[R]_n.+1,
-        is_lim_seq (fun m:nat => vec_norm ((X_m m.+1 x0 b A1 A2) - x)) 0%Re).
-
-**)
-
-Print vec_norm_add_le.
-
 Lemma sqrt_sub:
   forall (x y :R), 
   (0 <= x)%Re -> (0 <= y)%Re ->
@@ -166,20 +148,6 @@ rewrite [in X in (_ <= X)%Re]Rabs_right.
       + apply /eqP. rewrite -!RminusE -!RplusE. nra.
       + apply /eqP. rewrite -RminusE.  
         by rewrite Rminus_0_r. 
-    }
-
- apply /RleP. apply vec_norm_sub_le.
-
-
-
-
-
-
-
- admit.
+    } rewrite H6. apply vec_norm_sub_le.
 + rewrite -vec_norm_R_C. apply Rle_ge. apply vec_norm_C_ge_0.
-
-
-
-
-Admitted.
+Qed.

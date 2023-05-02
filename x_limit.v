@@ -71,7 +71,19 @@ intros. specialize (H4 n0 H5).
 rewrite Rminus_0_r . rewrite Rminus_0_r in H4.
 eapply Rle_lt_trans; last by apply H4.
 rewrite [in X in (_ <= X)%Re]Rabs_right.
-+ admit.
++ apply Rabs_le. split.
+  - match goal with |-context[(_ <= ?a - ?b)%Re]=>
+      replace (a - b)%Re with (- (b - a))%Re by nra
+    end. apply Ropp_le_contravar.
+    Search vec_norm_C. 
+
+
+
+
+
+
+
+ admit.
 + rewrite -vec_norm_R_C. apply Rle_ge. apply vec_norm_C_ge_0.
 
 

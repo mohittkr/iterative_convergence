@@ -62,6 +62,16 @@ Lemma vec_norm_sub_le:
 Proof.
 intros. apply /RleP. rewrite -RminusE.
 unfold vec_norm_C.
+eapply Rle_trans. apply sqrt_sub.
+apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
+apply C_mod_ge_0. 
+apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
+apply C_mod_ge_0. 
+ 
+apply Rsqr_0_le.
+
+
+
 
 *)
 Theorem x_limit_eq: 

@@ -43,9 +43,30 @@ Print vec_norm_add_le.
 Lemma sqrt_sub:
   forall (x y :R), 
   (0 <= x)%Re -> (0 <= y)%Re ->
-  (sqrt x - sqrt y <= sqrt (x + y))%Re.
+  (sqrt x - sqrt y <= sqrt (x - y))%Re.
 Proof.
 intros.
+assert ((x <= y)%Re \/ (x >= y)%Re). nra.
+destruct H1.
++ apply Rle_trans with 0%Re; last by apply sqrt_pos.
+  apply Rle_minus. by apply sqrt_le_1.
++ apply Rsqr_incr_0_var. 
+  rewrite  Rsqr_sqrt; last by nra.
+  assert ( (x - y)%Re = (Rsqr (sqrt x) - Rsqr (sqrt y))%Re).
+  { by repeat (rewrite  Rsqr_sqrt; last by nra). }
+  rewrite H2. rewrite -Rsqr_plus_minus. unfold Rsqr.
+  apply Rmult_le_compat_r.
+  -
+
+
+
+
+  rewrite Rsqr_minus. repeat (rewrite  Rsqr_sqrt; last by nra).
+  
+
+
+
+
 apply Rsqr_incr_0_var. 
 + rewrite  Rsqr_sqrt; last by nra.
   rewrite Rsqr_minus. repeat (rewrite  Rsqr_sqrt; last by nra).
@@ -61,7 +82,7 @@ Lemma vec_norm_sub_le:
   vec_norm_C v1 - vec_norm_C v2 <= vec_norm_C (v1 - v2).
 Proof.
 intros. apply /RleP. rewrite -RminusE.
-unfold vec_norm_C.
+unfold vec_norm_C. 
 eapply Rle_trans. apply sqrt_sub.
 apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
 apply C_mod_ge_0. 
@@ -73,6 +94,9 @@ apply sqrt_le_1.
   apply C_mod_ge_0. 
   apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
   apply C_mod_ge_0. 
+  apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
+  apply C_mod_ge_0.
++ 
  
 apply Rsqr_0_le.
 

@@ -67,6 +67,12 @@ apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
 apply C_mod_ge_0. 
 apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
 apply C_mod_ge_0. 
+apply sqrt_le_1.
++ apply Rplus_le_le_0_compat. 
+  apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
+  apply C_mod_ge_0. 
+  apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
+  apply C_mod_ge_0. 
  
 apply Rsqr_0_le.
 

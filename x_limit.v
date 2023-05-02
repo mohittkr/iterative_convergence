@@ -56,7 +56,9 @@ destruct H1.
   { by repeat (rewrite  Rsqr_sqrt; last by nra). }
   rewrite H2. rewrite -Rsqr_plus_minus. unfold Rsqr.
   apply Rmult_le_compat_r.
-  -
+  - rewrite -Rminus_le_0. 
+    apply sqrt_le_1. apply H0. apply H. apply Rge_le. apply H1.
+  - nra.
 
 
 

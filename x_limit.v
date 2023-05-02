@@ -71,152 +71,31 @@ Proof.
 intros. rewrite -vec_norm_R_C. apply vec_norm_C_ge_0.
 Qed.
 
-
-Lemma vec_norm_sub_le:
-  forall (n:nat) (v1 v2: 'cV[R]_n.+1),
-  vec_norm v1 - vec_norm v2 <= vec_norm (v1 - v2).
-Proof.
-intros. apply /RleP. rewrite -RminusE.
-assert ((vec_norm v1 <= vec_norm v2)%Re \/
-        (vec_norm v1 >= vec_norm v2)%Re).
-{ nra. } destruct H.
-+ apply Rle_trans with 0%Re.  
-  - apply Rle_minus. apply H.
-  - apply vec_norm_ge_0.
-+ unfold vec_norm. eapply Rle_trans. apply sqrt_sub.
-  apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rle_0_sqr. 
-  apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rle_0_sqr.
-  apply sqrt_le_1.
-  - unfold vec_norm in H. rewrite -Rminus_le_0.
-    apply sqrt_le_0. 
-    apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rle_0_sqr. 
-    apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rle_0_sqr.
-    apply Rge_le. apply H.
-    apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rle_0_sqr.
-  - admit.
-
-
-
-(*
 Lemma vec_norm_sub_le:
   forall (n:nat) (v1 v2: 'cV[complex R]_n.+1),
   vec_norm_C v1 - vec_norm_C v2 <= vec_norm_C (v1 - v2).
 Proof.
-intros. apply /RleP. rewrite -RminusE.
-assert ((vec_norm_C v1 <= vec_norm_C v2)%Re \/
-        (vec_norm_C v1 >= vec_norm_C v2)%Re).
-{ nra. } destruct H.
-+ apply Rle_trans with 0%Re.  
-  - apply Rle_minus. apply H.
-  - apply vec_norm_C_ge_0.
-+ unfold vec_norm_C. 
-  eapply Rle_trans. apply sqrt_sub.
-  apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
-  apply C_mod_ge_0. 
-  apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
-  apply C_mod_ge_0. 
-  apply sqrt_le_1.
-  - unfold vec_norm_C in H. rewrite -Rminus_le_0.
-    apply sqrt_le_0. 
-    apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
-    apply C_mod_ge_0. 
-    apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
-    apply C_mod_ge_0. apply Rge_le. apply H.
-    apply /RleP. apply big_ge_0_ex_abstract. intros. apply /RleP. apply Rsqr_ge_0.
-    apply C_mod_ge_0.
-  - rewrite Rle_minus_l. 
-    apply /RleP. rewrite RplusE. rewrite big_sum_add.
-    apply big_sum_ge_ex_abstract. intros. rewrite -RplusE.
-    rewrite -Rle_minus_l. 
-    assert ((C_mod (v1 i ord0) <= C_mod (v2 i ord0))%Re \/
-            (C_mod (v1 i ord0) >= C_mod (v2 i ord0))%Re).
-    { nra. } destruct H1.
-    * apply Rle_trans with 0%Re.
-      ++ apply Rle_minus. apply Rsqr_incr_1. apply H1.
-         apply C_mod_ge_0. apply C_mod_ge_0. 
-      ++ apply Rle_0_sqr.
-    * rewrite mxE. 
-          rewrite -!conj_mag_re. rewrite !mxE.
-          assert (v1 i 0 = (Re (v1 i 0) +i* Im (v1 i 0))%C).
-          { apply C_destruct. } 
-          assert (v2 i 0 = (Re (v2 i 0) +i* Im (v2 i 0))%C).
-          { apply C_destruct. } rewrite H2 H3. simpc.
-          remember (Re (v1 i 0)) as a.
-          remember (Re (v2 i 0)) as b.
-          remember (Im (v1 i 0)) as c.
-          remember (Im (v2 i 0)) as d.
-          simpl. rewrite -!RplusE -!RmultE -!RoppE.
-          assert (((a + - b) * (a + - b) +
-                      - ((c + - d) * (d + - c)))%Re = 
-                  ( (a - b) * (a - b) + (c - d) * (c - d))%Re).
-          { nra. } rewrite H4. clear H4.
-          unfold C_mod in H1. rewrite -Heqa -Heqb -Heqc -Heqd in H1.
-          apply Rge_le in H1.
-          pose proof sqrt_le_0.
-          specialize (H4  (b ^+ 2 + d ^+ 2)%Re (a ^+ 2 + c ^+ 2)%Re).
-          assert ((0 <= b ^+ 2 + d ^+ 2)%Re).
-          { rewrite -!RpowE. apply Rplus_le_le_0_compat.
-            assert ((b^2)%Re = Rsqr b)%Re. { unfold Rsqr; nra. }
-            rewrite H5. apply Rle_0_sqr.
-            assert ((d^2)%Re = Rsqr d)%Re. { unfold Rsqr; nra. }
-            rewrite H5. apply Rle_0_sqr.
-          } specialize (H4 H5).
-          assert ((0 <= a ^+ 2 + c ^+ 2)%Re).
-          { rewrite -!RpowE. apply Rplus_le_le_0_compat.
-            assert ((a^2)%Re = Rsqr a)%Re. { unfold Rsqr; nra. }
-            rewrite H6. apply Rle_0_sqr.
-            assert ((c^2)%Re = Rsqr c)%Re. { unfold Rsqr; nra. }
-            rewrite H6. apply Rle_0_sqr.
-          } specialize (H4 H6). 
-           specialize (H4 H1). 
+intros. apply /RleP. rewrite Rle_minus_l.
+apply Rle_trans with (vec_norm_C ((v1 - v2) + v2)).
++ assert (v1 - v2 + v2 = v1).
+  { apply matrixP. unfold eqrel. intros. rewrite !mxE.
+    apply /eqP. rewrite eq_complex. apply /andP.
+    split.
+    - assert (v1 x y = (Re (v1 x y) +i* Im (v1 x y))%C).
+      { apply C_destruct. }
+      assert (v2 x y = (Re (v2 x y) +i* Im (v2 x y))%C).
+      { apply C_destruct. } rewrite H H0 /=.
+      apply /eqP. rewrite -RplusE -RminusE. nra.
+    - assert (v1 x y = (Re (v1 x y) +i* Im (v1 x y))%C).
+      { apply C_destruct. }
+      assert (v2 x y = (Re (v2 x y) +i* Im (v2 x y))%C).
+      { apply C_destruct. } rewrite H H0 /=.
+      apply /eqP. rewrite -RplusE -RminusE. nra.
+  } rewrite H. apply Rle_refl.
++ apply /RleP. apply vec_norm_add_le.
+Qed.
 
 
-
-
-  
-apply Rle_trans with 0%Re.
-          -- Search (_ 
-
-
-
- rewrite Rle_minus_l.
-
-
-          Search (_ - _ <= _)%Re.
-
-
-          assert ((a * a + c * c - (b * b + d * d))%Re =  
-                   ((Rsqr a - Rsqr b) + (Rsqr c - Rsqr d))%Re).
-          { unfold Rsqr; nra. } rewrite H7. clear H7.
-          apply Rplus_le_compat.
-
-
-
-
-
-          assert (forall p q r s :R, 
-                    (0 <= p)%Re -> (0 <= q)%Re -> (0 <= r)%Re -> (0 <= s)%Re ->
-                    (p + r <= q + s)%Re -> (p <= q)%Re /\ (r <= s)%Re).
-          { intros. nra.
-    
-    
-
-
-
-
-
- rewrite -Rsqr_plus_minus. unfold Rsqr.
-    
-    Search C_mod.
-  
-apply /RleP. rewrite RminusE. 
- 
-apply Rsqr_0_le.
-
-
-
-
-*)
 Theorem x_limit_eq: 
   forall (n:nat) (A: 'M[R]_n.+1) (b: 'cV[R]_n.+1)
   (A1 A2 : 'M[R]_n.+1), 

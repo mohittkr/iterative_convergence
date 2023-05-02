@@ -58,26 +58,12 @@ destruct H1.
   apply Rmult_le_compat_r.
   - rewrite -Rminus_le_0. 
     apply sqrt_le_1. apply H0. apply H. apply Rge_le. apply H1.
-  - nra.
-
-
-
-
-  rewrite Rsqr_minus. repeat (rewrite  Rsqr_sqrt; last by nra).
-  
-
-
-
-
-apply Rsqr_incr_0_var. 
-+ rewrite  Rsqr_sqrt; last by nra.
-  rewrite Rsqr_minus. repeat (rewrite  Rsqr_sqrt; last by nra).
-  assert (forall a b:R, (0 <= b)%Re -> (a - b <= a)%Re).
-  { intros. nra. } apply H1. 
-  repeat apply Rmult_le_pos; try nra; try apply sqrt_pos.
-+ apply sqrt_pos.
+  - apply Rplus_le_compat_l. apply Rle_trans with 0%Re.
+    assert (0%Re = (- 0)%Re). nra. rewrite H3.
+    apply Ropp_le_contravar. apply sqrt_pos. apply sqrt_pos.
+  - apply sqrt_pos.
 Qed.
-  
+
 
 Lemma vec_norm_sub_le:
   forall (n:nat) (v1 v2: 'cV[complex R]_n.+1),

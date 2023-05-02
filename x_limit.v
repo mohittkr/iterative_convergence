@@ -96,6 +96,19 @@ apply Rle_trans with (vec_norm_C ((v1 - v2) + v2)).
 Qed.
 
 
+
+Lemma vec_norm_opp:
+  forall (n:nat) (v1: 'cV[complex R]_n.+1),
+  vec_norm_C v1 = vec_norm_C (-v1).
+Proof.
+intros.
+unfold vec_norm_C.
+assert (\sum_l (C_mod (v1 l 0))² = \sum_l (C_mod ((- v1) l 0))²).
+{ apply eq_big. by []. intros. rewrite mxE. by rewrite C_mod_minus_x. }
+by rewrite H. 
+Qed.
+
+
 Theorem x_limit_eq: 
   forall (n:nat) (A: 'M[R]_n.+1) (b: 'cV[R]_n.+1)
   (A1 A2 : 'M[R]_n.+1), 
@@ -132,8 +145,11 @@ rewrite [in X in (_ <= X)%Re]Rabs_right.
 + apply Rabs_le. split.
   - match goal with |-context[(_ <= ?a - ?b)%Re]=>
       replace (a - b)%Re with (- (b - a))%Re by nra
-    end. apply Ropp_le_contravar. Locate vec_norm.
-    Search vec_norm_C. 
+    end. apply Ropp_le_contravar. 
+    rewrite -!vec_norm_R_C. eapply Rle_trans.
+    apply /RleP. apply vec_norm_sub_le.
+    
+    
 
 
 

@@ -135,6 +135,15 @@ assert ((vec_norm_C v1 <= vec_norm_C v2)%Re \/
             rewrite H6. apply Rle_0_sqr.
           } specialize (H4 H6). apply Rge_le in H1.
            specialize (H4 H1).
+          assert ((a * a + c * c - (b * b + d * d))%Re =  
+                   ((Rsqr a - Rsqr b) + (Rsqr c - Rsqr d))%Re).
+          { unfold Rsqr; nra. } rewrite H7. clear H7.
+          apply Rplus_le_compat.
+
+
+
+
+
           assert (forall p q r s :R, 
                     (0 <= p)%Re -> (0 <= q)%Re -> (0 <= r)%Re -> (0 <= s)%Re ->
                     (p + r <= q + s)%Re -> (p <= q)%Re /\ (r <= s)%Re).

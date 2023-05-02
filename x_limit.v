@@ -117,7 +117,23 @@ assert ((vec_norm_C v1 <= vec_norm_C v2)%Re \/
                       - ((c + - d) * (d + - c)))%Re = 
                   ( (a - b) * (a - b) + (c - d) * (c - d))%Re).
           { nra. } rewrite H4. clear H4.
-          
+          unfold C_mod in H1. rewrite -Heqa -Heqb -Heqc -Heqd in H1.
+          pose proof sqrt_le_0.
+          specialize (H4 (a ^+ 2 + c ^+ 2)%Re (b ^+ 2 + d ^+ 2)%Re).
+          assert ((0 <= a ^+ 2 + c ^+ 2)%Re).
+          { rewrite -!RpowE. apply Rplus_le_le_0_compat.
+            assert ((a^2)%Re = Rsqr a)%Re. { unfold Rsqr; nra. }
+            rewrite H5. apply Rle_0_sqr.
+            assert ((c^2)%Re = Rsqr c)%Re. { unfold Rsqr; nra. }
+            rewrite H5. apply Rle_0_sqr.
+          } specialize (H4 H5).
+          assert ((0 <= b ^+ 2 + d ^+ 2)%Re).
+          { rewrite -!RpowE. apply Rplus_le_le_0_compat.
+            assert ((b^2)%Re = Rsqr b)%Re. { unfold Rsqr; nra. }
+            rewrite H6. apply Rle_0_sqr.
+            assert ((d^2)%Re = Rsqr d)%Re. { unfold Rsqr; nra. }
+            rewrite H6. apply Rle_0_sqr.
+          } specialize (H4 H6).
     
     
 

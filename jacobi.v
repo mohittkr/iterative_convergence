@@ -1503,9 +1503,7 @@ Theorem Jacobi_converges:
   let A := (Ah 2%N h) in 
   let x := (invmx A) *m b in  
     (forall x0: 'cV[R]_3,
-        is_lim_seq (fun m:nat => vec_norm 
-          (addmx (X_m m.+1 x0 b (A1_J 2%N h) (A2_J 2%N h)) 
-                  (oppmx x))) 0%Re).
+        is_lim_seq (fun m:nat => vec_norm (addmx (X_m m.+1 x0 b (A1_J 2%N h) (A2_J 2%N h)) (oppmx x))) 0%Re).
 Proof.
 intros.
 apply iter_convergence.

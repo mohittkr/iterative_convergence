@@ -10,13 +10,12 @@ We formally prove the following in Coq:
 
 # Dependencies:
 
-All the developments have been done in Coq 8.12.0. To successfully compile the code, following dependencies are required:
-- `mathcomp 1.12.0 or later` 
-- `mathcomp-analysis 0.3.7`
-- `coquelicot 3.2.0`
-- `coqeal 1.0.5 or later`
--  `mathcomp real-closed 1.1.2 or later`
-- To install the matrix canonical forms, clone: `https://github.com/coq-community/matrix_canonical_forms.git`
+All the developments have been done in Coq 8.16.1. To successfully compile the code, following dependencies are required:
+- `mathcomp 1.17.0` 
+- `mathcomp-analysis 0.6.4`
+- `coquelicot 3.4.0`
+- `coqeal 1.1.3`
+-  `mathcomp real-closed 1.1.4`
 
 # Building and installing instructions
 

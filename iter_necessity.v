@@ -12,7 +12,7 @@ Require Import Coquelicot.Lim_seq.
 Require Import Coquelicot.Rbar.
 Require Import Coquelicot.Hierarchy Coquelicot.Lub.
 From mathcomp Require Import mxalgebra matrix all_field.
-From matrix_canonical_forms Require Import jordan similar closed_poly frobenius_form.
+From CoqEAL Require Import jordan similar closed_poly frobenius_form.
 From CoqEAL Require Import mxstructure ssrcomplements.
 From mathcomp Require Import mxalgebra mxpoly.
 
@@ -34,14 +34,19 @@ From mathcomp Require Import complex.
 Require Import complex_mat_vec_prop matrix_norm.
 Import ComplexField.
 
+
 Lemma V_exists:
 forall (n:nat) (A: 'M[complex R]_n.+1),
   exists V, V \in unitmx /\ 
       mulmx V A = mulmx (conform_mx V (Jordan_form A)) V.
 Proof.
-by apply Jordan.
+intros.
+assert (similar A (Jordan_form A)) by apply Jordan.
+rewrite /similar in H. destruct H. 
+destruct H0 as [V H0]. exists V. split.
+apply H0.
+apply H1.
 Qed.
-
 
 
 (** If A= B , C*A = C*B **)

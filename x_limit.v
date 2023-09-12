@@ -2,7 +2,7 @@ Require Import Reals Psatz R_sqrt R_sqr.
 From mathcomp Require Import all_algebra all_ssreflect ssrnum bigop.
 From mathcomp.analysis Require Import Rstruct normedtype topology.
 From mathcomp Require Import mxalgebra matrix all_field.
-From matrix_canonical_forms Require Import jordan similar closed_poly frobenius_form.
+From CoqEAL Require Import jordan similar closed_poly frobenius_form.
 From CoqEAL Require Import mxstructure ssrcomplements.
 
 Set Implicit Arguments.

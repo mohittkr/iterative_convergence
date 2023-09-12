@@ -21,6 +21,8 @@ All the developments have been done in Coq 8.16.1. To successfully compile the c
 
 To build and install, cd into the directory and  do:
 ```
+git clone https://github.com/mohittkr/iterative_convergence.git
+cd iterative_convergence
 make
 make install
 
